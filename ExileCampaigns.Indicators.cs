@@ -55,8 +55,7 @@ public partial class ExileCampaigns
         _lastInteractResolve = DateTime.Now;
 
         var flat = _route.CurrentStep;
-        var step = flat?.Step;
-        if (step == null) { _interactTargets = System.Array.Empty<InteractTarget>(); return; }
+        if (flat?.Model == null) { _interactTargets = System.Array.Empty<InteractTarget>(); return; }
 
         try
         {
@@ -64,9 +63,7 @@ public partial class ExileCampaigns
             // arrow source = ONLY the objective's explicit Indicators[] entity children (ALL matching
             // entities, one arrow each). no text-pass fallback: a step with no authored Indicator shows no
             // arrow. advance is unaffected (it runs through AdvanceEngine), so this is purely cosmetic.
-            var indTargets = flat?.Model != null
-                ? GuidanceView.IndicatorEntityTargets(flat.Model)
-                : (IReadOnlyList<Target>)System.Array.Empty<Target>();
+            var indTargets = GuidanceView.IndicatorEntityTargets(flat.Model);
             _interactTargets = indTargets.Count > 0
                 ? _targetResolver.ResolveIndicatorEntities(GameController, indTargets, maxDist)
                 : System.Array.Empty<InteractTarget>();

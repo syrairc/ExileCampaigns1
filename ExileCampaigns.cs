@@ -403,12 +403,12 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         }
 
         foreach (var st in _route.Previous(s.StepsBehind.Value, Settings.ShowOptional))
-            AddRow(st, st.Step.IsOptional ? s.OptionalColor.Value : dim, false);
+            AddRow(st, (st.Model?.Optional ?? false) ? s.OptionalColor.Value : dim, false);
 
         AddRow(current, s.CurrentColor.Value, true);
 
         foreach (var st in _route.Upcoming(s.StepsAhead.Value, Settings.ShowOptional))
-            AddRow(st, st.Step.IsOptional ? s.OptionalColor.Value : s.TextColor.Value, false);
+            AddRow(st, (st.Model?.Optional ?? false) ? s.OptionalColor.Value : s.TextColor.Value, false);
 
         return lines;
     }

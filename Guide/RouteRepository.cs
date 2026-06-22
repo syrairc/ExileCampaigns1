@@ -5,15 +5,15 @@ using System.Linq;
 namespace ExileCampaigns.Guide;
 
 // flattened step + its act and 1-based position within that act, for sequential navigation across the
-// campaign (StepInAct drives the steps-tracker number column + act headers). Model attaches the new
-// RouteStep for advance evaluation; null for synth headers.
-public sealed record FlatStep(int Act, int StepInAct, ParsedStep Step, RouteStep? Model = null)
+// campaign (StepInAct drives the steps-tracker number column + act headers). Model is null for area
+// header rows; HeaderAreaId/HeaderAreaName carry the zone identity for those rows.
+public sealed record FlatStep(int Act, int StepInAct, RouteStep? Model, string? HeaderAreaId = null, string? HeaderAreaName = null)
 {
-    // display string for overlay/banner: the model's clean Text. the synth ParsedStep bolts a typed
-    // KillFragment onto the full-text TextFragment, so its PlainText repeats the kill line ("kill X"
-    // twice). headers have no model -> fall back to the synth PlainText (the area label).
+    public bool IsHeader => Model == null;
     public string DisplayText =>
-        !string.IsNullOrEmpty(Model?.Text) ? Model!.Text : Step.PlainText();
+        Model != null ? Model.Text
+        : !string.IsNullOrEmpty(HeaderAreaName) ? HeaderAreaName!
+        : !string.IsNullOrEmpty(HeaderAreaId) ? $"-> {HeaderAreaId}" : "";
 }
 
 // loads per-act route files, flattens to one ordered sequence, tracks the current step. drives memory
@@ -48,66 +48,23 @@ public sealed class RouteRepository
     // count of real (numbered) steps in an act, for the route-progress stat. headers carry StepInAct 0.
     public int StepsInAct(int act) => _steps.Count(s => s.Act == act && s.StepInAct > 0);
 
-    // strip a zone header label to the bare name: "The Grelwood [WAYPOINT] (Lvl 3-5)" -> "The Grelwood".
-    // cut at the first " [" or " (" decoration, whichever comes first.
-    private static string CleanAreaLabel(string label)
-    {
-        if (string.IsNullOrEmpty(label)) return "";
-        int br = label.IndexOf(" [", StringComparison.Ordinal);
-        int pa = label.IndexOf(" (", StringComparison.Ordinal);
-        int cut = br < 0 ? pa : pa < 0 ? br : Math.Min(br, pa);
-        return (cut < 0 ? label : label.Substring(0, cut)).Trim();
-    }
-
-    // a zone-label line ({enter|id} / {area|id}): kept in the model for the area->index map, but never an
-    // objective. navigation never rests on one and they're excluded from Previous/Upcoming. note this is
-    // narrower than "has an AreaId" -- waypoint-use/logout/crafting steps carry an AreaId yet are real tasks.
-    private static bool IsHeaderStep(ParsedStep s) => s.IsHeader;
+    // a zone-label line: kept in the model for the area->index map, but never an objective. navigation
+    // never rests on one and they're excluded from Previous/Upcoming.
+    private static bool IsHeaderStep(FlatStep s) => s.IsHeader;
 
     // if Current landed on a zone-label header, move to the first real step in that zone (forward
     // preferred so entering a zone lands on its first task; fall back to the last real step behind).
     private void SnapOffHeader()
     {
         if (_steps.Count == 0) { Current = 0; return; }
-        if (!IsHeaderStep(_steps[Current].Step)) return;
+        if (!IsHeaderStep(_steps[Current])) return;
         for (int i = Current; i < _steps.Count; i++)
-            if (!IsHeaderStep(_steps[i].Step)) { Current = i; return; }
+            if (!IsHeaderStep(_steps[i])) { Current = i; return; }
         for (int i = Current - 1; i >= 0; i--)
-            if (!IsHeaderStep(_steps[i].Step)) { Current = i; return; }
+            if (!IsHeaderStep(_steps[i])) { Current = i; return; }
     }
 
-    // test helper: flatten pre-built sections directly. mirrors LoadFromDocument's flatten logic.
-    internal void LoadSections(IReadOnlyList<RouteSection> sections)
-    {
-        _steps.Clear(); _areaToIndices.Clear(); _stepArea.Clear(); _stepAreaName.Clear();
-        Current = 0;
-        foreach (var section in sections)
-        {
-            int stepInAct = 0; string curArea = ""; string curAreaName = "";
-            foreach (var step in section.Steps)
-            {
-                var index = _steps.Count;
-                int num = IsHeaderStep(step) ? 0 : ++stepInAct;
-                _steps.Add(new FlatStep(section.Act, num, step));
-                var areaId = step.AreaId;
-                if (!string.IsNullOrEmpty(areaId))
-                {
-                    curArea = areaId;
-                    if (!_areaToIndices.TryGetValue(areaId, out var list))
-                        _areaToIndices[areaId] = list = new List<int>();
-                    list.Add(index);
-                }
-                if (IsHeaderStep(step))
-                    curAreaName = CleanAreaLabel(step.PlainText());
-                _stepArea.Add(curArea);
-                _stepAreaName.Add(curAreaName);
-            }
-        }
-        SnapOffHeader();
-    }
-
-    // load the unified RouteDocument: one synth header per area boundary, then each model step as a
-    // FlatStep carrying both a synth ParsedStep (for guidance/render) and its RouteStep (for advance).
+    // load the unified RouteDocument: one header row per area boundary, then each model step.
     public bool LoadFromDocument(RouteDocument doc)
     {
         _steps.Clear(); _areaToIndices.Clear(); _stepArea.Clear(); _stepAreaName.Clear();
@@ -121,13 +78,12 @@ public sealed class RouteRepository
             // act split resets the per-act objective number, matching the act-file flatten.
             if (model.Act != act) { act = model.Act; stepInAct = 0; }
 
-            // area boundary: emit a synth header row (StepInAct 0, no model).
+            // area boundary: emit a header row (StepInAct 0, Model null).
             if (!string.Equals(model.AreaId, curArea, System.StringComparison.OrdinalIgnoreCase))
             {
                 curArea = model.AreaId ?? "";
-                var header = LegacyView.HeaderFor(model.AreaId ?? "", model.AreaName ?? "");
                 int hidx = _steps.Count;
-                _steps.Add(new FlatStep(model.Act, 0, header, null));
+                _steps.Add(new FlatStep(model.Act, 0, null, model.AreaId ?? "", model.AreaName ?? ""));
                 if (!string.IsNullOrEmpty(curArea))
                 {
                     if (!_areaToIndices.TryGetValue(curArea, out var hlist))
@@ -139,7 +95,7 @@ public sealed class RouteRepository
             }
 
             int idx = _steps.Count;
-            _steps.Add(new FlatStep(model.Act, ++stepInAct, LegacyView.ForStep(model), model));
+            _steps.Add(new FlatStep(model.Act, ++stepInAct, model));
             _stepArea.Add(curArea);
             _stepAreaName.Add(model.AreaName ?? "");
         }
@@ -166,7 +122,7 @@ public sealed class RouteRepository
         if (next == int.MaxValue) return;
 
         // the matched step is the zone-label header. rest the objective on the zone's first real task.
-        while (next < _steps.Count && IsHeaderStep(_steps[next].Step)) next++;
+        while (next < _steps.Count && IsHeaderStep(_steps[next])) next++;
         if (next < _steps.Count) Current = next;
     }
 
@@ -176,25 +132,8 @@ public sealed class RouteRepository
     public bool AdvanceCurrentStepIfMatch(Func<string, bool> matches)
     {
         if (_steps.Count == 0 || Current < 0 || Current >= _steps.Count) return false;
-        if (IsHeaderStep(_steps[Current].Step)) return false;
-        if (!matches(_steps[Current].Step.PlainText())) return false;
-        int target = Math.Min(Current + 1, _steps.Count - 1);
-        if (target <= Current) return false;
-        Current = target;
-        SnapOffHeader();
-        return true;
-    }
-
-    // advance past the current step iff its meta says "complete on entering <area>" and we just entered it.
-    // current-step-only (never scans ahead), so it can only fire when that exact step is showing -- e.g. the
-    // optional Mausoleum cache clears the moment you walk back into the Cemetery, whether or not you grabbed it.
-    public bool AdvanceCurrentStepIfEnteredArea(string? areaIdLower)
-    {
-        if (string.IsNullOrEmpty(areaIdLower) || _steps.Count == 0 || Current < 0 || Current >= _steps.Count) return false;
-        var step = _steps[Current].Step;
-        if (IsHeaderStep(step)) return false;
-        var want = step.Meta?.CompleteOnEnterArea;
-        if (string.IsNullOrEmpty(want) || !string.Equals(want, areaIdLower, StringComparison.OrdinalIgnoreCase)) return false;
+        if (IsHeaderStep(_steps[Current])) return false;
+        if (!matches(_steps[Current].Model?.Text ?? "")) return false;
         int target = Math.Min(Current + 1, _steps.Count - 1);
         if (target <= Current) return false;
         Current = target;
@@ -207,14 +146,14 @@ public sealed class RouteRepository
     // forward-only, within AdvanceWindow, scanning over consecutive dead reminders. returns -1 when the
     // current step is itself live (normal current-step advance applies) or no live step is in reach.
     // STOPS at a zone header: crossing a zone boundary is the area-change advance's job, never interaction's.
-    public int FirstLiveStepAheadIndex(Func<ParsedStep, bool> isDead)
+    public int FirstLiveStepAheadIndex(Func<RouteStep, bool> isDead)
     {
         if (isDead == null || _steps.Count == 0 || Current < 0 || Current >= _steps.Count) return -1;
-        if (IsHeaderStep(_steps[Current].Step) || !isDead(_steps[Current].Step)) return -1;
+        if (IsHeaderStep(_steps[Current]) || !isDead(_steps[Current].Model!)) return -1;
         for (int i = Current + 1; i < _steps.Count && i - Current <= AdvanceWindow; i++)
         {
-            if (IsHeaderStep(_steps[i].Step)) return -1;   // don't skip across a zone label
-            if (isDead(_steps[i].Step)) continue;          // skip a further dead reminder
+            if (IsHeaderStep(_steps[i])) return -1;        // don't skip across a zone label
+            if (isDead(_steps[i].Model!)) continue;        // skip a further dead reminder
             return i;                                       // first live step in reach
         }
         return -1;
@@ -226,9 +165,12 @@ public sealed class RouteRepository
     {
         if (string.IsNullOrEmpty(area)) return false;
         for (int i = 0; i < _steps.Count; i++)
+        {
+            if (IsHeaderStep(_steps[i])) continue;
             if (string.Equals(_stepArea[i], area, StringComparison.OrdinalIgnoreCase)
-                && matches(_steps[i].Step.PlainText()))
+                && matches(_steps[i].Model?.Text ?? ""))
                 return true;
+        }
         return false;
     }
 
@@ -237,7 +179,7 @@ public sealed class RouteRepository
     {
         if (_steps.Count == 0) return;
         int i = Current + 1;
-        while (i < _steps.Count && IsHeaderStep(_steps[i].Step)) i++;
+        while (i < _steps.Count && IsHeaderStep(_steps[i])) i++;
         if (i < _steps.Count) Current = i;
     }
 
@@ -245,7 +187,7 @@ public sealed class RouteRepository
     {
         if (_steps.Count == 0) return;
         int i = Current - 1;
-        while (i >= 0 && IsHeaderStep(_steps[i].Step)) i--;
+        while (i >= 0 && IsHeaderStep(_steps[i])) i--;
         if (i >= 0) Current = i;
     }
 
@@ -263,8 +205,8 @@ public sealed class RouteRepository
         int taken = 0;
         for (int i = Current + 1; i < _steps.Count && taken < count; i++)
         {
-            if (IsHeaderStep(_steps[i].Step)) continue;        // zone labels aren't objectives
-            if (!includeOptional && _steps[i].Step.IsOptional) continue;
+            if (IsHeaderStep(_steps[i])) continue;              // zone labels aren't objectives
+            if (!includeOptional && (_steps[i].Model?.Optional ?? false)) continue;
             taken++;
             yield return _steps[i];
         }
@@ -277,8 +219,8 @@ public sealed class RouteRepository
         var result = new List<FlatStep>();
         for (int i = Current - 1; i >= 0 && result.Count < count; i--)
         {
-            if (IsHeaderStep(_steps[i].Step)) continue;        // zone labels aren't objectives
-            if (!includeOptional && _steps[i].Step.IsOptional) continue;
+            if (IsHeaderStep(_steps[i])) continue;              // zone labels aren't objectives
+            if (!includeOptional && (_steps[i].Model?.Optional ?? false)) continue;
             result.Add(_steps[i]);
         }
         result.Reverse();

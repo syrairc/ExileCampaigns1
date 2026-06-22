@@ -88,6 +88,48 @@ public static partial class GuidanceView
         return false;
     }
 
+    // kill entity names the step targets: the first entity of each Kill objective (priority order),
+    // matching the single KillFragment LegacyView emitted per kill objective.
+    public static IReadOnlyList<string> KillTargets(RouteStep step)
+    {
+        var res = new List<string>();
+        if (step?.Objectives == null) return res;
+        foreach (var o in step.Objectives)
+            if (o.Type == ObjectiveType.Kill)
+            {
+                var name = o.Entities != null && o.Entities.Count > 0 ? o.Entities[0].Match.Value : null;
+                if (!string.IsNullOrWhiteSpace(name)) res.Add(name!);
+            }
+        return res;
+    }
+
+    // the step's interact-kind label (dialog|chest|proximity|kill), from the first objective whose type
+    // implies one. mirrors LegacyView's first-wins mapping.
+    public static string? InteractKind(RouteStep step)
+    {
+        if (step?.Objectives == null) return null;
+        foreach (var o in step.Objectives)
+            switch (o.Type)
+            {
+                case ObjectiveType.Kill: return "kill";
+                case ObjectiveType.Talk: return "dialog";
+                case ObjectiveType.Proximity: return "proximity";
+                case ObjectiveType.Interact: return "chest";
+            }
+        return null;
+    }
+
+    // ordered per-sub-objective progress flags from the first objective that declares any. drives the
+    // pathing's "drop the line to the room nearest the player when one flips".
+    public static IReadOnlyList<string> ProgressFlags(RouteStep step)
+    {
+        if (step?.Objectives == null) return System.Array.Empty<string>();
+        foreach (var o in step.Objectives)
+            if (o.ProgressFlags is { Count: > 0 })
+                return o.ProgressFlags.Select(p => p.Value).ToList();
+        return System.Array.Empty<string>();
+    }
+
     // every objective MinimapIcon for steps in the given area. anchor = the icon's own Target, else the
     // objective's first Indicator target, else its first Path target; skipped when none exist. an objective
     // may carry several icons (each its own sprite/tint/size/target).

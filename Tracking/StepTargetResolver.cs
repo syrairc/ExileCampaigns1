@@ -27,18 +27,6 @@ public sealed class InteractTarget
     public required string MatchedName { get; init; }
 }
 
-// a Radar room-based objective: a display name joined to a step by a distinctive word, the room-name filters
-// it lives in, and (optional, ordered) the per-sub-objective quest flags that flip as you complete each.
-// EntityPath: when set, the objective is ENTITY-based instead of room-based -- match live entities whose
-// metadata Path contains this fragment (e.g. g1_4 "Runic Seals" -> "NailStake"), so a step whose objects
-// have no textual overlap with the step text still gets an indicator + path. interactable state
-// (Targetable.isTargetable) is the per-sub-objective completion signal, so no quest flags are needed.
-public sealed record ObjectiveDef(
-    string Name,
-    IReadOnlyList<string> Rooms,
-    IReadOnlyList<string> ProgressFlags,
-    string? EntityPath = null);
-
 // resolves the current step to one grid-space target coord for the path to aim at.
 // hybrid: live entities first, then authored tile-name fallback via Radar.ClusterTarget. order:
 //   1. kill/arena   -> matching hostile (boss) entity
@@ -55,19 +43,12 @@ public sealed class StepTargetResolver
     // path fallback for "Enter/Exit X" when the live AreaTransition entity isn't in render range yet.
     private readonly IReadOnlyDictionary<string, IReadOnlyList<(string Match, string Tile)>> _transitions;
 
-    // lowercased area-id -> Radar room-based objective markers (name + room-name filters + optional ordered
-    // progress flags). for an on-the-ground objective whose entity isn't a standard interactable (e.g. g1_5
-    // obelisks load as IngameIcon). resolved against AreaGraphs rooms, since the bridge drops the room filter.
-    private readonly IReadOnlyDictionary<string, IReadOnlyList<ObjectiveDef>> _objectives;
-
     public StepTargetResolver(
         IReadOnlyDictionary<string, string>? authoredTargets = null,
-        IReadOnlyDictionary<string, IReadOnlyList<(string Match, string Tile)>>? transitions = null,
-        IReadOnlyDictionary<string, IReadOnlyList<ObjectiveDef>>? objectives = null)
+        IReadOnlyDictionary<string, IReadOnlyList<(string Match, string Tile)>>? transitions = null)
     {
         _authoredTargets = authoredTargets ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         _transitions = transitions ?? new Dictionary<string, IReadOnlyList<(string, string)>>(StringComparer.OrdinalIgnoreCase);
-        _objectives = objectives ?? new Dictionary<string, IReadOnlyList<ObjectiveDef>>(StringComparer.OrdinalIgnoreCase);
     }
 
     // tile pattern -> Radar's ExpectedCount for the current area (only the >1 ones). set on area change from
@@ -83,7 +64,7 @@ public sealed class StepTargetResolver
     // only load within render range anyway, so the real gate is whether the entity exists.
     private const float InteractPathMaxDistance = 1000f;
 
-    public Vector2? Resolve(GameController gc, ParsedStep step, Func<string, int, Vector2[]>? clusterTarget,
+    public Vector2? Resolve(GameController gc, RouteStep step, Func<string, int, Vector2[]>? clusterTarget,
         string? effectiveAreaId = null)
     {
         if (gc == null || step == null) return null;
@@ -91,10 +72,7 @@ public sealed class StepTargetResolver
         var playerGrid = PlayerGrid(gc);
 
         // 1. kill/arena: aim at the matching hostile (the boss the step names).
-        var killNames = step.Fragments.OfType<KillFragment>().Select(f => f.Target)
-            .Concat(step.Fragments.OfType<ArenaFragment>().Select(f => f.Target))
-            .Where(n => !string.IsNullOrWhiteSpace(n))
-            .ToList();
+        var killNames = GuidanceView.KillTargets(step);
         if (killNames.Count > 0 && entities != null)
         {
             var boss = entities
@@ -105,15 +83,6 @@ public sealed class StepTargetResolver
                 .OrderBy(e => e.DistancePlayer)
                 .FirstOrDefault();
             if (boss != null) return GridOf(boss);
-        }
-
-        // 2. waypoint steps: go to nearest waypoint object.
-        var wantsWaypoint = step.Fragments.Any(f =>
-            f.Kind is FragmentKind.Waypoint or FragmentKind.WaypointUse or FragmentKind.WaypointGet);
-        if (wantsWaypoint && entities != null)
-        {
-            var wp = NearestByPath(entities, "Waypoint", playerGrid);
-            if (wp != null) return wp;
         }
 
         // 3. interaction target (chest/NPC/quest object) the step names, same entity the indicator points at.
@@ -147,17 +116,16 @@ public sealed class StepTargetResolver
         return ResolveAuthored(step, playerGrid, clusterTarget, effectiveAreaId);
     }
 
-    // is this step's objective the zone's boss arena (all the authored area-target map holds)? kill/arena
-    // steps only -- a zone whose authored tile is the boss (g1_2 -> Beira) must never path an "Enter <next
-    // zone>" step at the boss.
-    private static bool WantsAreaLandmark(ParsedStep step)
+    // should this step use the area's authored landmark tile as its path target? yes for kill steps and
+    // steps with an explicit pathTarget override; never for enter/transition steps (wrong destination).
+    private static bool WantsAreaLandmark(RouteStep step)
     {
         // an explicit per-step pathTarget (override layer) is always honored -- deliberate authoring, including
         // for OPTIONAL far bosses whose arena tile we want a path to (e.g. Balbala / Prison of the Disgraced
         // behind the seal door). without one, an optional step never borrows the area's boss tile.
-        if (step.Meta?.PathTarget is { Length: > 0 }) return true;
-        if (step.IsOptional) return false;
-        return step.Fragments.OfType<KillFragment>().Any() || step.Fragments.OfType<ArenaFragment>().Any();
+        if (GuidanceView.PathTilePatterns(step).Count > 0) return true;
+        if (step.Optional) return false;
+        return GuidanceView.KillTargets(step).Count > 0;
     }
 
     // the destination zone a navigation step heads to, or null if it isn't one. "Enter The Grelwood" ->
@@ -178,10 +146,10 @@ public sealed class StepTargetResolver
     // path target for an "Enter/Exit X" step: the live AreaTransition leading to X (matched on render name)
     // when in range. before it loads, the from-entry tile path comes from the EnterArea objective's Tile Path
     // child via the direct PathTilePatterns -> ResolveTiles fallback in Pathing (not from StepMeta anymore).
-    private Vector2? ResolveTransition(GameController gc, ParsedStep step, Vector2? playerGrid,
+    private Vector2? ResolveTransition(GameController gc, RouteStep step, Vector2? playerGrid,
         Func<string, int, Vector2[]>? clusterTarget, string? effectiveAreaId)
     {
-        var dest = TransitionDestination(step.PlainText());
+        var dest = TransitionDestination(step.Text);
         if (string.IsNullOrEmpty(dest)) return null;
 
         var entities = gc.EntityListWrapper?.Entities;
@@ -245,9 +213,9 @@ public sealed class StepTargetResolver
     // aim at the center of the AreaGraph room the step names, for when the real objective entity (a chest)
     // hasn't loaded. reads the same room set Radar does (IngameState.Data.AreaGraphs); the Radar.ClusterTarget
     // bridge can't be used here because it drops the room filter. nearest matching room to the player wins.
-    private static Vector2? ResolveRoom(GameController gc, ParsedStep step, Vector2? playerGrid)
+    private static Vector2? ResolveRoom(GameController gc, RouteStep step, Vector2? playerGrid)
     {
-        var hints = RoomHints(step.PlainText());
+        var hints = RoomHints(step.Text);
         if (hints.Count == 0) return null;
         try
         {
@@ -298,90 +266,26 @@ public sealed class StepTargetResolver
         return res;
     }
 
-    // generic Radar DisplayName words that must not, on their own, join an objective to a step (they recur
-    // across the game and would mis-join). a name needs a *distinctive* word (e.g. "Rust") to match.
-    private static readonly HashSet<string> ObjectiveStopWords = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "boss", "rare", "chest", "ring", "idol", "rune", "gold", "shrine", "random", "magic", "currency",
-        "strongbox", "monster", "reward", "piece", "vault", "essence", "seal", "buff", "skill", "support",
-        "spirit", "passive", "flask", "flasks",
-    };
-
     // a Radar room-based objective (e.g. g1_5 obelisks, tagged "Rust" over the "*Encounter*" rooms) for an
     // objective whose entity isn't loaded / isn't a standard interactable. join the objective name to the step
     // by a distinctive word, then aim at the nearest AreaGraphs room Radar tags. mirrors Radar's room target;
     // the Radar.ClusterTarget bridge can't do it (it drops the room filter).
-    private Vector2? ResolveObjective(GameController gc, ParsedStep step, Vector2? playerGrid, string? effectiveAreaId)
+    private Vector2? ResolveObjective(GameController gc, RouteStep step, Vector2? playerGrid, string? effectiveAreaId)
     {
-        // meta-first: step carries an embedded objective directly from the override layer.
-        if (step.Meta?.Objective != null)
-        {
-            var mo = step.Meta.Objective;
-            var mdef = new ObjectiveDef(mo.Label ?? "", mo.Rooms ?? new List<string>(), mo.ProgressFlags ?? new List<string>(), mo.EntityPath);
-            if (mdef.Rooms.Count > 0)
-            {
-                var hit = NearestRoomCenter(gc, playerGrid,
-                    rname => mdef.Rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase)));
-                if (hit != null) return hit;
-            }
-            return null;
-        }
-
-        // fallback: area-keyed JSON map (retired in Task 11).
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-        if (string.IsNullOrEmpty(key) || !_objectives.TryGetValue(key, out var objs)) return null;
-        var plain = step.PlainText();
-        if (string.IsNullOrWhiteSpace(plain)) return null;
-        foreach (var o in objs)
-        {
-            if (!ObjectiveNameInStep(o.Name, plain)) continue;
-            var hit = NearestRoomCenter(gc, playerGrid,
-                rname => o.Rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase)));
-            if (hit != null) return hit;
-        }
-        return null;
-    }
-
-    private static bool ObjectiveNameInStep(string name, string stepPlain)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return false;
-        foreach (var w in name.Split(new[] { ' ', '(', ')', '/', '-', ',', '+', '.' }, StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (w.Length < 4 || ObjectiveStopWords.Contains(w)) continue;
-            if (stepPlain.Contains(w, StringComparison.OrdinalIgnoreCase)) return true;
-        }
-        return false;
+        var rooms = GuidanceView.PathRoomPatterns(step);
+        if (rooms.Count == 0) return null;
+        return NearestRoomCenter(gc, playerGrid,
+            rname => rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase)));
     }
 
     // ALL matching Radar objective room centers for the step (e.g. the 3 Rust-obelisk Encounter rooms), so the
     // pathing can draw a line to each while the step waits on all of them. empty if the step names no objective.
-    public IReadOnlyList<Vector2> ResolveObjectiveTargets(GameController gc, ParsedStep step, string? effectiveAreaId)
+    public IReadOnlyList<Vector2> ResolveObjectiveTargets(GameController gc, RouteStep step, string? effectiveAreaId)
     {
-        var res = new List<Vector2>();
-        if (gc == null || step == null) return res;
-
-        // meta-first: step carries rooms directly from the override layer.
-        if (step.Meta?.Objective != null)
-        {
-            var mo = step.Meta.Objective;
-            var rooms = mo.Rooms ?? new List<string>();
-            if (rooms.Count > 0)
-                res.AddRange(AllRoomCenters(gc, rname => rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase))));
-            return res;
-        }
-
-        // fallback: area-keyed JSON map (retired in Task 11).
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-        if (string.IsNullOrEmpty(key) || !_objectives.TryGetValue(key, out var objs)) return res;
-        var plain = step.PlainText();
-        if (string.IsNullOrWhiteSpace(plain)) return res;
-        foreach (var o in objs)
-        {
-            if (!ObjectiveNameInStep(o.Name, plain)) continue;
-            res.AddRange(AllRoomCenters(gc, rname => o.Rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase))));
-            if (res.Count > 0) break;   // first matching objective wins
-        }
-        return res;
+        if (gc == null || step == null) return new List<Vector2>();
+        var rooms = GuidanceView.PathRoomPatterns(step);
+        if (rooms.Count == 0) return new List<Vector2>();
+        return AllRoomCenters(gc, rname => rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase))).ToList();
     }
 
     // ALL AreaGraph room centers whose name contains ANY of the given Room Path-child patterns. the decoupled
@@ -397,48 +301,13 @@ public sealed class StepTargetResolver
 
     // the ordered per-sub-objective progress flags for the objective the step names (e.g. the 3 Rust obelisk
     // flags), or empty. drives "drop the path to the room nearest the player when one flips" in the pathing.
-    public IReadOnlyList<string> ResolveObjectiveProgressFlags(ParsedStep step, string? effectiveAreaId)
-    {
-        if (step == null) return Array.Empty<string>();
-
-        // meta-first: progress flags come directly from the override layer.
-        if (step.Meta?.Objective != null)
-        {
-            var flags = step.Meta.Objective.ProgressFlags;
-            return flags != null && flags.Count > 0 ? flags : Array.Empty<string>();
-        }
-
-        // fallback: area-keyed JSON map (retired in Task 11).
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-        if (string.IsNullOrEmpty(key) || !_objectives.TryGetValue(key, out var objs)) return Array.Empty<string>();
-        var plain = step.PlainText();
-        if (string.IsNullOrWhiteSpace(plain)) return Array.Empty<string>();
-        foreach (var o in objs)
-            if (ObjectiveNameInStep(o.Name, plain) && o.ProgressFlags.Count > 0)
-                return o.ProgressFlags;
-        return Array.Empty<string>();
-    }
+    public IReadOnlyList<string> ResolveObjectiveProgressFlags(RouteStep step, string? effectiveAreaId)
+        => step == null ? System.Array.Empty<string>() : GuidanceView.ProgressFlags(step);
 
     // the metadata-path fragment for an authored ENTITY-based objective the step names (e.g. g1_4 "Runic
     // Seals" -> "NailStake"), or null. drives the entity-objective indicator + multi-path.
-    public string? ObjectiveEntityPath(ParsedStep step, string? effectiveAreaId)
-    {
-        if (step == null) return null;
-
-        // meta-first: entity path comes directly from the override layer.
-        if (step.Meta?.Objective?.EntityPath is string ep && !string.IsNullOrEmpty(ep))
-            return ep;
-
-        // fallback: area-keyed JSON map (retired in Task 11).
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-        if (string.IsNullOrEmpty(key) || !_objectives.TryGetValue(key, out var objs)) return null;
-        var plain = step.PlainText();
-        if (string.IsNullOrWhiteSpace(plain)) return null;
-        foreach (var o in objs)
-            if (!string.IsNullOrEmpty(o.EntityPath) && ObjectiveNameInStep(o.Name, plain))
-                return o.EntityPath;
-        return null;
-    }
+    public string? ObjectiveEntityPath(RouteStep step, string? effectiveAreaId)
+        => step == null ? null : GuidanceView.PathEntityPatterns(step).FirstOrDefault();
 
     // grid positions (snapped to walkable) of the live entities matching an entity-objective path fragment.
     // liveOnly: only those still interactable (Targetable.isTargetable) -- i.e. not yet activated. the
@@ -480,9 +349,9 @@ public sealed class StepTargetResolver
 
     // a "Summon X" step (e.g. "Summon Una", "Find/summon/talk Una"). its real interactable is the SummonAlly
     // portal, not the named NPC.
-    private static bool IsSummonStep(ParsedStep step)
+    private static bool IsSummonStep(RouteStep step)
     {
-        var t = step?.PlainText();
+        var t = step?.Text;
         return !string.IsNullOrEmpty(t)
             && System.Text.RegularExpressions.Regex.IsMatch(t, @"\bsummon\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
     }
@@ -589,7 +458,7 @@ public sealed class StepTargetResolver
 
     // resolve the step to the live entity to interact with (or null). used by the indicator + interaction
     // auto-advance. independent of the grid Resolve() above.
-    public InteractTarget? ResolveEntity(GameController gc, ParsedStep step, float maxDistance,
+    public InteractTarget? ResolveEntity(GameController gc, RouteStep step, float maxDistance,
         string? effectiveAreaId = null, bool includeEntityObjective = true)
     {
         if (gc == null || step == null) return null;
@@ -632,9 +501,7 @@ public sealed class StepTargetResolver
                 return new InteractTarget { Entity = ally, Kind = InteractKind.Proximity, MatchedName = "Summon Ally" };
         }
 
-        var killNames = step.Fragments.OfType<KillFragment>().Select(f => f.Target)
-            .Concat(step.Fragments.OfType<ArenaFragment>().Select(f => f.Target))
-            .Where(n => !string.IsNullOrWhiteSpace(n))
+        var killNames = GuidanceView.KillTargets(step)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -665,13 +532,13 @@ public sealed class StepTargetResolver
         //    the expected kind+type, so "Talk to Farrow" only resolves to the Farrow NPC (Dialog) and can
         //    never latch a same-named ground object and proximity-advance before you talk. hostiles are
         //    kill-only (handled above).
-        var textCandidates = FreeTextCandidates(step.PlainText())
+        var textCandidates = FreeTextCandidates(step.Text)
             .Where(c => !string.IsNullOrWhiteSpace(c.Name))
             .ToList();
 
         // editor can force the interaction kind per step (meta.interactKind) to correct a wrong inference,
         // e.g. a talk step the verb grammar read as proximity. when set, it overrides the verb-derived kind.
-        var forcedKind = ParseInteractKind(step.Meta?.InteractKind);
+        var forcedKind = ParseInteractKind(GuidanceView.InteractKind(step));
 
         // PoE keeps inactive alternate-state copies of a story NPC in the entity list at other spots (Una has
         // 5 in town: UnaAfterIronCount, UnaHoodedOneInjured, Una, ...). they all match the name loosely AND
@@ -702,7 +569,7 @@ public sealed class StepTargetResolver
         // 2b. named interactable, no verb: the step line is just the object's own name (e.g. "Abandoned
         //     Stash (inside the Mysterious Campsite)" with no Loot/Open word). match a nearby chest or
         //     quest object whose RenderName appears in the step text, so it still gets an indicator + path.
-        var plain = step.PlainText();
+        var plain = step.Text;
         foreach (var e in nearby)
         {
             if (e.IsHostile && e.Type == EntityType.Monster) continue;
@@ -875,10 +742,10 @@ public sealed class StepTargetResolver
 
     // NPC names a "talk to X" step wants a conversation with. drives dialog auto-advance by name, so it
     // works even when X has no resolved world entity (town/field NPCs aren't always a near EntityType.Npc).
-    public IReadOnlyList<string> DialogTargetNames(ParsedStep step)
+    public IReadOnlyList<string> DialogTargetNames(RouteStep step)
     {
         if (step == null) return Array.Empty<string>();
-        return FreeTextCandidates(step.PlainText())
+        return FreeTextCandidates(step.Text)
             .Where(c => c.Kind == InteractKind.Dialog && !string.IsNullOrWhiteSpace(c.Name))
             .Select(c => c.Name)
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -889,12 +756,11 @@ public sealed class StepTargetResolver
     // or an "Enter/Exit X" transition)? purely text/structural, no live entities. used to detect a "dead"
     // reminder step (e.g. "TP back to start of zone") the tracker must not park on. conservative: when in
     // doubt it returns true, so a real objective is never mistaken for a skippable reminder.
-    public bool DescribesAdvanceTrigger(ParsedStep step)
+    public bool DescribesAdvanceTrigger(RouteStep step)
     {
         if (step == null) return false;
-        if (step.Fragments.Any(f => f.Kind is FragmentKind.Kill or FragmentKind.Arena
-            or FragmentKind.Waypoint or FragmentKind.WaypointUse or FragmentKind.WaypointGet)) return true;
-        var text = step.PlainText();
+        if (GuidanceView.KillTargets(step).Count > 0) return true;
+        var text = step.Text;
         if (FreeTextCandidates(text).Any()) return true;       // talk/loot/find/open/use/...
         if (TransitionDestination(text) != null) return true;  // Enter/Exit X -> area-change advance
         return false;
@@ -972,7 +838,7 @@ public sealed class StepTargetResolver
         return res;
     }
 
-    private Vector2? ResolveAuthored(ParsedStep step, Vector2? playerGrid, Func<string, int, Vector2[]>? clusterTarget,
+    private Vector2? ResolveAuthored(RouteStep step, Vector2? playerGrid, Func<string, int, Vector2[]>? clusterTarget,
         string? effectiveAreaId)
     {
         if (clusterTarget == null) return null;
@@ -980,8 +846,8 @@ public sealed class StepTargetResolver
         // route (most recent zone header) so the boss/exit fallback still keys into the authored map.
         var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
 
-        // meta-first: step carries the tile pattern directly from the override layer.
-        string? pattern = step.Meta?.PathTarget;
+        // tile pattern comes from the step's Paths children now (via GuidanceView).
+        string? pattern = GuidanceView.PathTilePatterns(step).FirstOrDefault();
         if (string.IsNullOrEmpty(pattern))
         {
             // fallback: area-keyed JSON map (retired in Task 11).
@@ -1001,16 +867,6 @@ public sealed class StepTargetResolver
         if (coords == null || coords.Length == 0) return null;
         if (playerGrid is not { } p) return coords[0];
         return coords.OrderBy(c => Vector2.DistanceSquared(c, p)).First();
-    }
-
-    private static Vector2? NearestByPath(IEnumerable<ExileCore.PoEMemory.MemoryObjects.Entity> entities, string pathFragment, Vector2? playerGrid)
-    {
-        var match = entities
-            .Where(e => e != null && e.IsValid && (e.Path?.Contains(pathFragment) ?? false))
-            .Where(HasGrid)
-            .OrderBy(e => e.DistancePlayer)
-            .FirstOrDefault();
-        return match != null ? GridOf(match) : (Vector2?)null;
     }
 
     private static bool NameMatches(ExileCore.PoEMemory.MemoryObjects.Entity e, string name)

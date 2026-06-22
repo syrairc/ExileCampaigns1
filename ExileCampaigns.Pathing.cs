@@ -68,7 +68,6 @@ public partial class ExileCampaigns
     // drops the room filter, so "*" matches the whole map). copied from Radar's targets.json (keyed by area RawName, e.g. G1_1)
     private string AreaTargetsPath => Path.Combine(DirectoryFullName, "Data", "poe2", "area-targets.json");
     private string AreaTransitionsPath => Path.Combine(DirectoryFullName, "Data", "poe2", "area-transitions.json");
-    private string AreaObjectivesPath => Path.Combine(DirectoryFullName, "Data", "poe2", "area-objectives.json");
 
     private void LoadAreaTargets()
     {
@@ -76,9 +75,8 @@ public partial class ExileCampaigns
         {
             var map = LoadAreaTargetMap();
             var transitions = LoadAreaTransitionMap();
-            var objectives = LoadAreaObjectiveMap();
-            _targetResolver = new StepTargetResolver(map, transitions, objectives);
-            LogMessage($"ExileCampaigns -> area-targets: {map.Count} boss tiles, {transitions.Count} transition areas, {objectives.Count} objective areas.");
+            _targetResolver = new StepTargetResolver(map, transitions);
+            LogMessage($"ExileCampaigns -> area-targets: {map.Count} boss tiles, {transitions.Count} transition areas.");
         }
         catch (Exception ex)
         {
@@ -134,40 +132,6 @@ public partial class ExileCampaigns
         return map;
     }
 
-    // area-id -> [ObjectiveDef] from area-objectives.json (Radar room targets + optional progress flags).
-    private Dictionary<string, IReadOnlyList<ObjectiveDef>> LoadAreaObjectiveMap()
-    {
-        var map = new Dictionary<string, IReadOnlyList<ObjectiveDef>>(StringComparer.OrdinalIgnoreCase);
-        if (!File.Exists(AreaObjectivesPath))
-        {
-            LogMessage($"ExileCampaigns -> area-objectives map not found at {AreaObjectivesPath}; objective path fallback disabled.");
-            return map;
-        }
-        var root = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(AreaObjectivesPath));
-        foreach (var prop in root.Properties())
-        {
-            if (prop.Name.StartsWith("_")) continue;
-            if (prop.Value is not Newtonsoft.Json.Linq.JArray arr) continue;
-            var list = new List<ObjectiveDef>();
-            foreach (var e in arr)
-            {
-                var name = (string?)e["name"];
-                var rooms = (e["rooms"] as Newtonsoft.Json.Linq.JArray)?
-                    .Select(r => (string?)r).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList()
-                    ?? new List<string>();
-                var flags = (e["progressFlags"] as Newtonsoft.Json.Linq.JArray)?
-                    .Select(r => (string?)r).Where(s => !string.IsNullOrWhiteSpace(s)).Select(s => s!).ToList()
-                    ?? new List<string>();
-                var entityPath = (string?)e["entityPath"];
-                // room-based OR entity-based: one of rooms / entityPath must be present.
-                if (!string.IsNullOrWhiteSpace(name) && (rooms.Count > 0 || !string.IsNullOrWhiteSpace(entityPath)))
-                    list.Add(new ObjectiveDef(name!, rooms, flags, string.IsNullOrWhiteSpace(entityPath) ? null : entityPath));
-            }
-            if (list.Count > 0) map[prop.Name] = list;
-        }
-        return map;
-    }
-
     // lazily grab the Radar bridge methods; retry until present (Radar may init after us)
     private void EnsureRadarBridge()
     {
@@ -201,7 +165,7 @@ public partial class ExileCampaigns
             ResetObjectiveProgress();
         }
 
-        var step = _route.CurrentStep?.Step;
+        var step = _route.CurrentStep?.Model;
         if (step == null) return;
         var areaId = _route.CurrentAreaId;
 
@@ -229,7 +193,7 @@ public partial class ExileCampaigns
     // returns true if the current step draws a line PER target (All mode). Nearest objectives return false so
     // the single-target Resolve()/ResolveTiles flow in UpdatePathTarget draws one line to the nearest target.
     // reads the v2 Paths[] children directly -- the old count>1 / Meta.PathTarget inference is gone.
-    private bool UpdateObjectivePaths(ParsedStep step, string? areaId)
+    private bool UpdateObjectivePaths(RouteStep step, string? areaId)
     {
         var model = _route.CurrentStep?.Model;
         if (model == null || !GuidanceView.WantsAllPaths(model)) { CancelObjectivePaths(); return false; }
@@ -255,7 +219,7 @@ public partial class ExileCampaigns
 
     // room multi-objective: a route to each authored Room center (static, so start once), hidden as per-room
     // progress flags flip. a single room still routes here (a line straight to it), like the entity flow.
-    private bool UpdateRoomObjectivePaths(IReadOnlyList<string> roomPatterns, ParsedStep step, string? areaId)
+    private bool UpdateRoomObjectivePaths(IReadOnlyList<string> roomPatterns, RouteStep step, string? areaId)
     {
         var centers = _targetResolver.ResolveRoomCenters(GameController, roomPatterns);
         if (centers.Count < 1) { CancelObjectivePaths(); return false; }   // rooms not in this instance yet
@@ -360,7 +324,7 @@ public partial class ExileCampaigns
 
     // when a sub-objective progress flag newly flips true the player is standing on the one they just finished,
     // so mark the objective room nearest them done (its line stops drawing). never cancels a Radar route.
-    private void UpdateObjectiveDone(ParsedStep step, string? areaId)
+    private void UpdateObjectiveDone(RouteStep step, string? areaId)
     {
         var flags = _targetResolver.ResolveObjectiveProgressFlags(step, areaId);
         if (flags.Count == 0) return;
