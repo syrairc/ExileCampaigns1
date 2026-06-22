@@ -1,0 +1,30 @@
+# ---- Build output ----
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+.idea/
+
+# ---- Runtime ----
+Errors.txt
+
+# ---- Route import tool (Phase 2): one-off, not part of the shipped plugin ----
+tools/
+
+# ---- Docs / specs / AI-assistant files: local only, not shipped ----
+# Only ship what's needed to compile the plugin (source, csproj, Data/, textures/, tests/).
+docs/
+.claude/
+.superpowers/
+*.original.md
+CLAUDE.md
+
+# ---- Tests ----
+*.Test.cs
+*.Tests.cs
+*.Test.csproj
+*.Tests.csproj
+tests/
+
+data/
