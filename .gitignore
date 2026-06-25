@@ -26,5 +26,3 @@ CLAUDE.md
 *.Test.csproj
 *.Tests.csproj
 tests/
-
-data/

@@ -27,6 +27,8 @@ public partial class ExileCampaigns
             Toggle("Auto-advance", Settings.AutoAdvance,
                 "Advance the displayed step automatically when you enter the next zone");
             Toggle("Show optional steps", Settings.ShowOptional, "Include steps marked (Opt) from the route");
+            Toggle("Show league-start steps", Settings.ShowLeagueStart,
+                "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them");
             ImGui.EndTabItem();
         }
 
@@ -38,6 +40,7 @@ public partial class ExileCampaigns
             DrawStepsStyle(Settings.Steps);
             ImGui.SeparatorText("Statistics Overlay");
             DrawOverlayStyle(Settings.CharStats, "charstats");
+            SliderInt("XP rate window (min)", Settings.XpRateWindowMinutes, "Average xp/hour + time-to-level over the last N minutes");
             ImGui.EndTabItem();
         }
 
@@ -52,6 +55,12 @@ public partial class ExileCampaigns
             ColorEdit("Path color", p.PathColor);
             SliderFloat("Path thickness", p.PathThickness);
             SliderInt("Draw every Nth point", p.DrawEveryNthSegment, "Higher = sparser/faster");
+            Toggle("Flowing comets", p.ShowComets, "Slide comet sprites along the ground path toward the objective");
+            Toggle("Comets only (hide line)", p.CometsOnly, "When comets are on, don't draw the solid ground line");
+            ColorEdit("Comet color", p.CometColor);
+            SliderFloat("Comet spacing", p.CometSpacing, "Grid units between comets; count scales with path length");
+            SliderFloat("Comet size", p.CometSize, "Comet length in grid units");
+            SliderFloat("Comet speed", p.CometSpeed, "Flow speed in grid units per second");
 
             ImGui.SeparatorText("Interaction indicator");
             var ii = Settings.InteractIndicator;
@@ -68,6 +77,7 @@ public partial class ExileCampaigns
             var mi = Settings.MinimapIcons;
             Toggle("Enabled##mmi", mi.Enable, "Draw authored minimap icons for the current area on the large map");
             SliderInt("Icon size##mmi", mi.IconSize, "Icon size in pixels");
+            SliderInt("Lookahead steps##mmi", mi.Lookahead, "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only");
             Toggle("Pulse current step##mmi", mi.PulseCurrent, "Animate the icons for the current objective so they stand out");
             ImGui.EndTabItem();
         }
@@ -169,9 +179,10 @@ public partial class ExileCampaigns
         const string id = "steps";
         Toggle("Enabled##" + id, s.Enable);
         ColorEdit("Text color##" + id, s.TextColor);
-        ColorEdit("Header color##" + id, s.HeaderColor, "Colour of the ACT / INTERLUDES stage header");
+        ColorEdit("Header color##" + id, s.HeaderColor, "Colour of the ACT stage header");
         ColorEdit("Current-step color##" + id, s.CurrentColor, "Colour of the active step so it stands out");
         ColorEdit("Optional color##" + id, s.OptionalColor);
+        ColorEdit("League-start color##" + id, s.LeagueStartColor, "Colour of league-start steps (crafting recipes, trials)");
         ColorEdit("Background color##" + id, s.BackgroundColor, "Alpha controls opacity; alpha 0 = no panel background");
         ColorEdit("Border color##" + id, s.BorderColor);
         SliderFloat("Text size##" + id, s.TextSize, "Font height in pixels");

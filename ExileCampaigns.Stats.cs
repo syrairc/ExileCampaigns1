@@ -17,15 +17,18 @@ public partial class ExileCampaigns
     private readonly Dictionary<int, double> _actSeconds = new();
 
     private long _playerXp;
-    private long _runStartXp = -1;   // XP latched at run start, for the xp/hour stat; -1 until first valid read
     private long[] _xpCurve = Array.Empty<long>();   // cumulative XP to reach each level; index 0 = level 1
 
-    // Load the bundled PoE2 level->cumulative-XP table (source: poe2db.tw/us/Experience).
+    // trailing XP samples for the windowed xp/hour + time-to-level estimate
+    private readonly List<(DateTime t, long xp)> _xpSamples = new();
+    private DateTime _lastXpSample = DateTime.MinValue;
+
+    // Load the bundled PoE1 level->cumulative-XP table (source: poedb.tw/us/Experience).
     private void LoadXpCurve()
     {
         try
         {
-            var path = Path.Combine(DirectoryFullName, "Data", "poe2", "xp_curve.json");
+            var path = Path.Combine(DirectoryFullName, "Data", "poe1", "xp_curve.json");
             if (!File.Exists(path)) return;
             var arr = JObject.Parse(File.ReadAllText(path))["cumulative"] as JArray;
             if (arr != null) _xpCurve = arr.Select(t => (long)t).ToArray();
@@ -39,7 +42,24 @@ public partial class ExileCampaigns
         _actStart = DateTime.Now;
         _timerAct = _act;
         _actSeconds.Clear();
-        _runStartXp = -1;
+        _xpSamples.Clear();
+        _lastXpSample = DateTime.MinValue;
+    }
+
+    // Push an XP sample at most every couple seconds, drop anything older than the rate window.
+    // Called each tick. Window keeps one sample just past the cutoff so the span covers the full duration.
+    private void RecordXpSample()
+    {
+        if (_playerXp <= 0) return;
+        var now = DateTime.Now;
+        if ((now - _lastXpSample).TotalSeconds < 2) return;
+        _lastXpSample = now;
+        _xpSamples.Add((now, _playerXp));
+
+        var cutoff = now - TimeSpan.FromMinutes(Math.Max(1, Settings.XpRateWindowMinutes.Value));
+        int drop = 0;
+        while (drop + 1 < _xpSamples.Count && _xpSamples[drop + 1].t < cutoff) drop++;
+        if (drop > 0) _xpSamples.RemoveRange(0, drop);
     }
 
     // Bank the previous act's time and start timing the new act. Called from AreaChange.
@@ -99,13 +119,26 @@ public partial class ExileCampaigns
             lines.Add(new PanelLine($"Act {cs.Act} - step {cs.StepInAct}/{actTotal}  ({overall}%)", s.TextColor.Value));
         }
 
-        // xp/hour: latch a baseline on the first valid read, show once the run has a minute on it.
-        if (_runStartXp < 0 && _playerXp > 0) _runStartXp = _playerXp;
-        double hours = (DateTime.Now - _runStart).TotalHours;
-        if (_runStartXp >= 0 && hours >= 1.0 / 60.0)
+        // xp/hour averaged over the trailing window, plus an ETA to the next level from that rate.
+        // window needs >=30s of samples before the rate is meaningful.
+        if (_xpSamples.Count >= 2)
         {
-            double rate = (_playerXp - _runStartXp) / hours;
-            lines.Add(new PanelLine($"{rate:N0} xp/h", s.TextColor.Value));
+            var first = _xpSamples[0];
+            var last = _xpSamples[^1];
+            double spanSec = (last.t - first.t).TotalSeconds;
+            if (spanSec >= 30)
+            {
+                double rate = (last.xp - first.xp) / (spanSec / 3600.0);
+                lines.Add(new PanelLine($"{rate:N0} xp/h", s.TextColor.Value));
+
+                // time to level: remaining xp in the current level / windowed rate.
+                if (rate > 0 && _xpCurve.Length >= 100 && _playerLevel is >= 1 and < 100)
+                {
+                    long remaining = _xpCurve[_playerLevel] - _playerXp;
+                    if (remaining > 0)
+                        lines.Add(new PanelLine($"~{Fmt(remaining / rate * 3600.0)} to Lvl {_playerLevel + 1}", s.TextColor.Value));
+                }
+            }
         }
 
         return lines;

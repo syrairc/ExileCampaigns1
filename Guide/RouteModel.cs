@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace ExileCampaigns.Guide;
 
 // what completes a step's objective. see AdvanceEngine for how each is evaluated.
-public enum ObjectiveType { Kill, Interact, Talk, Loot, Proximity, QuestFlag, EnterArea, ActivateWaypoint, Manual }
+public enum ObjectiveType { Kill, Interact, Talk, Loot, Proximity, QuestFlag, EnterArea, ActivateWaypoint, Login, TownPortal, Manual }
 
 // when a step with several objectives advances.
 public enum CompleteWhen { All, Any }
@@ -70,11 +70,11 @@ public sealed record RouteStep(
     string AreaId,
     string AreaName,
     string Text,
-    string Note,
     bool Optional,
     CompleteWhen CompleteWhen,
     IReadOnlyList<Objective> Objectives,
-    string? ImportFp);   // fnv1a of the upstream text this came from (import diff); null = user-created
+    string? ImportFp,    // fnv1a of the upstream text this came from (import diff); null = user-created
+    bool LeagueStart = false);   // league-start-only chore (crafting recipes, trials); hidden when "Show league-start steps" is off
 
 // the whole route. Steps list order is the canonical sequence.
 public sealed record RouteDocument(int Version, IReadOnlyList<RouteStep> Steps)

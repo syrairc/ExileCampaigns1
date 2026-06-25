@@ -42,6 +42,7 @@ public partial class ExileCampaigns
 
         var specs = GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId);
         var currentId = _route.CurrentStep?.Model?.Id;   // icons of this step pulse
+        var visibleIds = LookaheadStepIds(Settings.MinimapIcons.Lookahead.Value);   // only current + next N steps draw
 
         var areaKey = AreaInstanceKey();
         if (areaKey != _mmiCacheKey)
@@ -58,6 +59,7 @@ public partial class ExileCampaigns
 
         foreach (var (coord, icon, tint, size, stepId) in _mmiStatic)
         {
+            if (!visibleIds.Contains(stepId)) continue;   // outside the lookahead window
             var (ds, dt) = Pulse(stepId == currentId, size ?? globalSize, tint);
             DrawMinimapIcon(coord, icon, dt, ds, playerGrid, playerHeight, mapCenter, mapScale);
         }
@@ -65,12 +67,32 @@ public partial class ExileCampaigns
         foreach (var s in specs)
         {
             if (s.Anchor.Kind != TargetKind.Entity) continue;
+            if (!visibleIds.Contains(s.StepId)) continue;   // outside the lookahead window
             // an entity target can match several live entities (distinct drops / duplicate objects) -- icon each
             var icon = SpriteAtlas.Parse(s.IconKey);
             var (ds, dt) = Pulse(s.StepId == currentId, s.Size ?? globalSize, s.Tint);
             foreach (var c in _targetResolver.ResolveEntityCoords(GameController, s.Anchor))
                 DrawMinimapIcon(c, icon, dt, ds, playerGrid, playerHeight, mapCenter, mapScale);
         }
+    }
+
+    // step ids whose icons may draw: the current step plus the next `lookahead` real (non-header) steps in
+    // sequence. headers are skipped, not counted. combined with the area filter on specs this means an icon
+    // shows only when its step is in the current area AND within the lookahead window.
+    private HashSet<string> LookaheadStepIds(int lookahead)
+    {
+        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var steps = _route.Steps;
+        if (steps == null || steps.Count == 0) return ids;
+        int taken = 0;
+        for (int i = _route.Current; i < steps.Count; i++)
+        {
+            var id = steps[i].Model?.Id;
+            if (id == null) continue;   // header row
+            ids.Add(id);
+            if (++taken > lookahead) break;   // current + lookahead more
+        }
+        return ids;
     }
 
     // pulse the current objective's icons: a gentle scale + alpha breathe so they read as "active". returns
@@ -98,6 +120,7 @@ public partial class ExileCampaigns
         var screen = mapCenter + GridDeltaToMapDelta(gridCoord - playerGrid, playerHeight + z, mapScale);
         float half = size / 2f;
         var rect = new RectangleF(screen.X - half, screen.Y - half, size, size);
+        if (OverlapsSidePanel(rect)) return;   // hide under an open side panel
         Graphics.DrawImage(IndicatorTexture, rect, SpriteAtlas.GetUVRect(icon), TintColor(tint));
     }
 

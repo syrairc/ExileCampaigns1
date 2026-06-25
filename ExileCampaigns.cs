@@ -74,7 +74,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override bool Initialise()
     {
-        Name = "ExileCampaigns";
+        Name = "Exile Campaigns";   // menu display name, independent of the plugin folder
 
         foreach (var key in new[] { Settings.NextStepKey, Settings.PrevStepKey, Settings.ToggleKey, Settings.SyncKey })
             Input.RegisterKey(key.Value);
@@ -91,7 +91,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         Settings.LogQuestFlags.OnValueChanged += (_, _) => _flagSnapshot = null;   // re-seed on next enable
         Settings.Diagnostics.RecordDiagnostics.OnValueChanged += (_, _) => _diagFlagSnapshot = null;   // re-seed so toggling on doesn't dump a stale flag burst
 
-        LoadAreaTargets();    // boss/exit tile fallback for the path when no live entity resolves
         LoadRoutes();
         LoadProgress();
         LoadXpCurve();
@@ -102,6 +101,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             if (GameController?.Area?.CurrentArea is { } cur)
             {
                 CaptureArea(cur);
+                _route.IncludeOptional = Settings.ShowOptional;
+                _route.IncludeLeagueStart = Settings.ShowLeagueStart;
                 if (Settings.AutoAdvance) _route.OnAreaChanged(_areaId);
                 OnAreaChangedPathing();
             }
@@ -110,19 +111,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         InitStats();
         InitIndicatorTexture();
+        InitCometTexture();
         return true;
     }
 
     // load routes from route.json (user copy under ConfigDirectory\route wins, else bundled under Data).
-    // global rules from overrides.json are still loaded so _globalRules stays populated for waypoint detection.
     private void LoadRoutes()
     {
-        // globalRules still parsed from overrides.json (bundled first, user appends). needed by Task 5
-        // waypoint-pulse detection; they're global flags not attached to any step.
-        _globalRules.Clear();
-        LoadGlobalRules(BundledOverridesPath);
-        LoadGlobalRules(UserOverridesPath);
-
         var doc = LoadRouteDocument();
         _routeStore = new Guide.RouteStore(doc);
         _route.LoadFromDocument(_routeStore.ToDocument());
@@ -159,6 +154,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             RecordDiagArea();
             OnActChangedStats(_act);
             var before = _route.Current;
+            _route.IncludeOptional = Settings.ShowOptional;   // sync nav-skip before the area-snap advance
+            _route.IncludeLeagueStart = Settings.ShowLeagueStart;
             if (Settings.AutoAdvance)
             {
                 _route.OnAreaChanged(_areaId);
@@ -223,6 +220,10 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override Job Tick()
     {
+        // keep nav-skip in sync with the overlay's optional + league-start visibility before any advance (key or auto).
+        _route.IncludeOptional = Settings.ShowOptional;
+        _route.IncludeLeagueStart = Settings.ShowLeagueStart;
+
         if (Settings.ToggleKey.PressedOnce()) _visible = !_visible;
         if (Settings.SyncKey.PressedOnce()) SyncToCharacter();
         if (Settings.NextStepKey.PressedOnce()) _route.Next();
@@ -258,12 +259,15 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         }
         catch { /* server data not ready */ }
 
+        RecordXpSample();
+
         // harvest when logging, or just maintain the in-memory flag rings when the triage panel is open
         if (Settings.LogQuestFlags || Settings.Dev.ShowTriageButtons) HarvestQuestFlags();
         RecordDiagFlagChanges();
 
         UpdatePathTarget();
         UpdateWaypointPulse();
+        UpdateLoginPulse();
         UpdateInteractTarget();
         EvaluateAdvance();
 
@@ -307,13 +311,14 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             return;
 
         DrawToasts();       // transient messages, shown regardless of overlay toggle
+        DrawLeagueStartPrompt();   // new-profile dialog, shown even when the overlay is toggled off
 
         if (!_visible)
             return;
 
-        bool leftOpen = ui.OpenLeftPanel.IsVisible;
-        bool rightOpen = ui.OpenRightPanel.IsVisible;
-        float screenCenterX = GameController.Window.GetWindowRectangleTimeCache.Size.Width / 2f;
+        // cache the open side-panel rects once per frame; every overlay hides where it would overlap one.
+        _leftPanelRect = ui.OpenLeftPanel.IsVisible ? SafeClientRect(ui.OpenLeftPanel) : null;
+        _rightPanelRect = ui.OpenRightPanel.IsVisible ? SafeClientRect(ui.OpenRightPanel) : null;
 
         DrawStepPath();
         DrawInteractIndicators();
@@ -325,19 +330,18 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         {
             var s = Settings.Steps;
             DrawOverlay("steps", BuildStepsLines(), s.PosX, s.PosY, s.TextSize.Value, s.MaxWidth,
-                s.Padding.Value, s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value,
-                leftOpen, rightOpen, screenCenterX);
+                s.Padding.Value, s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value);
         }
 
         if (Settings.CharStats.Enable)
-            DrawOverlay("char", BuildCharStatsLines(Settings.CharStats), Settings.CharStats, leftOpen, rightOpen, screenCenterX);
+            DrawOverlay("char", BuildCharStatsLines(Settings.CharStats), Settings.CharStats);
 
         DrawRouteEditor();
         DrawTriageOverlay();
     }
 
-    // stage label for the steps tracker header. act 5 is the interludes file.
-    private static string StageLabel(int act) => act >= 5 ? "INTERLUDES" : $"ACT {act}";
+    // stage label for the steps tracker header. poe1 is acts 1-10, no interludes.
+    private static string StageLabel(int act) => $"ACT {act}";
 
     private List<PanelLine> BuildStepsLines()
     {
@@ -402,30 +406,56 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             lines.Add(new PanelLine(text, col, num: st.StepInAct.ToString()));
         }
 
-        foreach (var st in _route.Previous(s.StepsBehind.Value, Settings.ShowOptional))
-            AddRow(st, (st.Model?.Optional ?? false) ? s.OptionalColor.Value : dim, false);
+        // league-start steps win the colour over optional; both yield to the current-step highlight.
+        Color RowColor(FlatStep st, Color baseCol) =>
+            (st.Model?.LeagueStart ?? false) ? s.LeagueStartColor.Value
+            : (st.Model?.Optional ?? false) ? s.OptionalColor.Value
+            : baseCol;
+
+        foreach (var st in _route.Previous(s.StepsBehind.Value, Settings.ShowOptional, Settings.ShowLeagueStart))
+            AddRow(st, RowColor(st, dim), false);
 
         AddRow(current, s.CurrentColor.Value, true);
 
-        foreach (var st in _route.Upcoming(s.StepsAhead.Value, Settings.ShowOptional))
-            AddRow(st, (st.Model?.Optional ?? false) ? s.OptionalColor.Value : s.TextColor.Value, false);
+        foreach (var st in _route.Upcoming(s.StepsAhead.Value, Settings.ShowOptional, Settings.ShowLeagueStart))
+            AddRow(st, RowColor(st, s.TextColor.Value), false);
 
         return lines;
     }
 
     // overload that pulls placement/style straight from an OverlayStyle.
-    private void DrawOverlay(string id, IReadOnlyList<PanelLine> lines, OverlayStyle s,
-        bool leftOpen, bool rightOpen, float screenCenterX) =>
+    // open side-panel rects, refreshed each frame in Render. null = that panel closed.
+    private RectangleF? _leftPanelRect;
+    private RectangleF? _rightPanelRect;
+
+    private static RectangleF? SafeClientRect(ExileCore.PoEMemory.Element e)
+    {
+        try { var r = e.GetClientRect(); return r.Width > 1 && r.Height > 1 ? r : (RectangleF?)null; }
+        catch { return null; }
+    }
+
+    // true when the screen rect overlaps an open side panel, so the caller can skip drawing under it.
+    private bool OverlapsSidePanel(RectangleF r) =>
+        (_leftPanelRect is { } l && l.Intersects(r)) || (_rightPanelRect is { } rp && rp.Intersects(r));
+
+    private bool OverlapsSidePanel(Vector2 min, Vector2 max) =>
+        (_leftPanelRect != null || _rightPanelRect != null) &&
+        OverlapsSidePanel(new RectangleF(min.X, min.Y, max.X - min.X, max.Y - min.Y));
+
+    // point-test variant for per-vertex world draws (path segments, comets).
+    private bool PointInSidePanel(Vector2 p) =>
+        (_leftPanelRect is { } l && l.Contains(p.X, p.Y)) || (_rightPanelRect is { } rp && rp.Contains(p.X, p.Y));
+
+    private void DrawOverlay(string id, IReadOnlyList<PanelLine> lines, OverlayStyle s) =>
         DrawOverlay(id, lines, s.PosX, s.PosY, s.TextSize.Value, s.MaxWidth, s.Padding.Value,
-            s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value, leftOpen, rightOpen, screenCenterX);
+            s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value);
 
     // draw a panel of lines via the ImGui foreground draw list. unlike Graphics.DrawText this honours a
     // per-call font size (textSize), so each overlay gets its own scale/border/fill. when unlocked, drag the
     // body to move or the right edge to set wrap width; results write back to posX/posY/maxWidth (auto-persist).
-    // overlay on the left half hides while the left panel is open; right half, while the right is.
+    // hides when its rect would overlap an open side panel (see OverlapsSidePanel).
     private void DrawOverlay(string id, IReadOnlyList<PanelLine> lines, RangeNode<int> posX, RangeNode<int> posY,
-        float textSize, RangeNode<int> maxWidth, int padding, Color background, Color borderColor, int borderThickness,
-        bool leftOpen, bool rightOpen, float screenCenterX)
+        float textSize, RangeNode<int> maxWidth, int padding, Color background, Color borderColor, int borderThickness)
     {
         if (lines.Count == 0) return;
 
@@ -492,9 +522,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var panelSize = new Vector2(contentW + pad * 2, rows.Count * lineH + pad * 2);
         var origin = new Vector2(posX.Value, posY.Value);
 
-        // hide while the side panel on this overlay's half is open (its centre decides the side).
-        bool onLeft = origin.X + panelSize.X / 2f < screenCenterX;
-        if ((onLeft && leftOpen) || (!onLeft && rightOpen))
+        // hide where this overlay would sit under an open side panel.
+        if (OverlapsSidePanel(origin, origin + panelSize))
             return;
 
         var (hovered, onEdge) = HandleInteract(id, ref origin, panelSize, posX, posY, maxWidth);
@@ -747,6 +776,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         }
 
         var max = min + new Vector2(panelW, panelH);
+
+        if (OverlapsSidePanel(min, max)) return;   // hide under an open side panel
 
         var bg = Fade(b.BackgroundColor.Value, alpha);
         if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));

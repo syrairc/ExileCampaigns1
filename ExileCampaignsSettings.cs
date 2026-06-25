@@ -49,11 +49,35 @@ public class PathRenderSettings
     [Menu("Path color")]
     public ColorNode PathColor { get; set; } = new ColorNode(new Color(80, 200, 255, 255));
 
+    [Menu("Highlight shortest path", "When a step draws several paths at once, tint the shortest a different color")]
+    public ToggleNode HighlightShortest { get; set; } = new ToggleNode(true);
+
+    [Menu("Shortest path color")]
+    public ColorNode ShortestPathColor { get; set; } = new ColorNode(new Color(120, 255, 120, 255));
+
     [Menu("Path thickness")]
     public RangeNode<float> PathThickness { get; set; } = new RangeNode<float>(3f, 1f, 20f);
 
     [Menu("Draw every Nth point", "Thin the path by drawing only every Nth grid point (higher = sparser/faster)")]
     public RangeNode<int> DrawEveryNthSegment { get; set; } = new RangeNode<int>(2, 1, 10);
+
+    [Menu("Flowing comets", "Slide comet sprites along the ground path toward the objective (in addition to / instead of the line)")]
+    public ToggleNode ShowComets { get; set; } = new ToggleNode(false);
+
+    [Menu("Comets only (hide line)", "When comets are on, don't draw the solid ground line")]
+    public ToggleNode CometsOnly { get; set; } = new ToggleNode(false);
+
+    [Menu("Comet color")]
+    public ColorNode CometColor { get; set; } = new ColorNode(new Color(255, 180, 80, 255));
+
+    [Menu("Comet spacing", "Grid units between comets; count scales with path length (smaller = denser)")]
+    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(80f, 10f, 400f);
+
+    [Menu("Comet size", "Comet length in grid units")]
+    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(4f, 1f, 80f);
+
+    [Menu("Comet speed", "Flow speed in grid units per second")]
+    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(40f, 5f, 300f);
 }
 
 // golden arrow over the step's interact target, plus the interaction auto-advance thresholds
@@ -94,6 +118,9 @@ public class MinimapIconSettings
 
     [Menu("Icon size", "Icon size in pixels on the large map")]
     public RangeNode<int> IconSize { get; set; } = new RangeNode<int>(36, 8, 128);
+
+    [Menu("Lookahead steps", "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only")]
+    public RangeNode<int> Lookahead { get; set; } = new RangeNode<int>(3, 0, 12);
 
     [Menu("Pulse current step", "Animate the icons belonging to the current objective so they stand out")]
     public ToggleNode PulseCurrent { get; set; } = new ToggleNode(true);
@@ -139,11 +166,13 @@ public class StepsOverlayStyle
 
     // -- Colors --
     [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
-    [Menu("Header color", "Colour of the ACT / INTERLUDES stage header")]
+    [Menu("Header color", "Colour of the ACT stage header")]
     public ColorNode HeaderColor { get; set; } = new ColorNode(new Color(235, 200, 110, 255));
     [Menu("Current-step color", "Colour of the active step so it stands out")]
     public ColorNode CurrentColor { get; set; } = new ColorNode(new Color(120, 220, 255, 255));
     [Menu("Optional color")] public ColorNode OptionalColor { get; set; } = new ColorNode(new Color(150, 150, 150, 255));
+    [Menu("League-start color", "Colour of league-start steps (crafting recipes, trials) so they stand out")]
+    public ColorNode LeagueStartColor { get; set; } = new ColorNode(new Color(200, 140, 255, 255));
     [Menu("Background color", "Alpha controls opacity; alpha 0 = no panel background")]
     public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 140));
     [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(90, 90, 110, 180));
@@ -274,6 +303,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Statistics", "Run timer + per-act split, level, XP%, current area, level gap, route progress, xp/hour")]
     public OverlayStyle CharStats { get; set; } = new OverlayStyle { PosX = new RangeNode<int>(40, 0, 4000), PosY = new RangeNode<int>(600, 0, 2160) };
 
+    [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
+    public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);
+
     [Menu("Auto-advance banner", "Large transient banner shown when the tracker auto-advances on a zone change")]
     public BannerStyle Banner { get; set; } = new BannerStyle();
 
@@ -289,6 +321,9 @@ public class ExileCampaignsSettings : ISettings
 
     [Menu("Show optional steps", "Include steps marked (Opt) from the route")]
     public ToggleNode ShowOptional { get; set; } = new ToggleNode(true);
+
+    [Menu("Show league-start steps", "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them")]
+    public ToggleNode ShowLeagueStart { get; set; } = new ToggleNode(true);
 
     // ---- Path rendering (Radar-backed) ----
     [Menu("Path to next step", "Render a guided path to the current step's objective on the ground / minimap")]

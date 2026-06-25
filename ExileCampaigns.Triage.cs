@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -17,9 +18,15 @@ public partial class ExileCampaigns
     private string _triageRenameBuf = "";
     private string? _triageRenameTargetId;
 
+    // window rect captured last frame, so the hide test can run before Begin this frame.
+    private (Vector2 Min, Vector2 Max)? _triageRect;
+
     private void DrawTriageOverlay()
     {
         if (!Settings.Dev.ShowTriageButtons) return;
+
+        // hide while the window would sit under an open side panel (uses last frame's rect)
+        if (_triageRect is { } qr && OverlapsSidePanel(qr.Min, qr.Max)) return;
 
         var t = Settings.Triage;
         ImGui.SetNextWindowPos(new Vector2(t.PosX.Value, t.PosY.Value), ImGuiCond.FirstUseEver);
@@ -28,6 +35,8 @@ public partial class ExileCampaigns
 
         bool open = true;
         bool vis = ImGui.Begin("Route Quick Edit Panel##ec_triage", ref open);
+        var twp = ImGui.GetWindowPos();
+        _triageRect = (twp, twp + ImGui.GetWindowSize());
         if (!open) Settings.Dev.ShowTriageButtons.Value = false;
         if (vis)
         {
@@ -97,6 +106,7 @@ public partial class ExileCampaigns
 
             DrawRadarPathsPanel(curId, hasStep);
             DrawRecentFlagsPanel(curId, hasStep);
+            DrawNearbyEntitiesPanel(curId, hasStep);
 
             DrawRenamePopup();
         }
@@ -167,19 +177,28 @@ public partial class ExileCampaigns
         ImGui.EndChild();
     }
 
+    // the editor-selected objective on `step`, seeding a blank one when the step has none so quick-edit
+    // add/set actions never no-op on an empty step. returns the working list + chosen index.
+    private static (List<Objective> Objs, int Idx) SelectedObjectiveList(RouteStep step, int selIndex)
+    {
+        var objs = step.Objectives.ToList();
+        if (objs.Count == 0) objs.Add(RouteEditing.BlankObjective());
+        int idx = System.Math.Clamp(selIndex, 0, objs.Count - 1);
+        return (objs, idx);
+    }
+
     // append or replace the current objective's Paths with a Radar pick.
     private void AddRadarPathToObjective(string curId, RadarTargetsFile.Pick pick, bool replace)
     {
         if (_routeStore == null) return;
         var step = _routeStore.Steps.FirstOrDefault(s => s.Id == curId);
-        if (step == null || step.Objectives.Count == 0) return;
-        int objIdx = System.Math.Clamp(_editorSelectedObjIndex, 0, step.Objectives.Count - 1);
-        var o = step.Objectives[objIdx];
+        if (step == null) return;
+        var (objs, objIdx) = SelectedObjectiveList(step, _editorSelectedObjIndex);
+        var o = objs[objIdx];
         var newPath = new GuidePath(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy));
         var updated = replace
             ? o with { Paths = new System.Collections.Generic.List<GuidePath> { newPath } }
             : RouteEditing.AddPath(o, newPath);
-        var objs = step.Objectives.ToList();
         objs[objIdx] = updated;
         _routeStore.Update(step with { Objectives = objs });
         SaveUserRoute();
@@ -223,6 +242,126 @@ public partial class ExileCampaigns
         ImGui.EndChild();
     }
 
+    // --- nearby-entities quick guidance -------------------------------------------------------------------
+
+    // live nearby entities with a one-click Set/Add that writes the entity into BOTH the current objective's
+    // indicator and its minimap icon. matched by metadata path, LivingOnly off. acts on the editor's selected
+    // objective of the current step, same as the radar/flags panels.
+    private void DrawNearbyEntitiesPanel(string? curId, bool hasStep)
+    {
+        ImGui.Separator();
+        ImGui.TextDisabled("Nearby entities");
+        ImGui.SameLine();
+        HelpMarker("Live entities near you. Set replaces the current objective's indicator + minimap icon with "
+            + "this entity; Add appends them. Path+ appends a Path to this entity; Path= replaces all Paths. "
+            + "Prox makes the objective a Proximity gate on this entity, radius = your current distance plus 20%. "
+            + "Matched by metadata path.");
+
+        ImGui.BeginChild("##ec_triage_ents", new Vector2(0f, 118f), ImGuiChildFlags.Border);
+        var ents = NearbyEntitiesList(200f, 15);
+        if (ents.Count == 0)
+        {
+            ImGui.TextDisabled("(no entities nearby)");
+        }
+        else
+        {
+            if (!hasStep) ImGui.BeginDisabled();
+            for (int i = 0; i < ents.Count; i++)
+            {
+                var (path, name, dist, _) = ents[i];
+                bool set = ImGui.SmallButton($"Set##nea_s{i}");
+                ImGui.SameLine();
+                bool add = ImGui.SmallButton($"Add##nea_a{i}");
+                ImGui.SameLine();
+                bool pathAdd = ImGui.SmallButton($"Path+##nea_p{i}");
+                ImGui.SameLine();
+                bool pathSet = ImGui.SmallButton($"Path=##nea_ps{i}");
+                ImGui.SameLine();
+                bool prox = ImGui.SmallButton($"Prox##nea_px{i}");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})");
+                if (set && curId != null) SetEntityGuidance(curId, path, name, replace: true);
+                if (add && curId != null) SetEntityGuidance(curId, path, name, replace: false);
+                if (pathAdd && curId != null) AddEntityPathToObjective(curId, path, name, replace: false);
+                if (pathSet && curId != null) AddEntityPathToObjective(curId, path, name, replace: true);
+                if (prox && curId != null) SetProximityGuidance(curId, path, name, dist);
+            }
+            if (!hasStep) ImGui.EndDisabled();
+        }
+        ImGui.EndChild();
+    }
+
+    // write the picked entity into the current objective's indicator + minimap icon. replace=Set (sole entry
+    // on each channel), replace=false=Add (append). entity matched by path, default sprite for the icon.
+    private void SetEntityGuidance(string curId, string path, string name, bool replace)
+    {
+        if (_routeStore == null) return;
+        var step = _routeStore.Steps.FirstOrDefault(s => s.Id == curId);
+        if (step == null) return;
+        var (objs, objIdx) = SelectedObjectiveList(step, _editorSelectedObjIndex);
+        var o = objs[objIdx];
+
+        var t = new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path, false);
+        var updated = replace
+            ? o with { Indicators = new List<Indicator> { new(t) }, MinimapIcons = new List<MinimapIcon> { NewMinimapIcon(t) } }
+            : RouteEditing.AddMinimapIcon(RouteEditing.AddIndicator(o, new Indicator(t)), NewMinimapIcon(t));
+
+        objs[objIdx] = updated;
+        _routeStore.Update(step with { Objectives = objs });
+        SaveUserRoute();
+        ReloadRouteFromStore(curId);
+        _bufForStepId = null;
+        var lbl = string.IsNullOrEmpty(name) ? PathLeaf(path) : name;
+        ShowToast(replace ? $"Indicator+icon set: {Trunc(lbl, 20)}" : $"Indicator+icon added: {Trunc(lbl, 20)}");
+    }
+
+    // write the picked entity into the current objective's Paths. replace=Path= (sole path), false=Path+ (append).
+    // entity matched by path, LivingOnly off. mirrors AddRadarPathToObjective but for a live entity.
+    private void AddEntityPathToObjective(string curId, string path, string name, bool replace)
+    {
+        if (_routeStore == null) return;
+        var step = _routeStore.Steps.FirstOrDefault(s => s.Id == curId);
+        if (step == null) return;
+        var (objs, objIdx) = SelectedObjectiveList(step, _editorSelectedObjIndex);
+        var o = objs[objIdx];
+        var newPath = new GuidePath(new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path));
+        var updated = replace
+            ? o with { Paths = new System.Collections.Generic.List<GuidePath> { newPath } }
+            : RouteEditing.AddPath(o, newPath);
+        objs[objIdx] = updated;
+        _routeStore.Update(step with { Objectives = objs });
+        SaveUserRoute();
+        ReloadRouteFromStore(curId);
+        _bufForStepId = null;
+        var lbl = string.IsNullOrEmpty(name) ? PathLeaf(path) : name;
+        ShowToast(replace ? $"Path set: {Trunc(lbl, 22)}" : $"Path added: {Trunc(lbl, 20)}");
+    }
+
+    // turn the current objective into a Proximity gate on the picked entity, radius = current distance + 20%.
+    // entity matched by path (consistent with Set/Path), replaces existing entities + distance.
+    private void SetProximityGuidance(string curId, string path, string name, int dist)
+    {
+        if (_routeStore == null) return;
+        var step = _routeStore.Steps.FirstOrDefault(s => s.Id == curId);
+        if (step == null) return;
+        var (objs, objIdx) = SelectedObjectiveList(step, _editorSelectedObjIndex);
+        var o = objs[objIdx];
+
+        float radius = Math.Max(1f, dist * 1.2f);
+        objs[objIdx] = o with
+        {
+            Type = ObjectiveType.Proximity,
+            Entities = new List<EntityMatcher> { new(new Pattern(path), MatchKind.Path) },
+            Distance = radius,
+        };
+        _routeStore.Update(step with { Objectives = objs });
+        SaveUserRoute();
+        ReloadRouteFromStore(curId);
+        _bufForStepId = null;
+        var lbl = string.IsNullOrEmpty(name) ? PathLeaf(path) : name;
+        ShowToast($"Proximity {radius:0} set: {Trunc(lbl, 18)}");
+    }
+
     // append a QuestFlag advance objective for `flag` to the current step (pure math in RouteEditing), persist
     // the user route, rebuild, and jump the editor onto the new objective so you can verify it.
     private void BindCurrentStepQuestFlag(string curId, string flag)
@@ -264,7 +403,7 @@ public partial class ExileCampaigns
     private void AddTriageStep(string anchorId, bool before)
     {
         if (_routeStore == null) return;
-        var s = RouteEditing.SkeletonStep(_act, _areaId, _zoneName, TriageNoteSnapshot());
+        var s = RouteEditing.SkeletonStep(_act, _areaId, _zoneName);
         if (!_routeStore.InsertRelative(anchorId, s, before)) _routeStore.Add(s);
         SaveUserRoute();
         ReloadRouteFromStore(s.Id);
@@ -298,7 +437,7 @@ public partial class ExileCampaigns
     {
         if (_routeStore == null) return;
         var anchor = _routeStore.Steps.FirstOrDefault(s => s.Id == anchorId);
-        var s = RouteEditing.SkeletonStep(anchor?.Act ?? _act, anchor?.AreaId ?? _areaId, anchor?.AreaName ?? _zoneName, null)
+        var s = RouteEditing.SkeletonStep(anchor?.Act ?? _act, anchor?.AreaId ?? _areaId, anchor?.AreaName ?? _zoneName)
             with { Text = "Get Waypoint", Objectives = new List<Objective> { new(ObjectiveType.ActivateWaypoint) } };
         if (!_routeStore.InsertRelative(anchorId, s, before: true)) _routeStore.Add(s);
         SaveUserRoute();
@@ -349,21 +488,5 @@ public partial class ExileCampaigns
         ReloadRouteFromStore(stepId);
         _bufForStepId = null;   // invalidate editor buffer so it resyncs on next open
         ShowToast($"Renamed: {Trunc(newText.Trim(), 22)}");
-    }
-
-    // compact human-readable snapshot stuffed into a new step's Note so you can flesh it out later.
-    private string TriageNoteSnapshot()
-    {
-        var sb = new StringBuilder();
-        sb.Append("[auto] area ").Append(_areaId);
-        var ents = NearbyEntitiesList(200f, 8);
-        if (ents.Count > 0)
-            sb.Append(" | near: ").Append(string.Join(", ",
-                ents.Select(e => string.IsNullOrEmpty(e.Name) ? PathLeaf(e.Path) : e.Name)));
-        var rooms = NearbyRoomTilesList(5);
-        if (rooms.Count > 0) sb.Append(" | rooms: ").Append(string.Join(", ", rooms));
-        if (_recentFlagsTimed.Count > 0)
-            sb.Append(" | flags: ").Append(string.Join(", ", _recentFlagsTimed.TakeLast(5).Select(f => f.Flag)));
-        return sb.ToString();
     }
 }

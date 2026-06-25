@@ -27,30 +27,12 @@ public sealed class InteractTarget
     public required string MatchedName { get; init; }
 }
 
-// resolves the current step to one grid-space target coord for the path to aim at.
-// hybrid: live entities first, then authored tile-name fallback via Radar.ClusterTarget. order:
-//   1. kill/arena   -> matching hostile (boss) entity
-//   2. waypoint     -> nearest Waypoint object
-//   3. navigation   -> forward AreaTransition; one unambiguous or authored-disambiguated
-//   4. fallback     -> authored tile-name -> ClusterTarget, nearest the player
-// null when nothing maps (entities not loaded, no Radar). caller retries.
+// resolves the current step to one grid-space target coord for the path to aim at. path target is driven
+// SOLELY by the objective's explicit Paths children (Tile/Entity/Room) -- step text, objective type, and
+// advance entities have no effect. null when nothing explicit resolves yet (tiles not in instance, entity
+// not loaded); caller retries. the indicator + auto-advance use ResolveEntity separately.
 public sealed class StepTargetResolver
 {
-    // optional authored map: lowercased step AreaId -> Radar tile-name pattern, for ambiguous zones. empty by default.
-    private readonly IReadOnlyDictionary<string, string> _authoredTargets;
-
-    // lowercased source area-id -> navigation transitions out of it (destination match + Radar tile). pre-load
-    // path fallback for "Enter/Exit X" when the live AreaTransition entity isn't in render range yet.
-    private readonly IReadOnlyDictionary<string, IReadOnlyList<(string Match, string Tile)>> _transitions;
-
-    public StepTargetResolver(
-        IReadOnlyDictionary<string, string>? authoredTargets = null,
-        IReadOnlyDictionary<string, IReadOnlyList<(string Match, string Tile)>>? transitions = null)
-    {
-        _authoredTargets = authoredTargets ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        _transitions = transitions ?? new Dictionary<string, IReadOnlyList<(string, string)>>(StringComparer.OrdinalIgnoreCase);
-    }
-
     // tile pattern -> Radar's ExpectedCount for the current area (only the >1 ones). set on area change from
     // targets.json. without it a multi-instance tile (e.g. 2 staircases) collapses to one void centroid and the
     // route can't path there. resolve to the same cluster count Radar uses, then take the nearest.
@@ -68,64 +50,48 @@ public sealed class StepTargetResolver
         string? effectiveAreaId = null)
     {
         if (gc == null || step == null) return null;
-        var entities = gc.EntityListWrapper?.Entities;
         var playerGrid = PlayerGrid(gc);
 
-        // 1. kill/arena: aim at the matching hostile (the boss the step names).
-        var killNames = GuidanceView.KillTargets(step);
-        if (killNames.Count > 0 && entities != null)
+        // path target comes ONLY from the objective's explicit Paths children -- never step text, objective
+        // type, or advance entities. order is Tile -> Entity -> Room; all coords walkable-snapped (clusterTarget,
+        // ObjectiveEntityPositions, ResolveRoomCenters each snap) so Radar can expand a route. nearest to player.
+        var tiles = GuidanceView.PathTilePatterns(step);
+        if (tiles.Count > 0 && clusterTarget != null)
         {
-            var boss = entities
-                .Where(e => e != null && e.IsValid && e.IsHostile)
-                .Where(IsKillableCreature)   // exclude lifeless arena props that match the boss name by Path
-                .Where(e => killNames.Any(n => NameMatches(e, n)))
-                .Where(HasGrid)
-                .OrderBy(e => e.DistancePlayer)
-                .FirstOrDefault();
-            if (boss != null) return GridOf(boss);
+            var hit = ResolveTiles(gc, tiles, clusterTarget);
+            if (hit != null) return hit;
         }
 
-        // 3. interaction target (chest/NPC/quest object) the step names, same entity the indicator points at.
-        //    path straight to it. mirrors ResolveEntity's chest fallback.
-        var interact = ResolveEntity(gc, step, InteractPathMaxDistance, effectiveAreaId);
-        if (interact != null && HasGrid(interact.Entity))
-            return GridOf(interact.Entity);
+        var entPats = GuidanceView.PathEntityPatterns(step);
+        if (entPats.Count > 0)
+        {
+            var hit = Nearest(ObjectiveEntityPositions(gc, entPats, liveOnly: false), playerGrid);
+            if (hit != null) return hit;
+        }
 
-        // 3b. "Enter/Exit X" navigation: aim at the live AreaTransition that leads to X (matched by its
-        //     destination render name), or, before that entity is in render range, the authored transition
-        //     tile for X via Radar -- so the path shows from zone entry like Radar's own. never the zone boss.
-        var trans = ResolveTransition(gc, step, playerGrid, clusterTarget, effectiveAreaId);
-        if (trans != null) return trans;
+        var roomPats = GuidanceView.PathRoomPatterns(step);
+        if (roomPats.Count > 0)
+        {
+            var hit = Nearest(ResolveRoomCenters(gc, roomPats), playerGrid);
+            if (hit != null) return hit;
+        }
 
-        // 3c. entity not loaded yet, but the step names the room it sits in (e.g. an "Abandoned Stash
-        //     (inside the Mysterious Campsite)" chest, dark until you get close). aim at that AreaGraph
-        //     room's center so the path shows from zone entry; step 3 snaps to the entity once it spawns.
-        var room = ResolveRoom(gc, step, playerGrid);
-        if (room != null) return room;
-
-        // 3d. Radar room-based objective: an on-ground objective whose entity isn't a standard interactable and
-        //     isn't loaded yet (e.g. the g1_5 obelisks before you're close). aim at the nearest AreaGraphs room
-        //     Radar tags for it, so the path shows from zone entry; pass 3 snaps to the IngameIcon once loaded.
-        var obj = ResolveObjective(gc, step, playerGrid, effectiveAreaId);
-        if (obj != null) return obj;
-
-        // 4. authored target: the zone's single boss arena. only borrow it for the step that's actually
-        //    about killing that boss; transitions resolve via live AreaTransition entities (step 3b), never
-        //    here, so an "Enter <next zone>" step can't path back to the boss.
-        if (!WantsAreaLandmark(step)) return null;
-        return ResolveAuthored(step, playerGrid, clusterTarget, effectiveAreaId);
+        return null;
     }
 
-    // should this step use the area's authored landmark tile as its path target? yes for kill steps and
-    // steps with an explicit pathTarget override; never for enter/transition steps (wrong destination).
-    private static bool WantsAreaLandmark(RouteStep step)
+    // nearest of several already-snapped candidate coords to the player (or the first when player pos unknown).
+    private static Vector2? Nearest(IReadOnlyList<Vector2> pts, Vector2? playerGrid)
     {
-        // an explicit per-step pathTarget (override layer) is always honored -- deliberate authoring, including
-        // for OPTIONAL far bosses whose arena tile we want a path to (e.g. Balbala / Prison of the Disgraced
-        // behind the seal door). without one, an optional step never borrows the area's boss tile.
-        if (GuidanceView.PathTilePatterns(step).Count > 0) return true;
-        if (step.Optional) return false;
-        return GuidanceView.KillTargets(step).Count > 0;
+        if (pts == null || pts.Count == 0) return null;
+        if (playerGrid is not { } p) return pts[0];
+        Vector2 best = pts[0];
+        float bestD = Vector2.DistanceSquared(best, p);
+        for (int i = 1; i < pts.Count; i++)
+        {
+            float d = Vector2.DistanceSquared(pts[i], p);
+            if (d < bestD) { bestD = d; best = pts[i]; }
+        }
+        return best;
     }
 
     // the destination zone a navigation step heads to, or null if it isn't one. "Enter The Grelwood" ->
@@ -143,140 +109,8 @@ public sealed class StepTargetResolver
         return rest.Length >= 3 ? rest : null;
     }
 
-    // path target for an "Enter/Exit X" step: the live AreaTransition leading to X (matched on render name)
-    // when in range. before it loads, the from-entry tile path comes from the EnterArea objective's Tile Path
-    // child via the direct PathTilePatterns -> ResolveTiles fallback in Pathing (not from StepMeta anymore).
-    private Vector2? ResolveTransition(GameController gc, RouteStep step, Vector2? playerGrid,
-        Func<string, int, Vector2[]>? clusterTarget, string? effectiveAreaId)
-    {
-        var dest = TransitionDestination(step.Text);
-        if (string.IsNullOrEmpty(dest)) return null;
-
-        var entities = gc.EntityListWrapper?.Entities;
-        // rank loose matches by quality first, then distance: a back-exit whose name is a substring of the
-        // destination (e.g. "Deshar" inside "Spires of Deshar") is a WEAKER match than the forward exit named
-        // for the destination, and must never win just by being nearer.
-        var live = entities?
-            .Where(e => e != null && e.IsValid && e.Type == EntityType.AreaTransition && HasGrid(e))
-            .Where(e => LooseEqual(e.RenderName, dest))
-            .OrderByDescending(e => MatchScore(e.RenderName, dest))
-            .ThenBy(e => e.DistancePlayer)
-            .FirstOrDefault();
-        if (live != null) return GridOf(live);
-
-        // not loaded yet: the from-entry tile path is handled by the direct PathTilePatterns -> ResolveTiles
-        // fallback in Pathing (the EnterArea tile is a plain Tile Path child now), so no StepMeta tile read here.
-        if (clusterTarget == null) return null;
-
-        // fallback: area-keyed JSON map (retired in Task 11).
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-        if (string.IsNullOrEmpty(key) || !_transitions.TryGetValue(key, out var exits)) return null;
-        foreach (var (m, tile) in exits)
-        {
-            if (!LooseEqual(m, dest)) continue;
-            try
-            {
-                var hit = NearestCluster(clusterTarget(tile, ClusterCount(tile)), playerGrid);
-                if (hit != null) return hit;
-            }
-            catch { /* tile not in this instance, try next */ }
-        }
-        return null;
-    }
-
-    // case-insensitive either-direction containment, for matching a route destination ("Grelwood") against a
-    // longer label ("The Grelwood" / "Mud Burrow (normally skip this)").
-    private static bool LooseEqual(string? a, string b)
-    {
-        if (string.IsNullOrEmpty(a) || string.IsNullOrEmpty(b)) return false;
-        return a.Contains(b, StringComparison.OrdinalIgnoreCase) || b.Contains(a, StringComparison.OrdinalIgnoreCase);
-    }
-
-    // higher = better destination-name match. exact > renderName contains dest > dest contains renderName (the
-    // weak case that loose-matches a back-exit like "Deshar" against "Spires of Deshar").
-    private static int MatchScore(string? renderName, string dest)
-    {
-        if (string.IsNullOrEmpty(renderName)) return 0;
-        if (string.Equals(renderName, dest, StringComparison.OrdinalIgnoreCase)) return 3;
-        if (renderName.Contains(dest, StringComparison.OrdinalIgnoreCase)) return 2;
-        if (dest.Contains(renderName, StringComparison.OrdinalIgnoreCase)) return 1;
-        return 0;
-    }
-
     // AreaGraph room coords are in tiles; Radar multiplies by this to reach grid units (Radar TileToGridConversion).
     private const int TileToGrid = 23;
-
-    // location phrases follow these markers in a step line ("... inside the Mysterious Campsite").
-    private static readonly string[] LocationMarkers =
-        { " inside the ", " inside ", " in the ", " in ", " near the ", " near ", " next to the ", " next to ", " behind the ", " behind ", " at the " };
-
-    // aim at the center of the AreaGraph room the step names, for when the real objective entity (a chest)
-    // hasn't loaded. reads the same room set Radar does (IngameState.Data.AreaGraphs); the Radar.ClusterTarget
-    // bridge can't be used here because it drops the room filter. nearest matching room to the player wins.
-    private static Vector2? ResolveRoom(GameController gc, RouteStep step, Vector2? playerGrid)
-    {
-        var hints = RoomHints(step.Text);
-        if (hints.Count == 0) return null;
-        try
-        {
-            var graphs = gc.IngameState?.Data?.AreaGraphs;
-            if (graphs == null) return null;
-            Vector2? best = null;
-            float bestD = float.MaxValue;
-            foreach (var g in graphs)
-            {
-                var rooms = g?.Rooms;
-                if (rooms == null) continue;
-                foreach (var r in rooms)
-                {
-                    var name = r.Name;
-                    if (string.IsNullOrEmpty(name)) continue;
-                    var despaced = name.Replace(" ", "");
-                    if (!hints.Any(h => despaced.Contains(h, StringComparison.OrdinalIgnoreCase))) continue;
-                    var c = SnapToWalkable(gc, new Vector2(
-                        (r.MinCoord.X + r.MaxCoord.X) * 0.5f * TileToGrid,
-                        (r.MinCoord.Y + r.MaxCoord.Y) * 0.5f * TileToGrid));
-                    float d = playerGrid is { } p ? Vector2.DistanceSquared(c, p) : 0f;
-                    if (d < bestD) { bestD = d; best = c; }
-                }
-            }
-            return best;
-        }
-        catch { return null; }
-    }
-
-    // significant location words after a positional marker ("inside the Mysterious Campsite" -> Mysterious,
-    // Campsite). len>=5 drops connectives and keeps room-distinctive nouns for the AreaGraph name match.
-    private static List<string> RoomHints(string text)
-    {
-        var res = new List<string>();
-        if (string.IsNullOrWhiteSpace(text)) return res;
-        // punctuation glues to words ("(inside the Campsite)") and hides the space-delimited markers; flatten
-        // brackets to spaces first so " inside the " still matches.
-        text = " " + text.Replace('(', ' ').Replace(')', ' ').Replace('[', ' ').Replace(']', ' ') + " ";
-        foreach (var m in LocationMarkers)
-        {
-            int idx = text.IndexOf(m, StringComparison.OrdinalIgnoreCase);
-            if (idx < 0) continue;
-            var after = TrimAtMarkers(text.Substring(idx + m.Length));
-            foreach (var w in after.Split(new[] { ' ', '(', ')', '{', '}', ',', '.', '-', '/' }, StringSplitOptions.RemoveEmptyEntries))
-                if (w.Length >= 5 && !res.Contains(w, StringComparer.OrdinalIgnoreCase))
-                    res.Add(w);
-        }
-        return res;
-    }
-
-    // a Radar room-based objective (e.g. g1_5 obelisks, tagged "Rust" over the "*Encounter*" rooms) for an
-    // objective whose entity isn't loaded / isn't a standard interactable. join the objective name to the step
-    // by a distinctive word, then aim at the nearest AreaGraphs room Radar tags. mirrors Radar's room target;
-    // the Radar.ClusterTarget bridge can't do it (it drops the room filter).
-    private Vector2? ResolveObjective(GameController gc, RouteStep step, Vector2? playerGrid, string? effectiveAreaId)
-    {
-        var rooms = GuidanceView.PathRoomPatterns(step);
-        if (rooms.Count == 0) return null;
-        return NearestRoomCenter(gc, playerGrid,
-            rname => rooms.Any(f => rname.Contains(f, StringComparison.OrdinalIgnoreCase)));
-    }
 
     // ALL matching Radar objective room centers for the step (e.g. the 3 Rust-obelisk Encounter rooms), so the
     // pathing can draw a line to each while the step waits on all of them. empty if the step names no objective.
@@ -330,7 +164,8 @@ public sealed class StepTargetResolver
             var mp = MatchPath(e);
             if (mp == null) continue;
             if (!entityPaths.Any(p => !string.IsNullOrEmpty(p) && mp.Contains(p, StringComparison.OrdinalIgnoreCase))) continue;
-            if (liveOnly && !IsInteractable(e)) continue;
+            // WorldItems vanish when looted; isTargetable doesn't flip. skip the interactable check for them.
+            if (liveOnly && e.Type != EntityType.WorldItem && !IsInteractable(e)) continue;
             res.Add(SnapToWalkable(gc, GridOf(e)));
         }
         return res;
@@ -836,30 +671,6 @@ public sealed class StepTargetResolver
             catch { /* tile not in this instance, try next */ }
         }
         return res;
-    }
-
-    private Vector2? ResolveAuthored(RouteStep step, Vector2? playerGrid, Func<string, int, Vector2[]>? clusterTarget,
-        string? effectiveAreaId)
-    {
-        if (clusterTarget == null) return null;
-        // sub-steps (kill/loot/enter-text) carry no AreaId of their own; use the effective area id from the
-        // route (most recent zone header) so the boss/exit fallback still keys into the authored map.
-        var key = !string.IsNullOrEmpty(effectiveAreaId) ? effectiveAreaId : step.AreaId;
-
-        // tile pattern comes from the step's Paths children now (via GuidanceView).
-        string? pattern = GuidanceView.PathTilePatterns(step).FirstOrDefault();
-        if (string.IsNullOrEmpty(pattern))
-        {
-            // fallback: area-keyed JSON map (retired in Task 11).
-            if (string.IsNullOrEmpty(key) || !_authoredTargets.TryGetValue(key, out var p)) return null;
-            pattern = p;
-        }
-
-        try
-        {
-            return NearestCluster(clusterTarget(pattern!, ClusterCount(pattern)), playerGrid);
-        }
-        catch { return null; }
     }
 
     private static Vector2? NearestCluster(Vector2[]? coords, Vector2? playerGrid)

@@ -32,11 +32,11 @@ public partial class ExileCampaigns
     private string? _bufForStepId;
     private int _bufForObjIndex = -1;
     private string _strStepText = "";
-    private string _strStepNote = "";
     private readonly byte[] _bufAreaId = new byte[64];
     private readonly byte[] _bufAreaName = new byte[128];
     private int _stepAct;
     private bool _stepOptional;
+    private bool _stepLeagueStart;
     private int _stepCompleteWhen;
     // objective-level
     private int _objType;
@@ -74,24 +74,33 @@ public partial class ExileCampaigns
     private static readonly string[] PathModeLabels = { "Nearest", "All" };
     private static readonly string[] ObjTypeLabels = Enum.GetNames(typeof(ObjectiveType));
 
+    // window rect captured last frame, so the hide test can run before Begin this frame. see _triageRect.
+    private (Vector2 Min, Vector2 Max)? _editorRect;
+
     private void DrawRouteEditor()
     {
         if (!Settings.Editor.Enable) return;
 
-        var e = Settings.Editor;
-        ImGui.SetNextWindowPos(new Vector2(e.PosX.Value, e.PosY.Value), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSize(new Vector2(920f, 760f), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowSizeConstraints(new Vector2(480f, 300f), new Vector2(4000f, 4000f));
-        ImGui.SetNextWindowBgAlpha(0.93f);
-
-        bool open = true;
-        bool vis = ImGui.Begin("Route Editor##ec_route_editor", ref open, ImGuiWindowFlags.None);
-        if (!open) Settings.Editor.Enable.Value = false;
-        if (vis)
+        // hide while the window would sit under an open side panel (uses last frame's rect)
+        if (!(_editorRect is { } r && OverlapsSidePanel(r.Min, r.Max)))
         {
-            DrawRouteTab();
+            var e = Settings.Editor;
+            ImGui.SetNextWindowPos(new Vector2(e.PosX.Value, e.PosY.Value), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize(new Vector2(920f, 760f), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSizeConstraints(new Vector2(480f, 300f), new Vector2(4000f, 4000f));
+            ImGui.SetNextWindowBgAlpha(0.93f);
+
+            bool open = true;
+            bool vis = ImGui.Begin("Route Editor##ec_route_editor", ref open, ImGuiWindowFlags.None);
+            var wp = ImGui.GetWindowPos();
+            _editorRect = (wp, wp + ImGui.GetWindowSize());
+            if (!open) Settings.Editor.Enable.Value = false;
+            if (vis)
+            {
+                DrawRouteTab();
+            }
+            ImGui.End();
         }
-        ImGui.End();
 
         if (_pendingRouteSave)
         {
@@ -213,6 +222,8 @@ public partial class ExileCampaigns
 
         if (ImGui.Checkbox("Optional", ref _stepOptional)) UpdateStep(step with { Optional = _stepOptional });
         ImGui.SameLine();
+        if (ImGui.Checkbox("League start", ref _stepLeagueStart)) UpdateStep(step with { LeagueStart = _stepLeagueStart });
+        ImGui.SameLine();
         ImGui.SetNextItemWidth(110f);
         if (ImGui.Combo("Complete##cw", ref _stepCompleteWhen, CompleteWhenLabels, CompleteWhenLabels.Length))
             UpdateStep(step with { CompleteWhen = (CompleteWhen)_stepCompleteWhen });
@@ -229,14 +240,10 @@ public partial class ExileCampaigns
         InputHint("AreaName##san", "The Riverbank", _bufAreaName);
         if (ImGui.IsItemDeactivatedAfterEdit()) UpdateStep(step with { AreaName = ReadBuffer(_bufAreaName) });
 
-        ImGui.Text("Note");
-        ImGui.InputTextMultiline("##step_note", ref _strStepNote, 2048, new Vector2(-1f, 36f));
-        if (ImGui.IsItemDeactivatedAfterEdit()) UpdateStep(step with { Note = _strStepNote });
-
         // step ops
         if (ImGui.Button("Add step after"))
         {
-            var s = RouteEditing.SkeletonStep(step.Act, step.AreaId, step.AreaName, null);
+            var s = RouteEditing.SkeletonStep(step.Act, step.AreaId, step.AreaName);
             _routeStore.InsertRelative(step.Id, s, before: false);
             _pendingSelectId = s.Id; _editorSelectedObjIndex = 0; _pendingRouteSave = true;
         }
@@ -417,12 +424,12 @@ public partial class ExileCampaigns
             var disp = string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})";
             rows.Add((disp, new (string, Action)[]
             {
-                ("name", () => { if (!string.IsNullOrEmpty(name)) AddEntity(step, idx, o, new EntityMatcher(new Pattern(name))); }),
-                ("path", () => AddEntity(step, idx, o, new EntityMatcher(new Pattern(PathLeaf(path)), MatchKind.Path))),
+                ("name", () => { if (!string.IsNullOrEmpty(name)) { WriteBuffer(_bufAddEntity, name); _addEntityMatchBy = (int)MatchKind.Name; } }),
+                ("path", () => { WriteBuffer(_bufAddEntity, path); _addEntityMatchBy = (int)MatchKind.Path; }),
             }));
         }
         DrawPickerSection("Nearby entities -> add matcher", rows, 140f,
-            "Mobs / NPCs / chests near you. 'name' adds a RenderName matcher; 'path' adds a metadata-path matcher.");
+            "Populates the add row above. Edit the value if needed, then click Add.");
     }
 
     private void AddEntity(RouteStep step, int idx, Objective o, EntityMatcher m)
@@ -584,8 +591,13 @@ public partial class ExileCampaigns
         }
 
         // live target pickers (room tiles / Radar targets / nearby entities), shared with the MinimapIcon target.
-        // entity targets they build inherit the add-row "alive" flag (indicators only).
-        DrawTargetPickers(kind.ToString(), indKind && _addIndLiving, t => AddTarget(step, idx, o, kind, t));
+        // each button populates THIS add row (value + kind + matchBy + regex + living); the user edits then Adds.
+        DrawTargetPickers(kind.ToString(), indKind && _addIndLiving, t =>
+        {
+            WriteBuffer(abuf, t.Match.Value);
+            if (isPath) { _addPathKind = (int)t.Kind; _addPathMatchBy = (int)t.MatchBy; _addPathRegex = t.Match.Regex; }
+            else { _addIndKind = (int)t.Kind; _addIndMatchBy = (int)t.MatchBy; _addIndRegex = t.Match.Regex; _addIndLiving = t.LivingOnly; }
+        });
     }
 
     private void AddTarget(RouteStep step, int idx, Objective o, ChildKind kind, Target t)
@@ -598,14 +610,14 @@ public partial class ExileCampaigns
 
     // the three live target pickers (nearby room tiles -> Room; Radar targets -> Tile/Entity; nearby
     // entities -> Entity). shared by the Paths/Indicators list editor and the MinimapIcon target; each
-    // button hands its built Target to apply().
-    private void DrawTargetPickers(string scope, bool living, Action<Target> apply)
+    // button populates the caller's add row (value + kind + matchBy + regex + living), the user edits + Adds.
+    private void DrawTargetPickers(string scope, bool living, Action<Target> populate)
     {
         var roomRows = new List<(string, (string, Action)[])>();
         foreach (var name in NearbyRoomTilesList(30))
-            roomRows.Add((name, new (string, Action)[] { ("Room", () => apply(new Target(TargetKind.Room, new Pattern(name)))) }));
+            roomRows.Add((name, new (string, Action)[] { ("Room", () => populate(new Target(TargetKind.Room, new Pattern(name)))) }));
         DrawPickerSection($"Nearby room tiles -> {scope} (Room)", roomRows, 120f,
-            "AreaGraph room tiles near you. Adds a Room target.");
+            "Populates the add row above with a Room target. Edit then click Add.");
 
         var radarRows = new List<(string, (string, Action)[])>();
         foreach (var (leaf, fullPath, name, dist, rkind) in NearbyRadarTargetsList(30))
@@ -613,12 +625,12 @@ public partial class ExileCampaigns
             var disp = string.IsNullOrEmpty(name) ? leaf : name;
             radarRows.Add(($"[{rkind}] {disp} ({dist})", new (string, Action)[]
             {
-                ("Tile", () => apply(new Target(TargetKind.Tile, new Pattern(fullPath)))),
-                ("Entity", () => apply(new Target(TargetKind.Entity, new Pattern(leaf), MatchKind.Path, living))),
+                ("Tile", () => populate(new Target(TargetKind.Tile, new Pattern(fullPath)))),
+                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(fullPath), MatchKind.Path, living))),
             }));
         }
         DrawPickerSection($"Radar targets -> {scope} (Tile / Entity)", radarRows, 140f,
-            "Live Radar-pathable targets near you. 'Tile' adds a Tile target (the full path, for ClusterTarget); 'Entity' adds an Entity target (the leaf, matched by path).");
+            "Populates the add row above. 'Tile' uses the full path for ClusterTarget; 'Entity' uses the full path matched by path. Edit then click Add.");
 
         // zone-wide Radar targets.json for this area plus the global "*" block: canonical authored targets incl.
         // far transitions you aren't standing next to (the live list above can't see those). each row carries
@@ -629,12 +641,12 @@ public partial class ExileCampaigns
             var pick = p;
             fileRows.Add(($"[{pick.Kind}] {pick.Label}", new (string, Action)[]
             {
-                (pick.Kind.ToString(), () => apply(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy,
+                (pick.Kind.ToString(), () => populate(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy,
                     pick.Kind == TargetKind.Entity && living))),
             }));
         }
         DrawPickerSection($"Radar targets.json (zone-wide) -> {scope} (Tile / Room / Entity)", fileRows, 140f,
-            "Radar's authored targets for this area plus the global ones, mapped to the right kind: tiles -> Tile (ClusterTarget), room-scoped -> Room (AreaGraph room), entity -> Entity.",
+            "Populates the add row above from Radar's authored targets: tiles -> Tile, room-scoped -> Room, entity -> Entity. Edit then click Add.",
             "no Radar targets.json entry for this area");
 
         var entRows = new List<(string, (string, Action)[])>();
@@ -643,11 +655,11 @@ public partial class ExileCampaigns
             var disp = string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})";
             entRows.Add((disp, new (string, Action)[]
             {
-                ("Entity", () => apply(new Target(TargetKind.Entity, new Pattern(PathLeaf(path)), MatchKind.Path, living))),
+                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path, living))),
             }));
         }
         DrawPickerSection($"Nearby entities -> {scope} (Entity){(living ? " [alive]" : "")}", entRows, 140f,
-            "Adds an Entity target matched by metadata path leaf.");
+            "Populates the add row above with the full metadata path. Edit to a partial match or regex, then click Add.");
     }
 
     // list editor for an objective's MinimapIcons (multiple, like Paths/Indicators). each row edits one icon's
@@ -735,7 +747,14 @@ public partial class ExileCampaigns
             WriteBuffer(_bufMmiPat, "");
         }
 
-        DrawTargetPickers("MinimapIcon", _mmiLiving, t => UpdateObjective(step, idx, RouteEditing.AddMinimapIcon(o, NewMinimapIcon(t))));
+        DrawTargetPickers("MinimapIcon", _mmiLiving, t =>
+        {
+            WriteBuffer(_bufMmiPat, t.Match.Value);
+            _mmiKind = (int)t.Kind;
+            _mmiMatchBy = (int)t.MatchBy;
+            _mmiRegex = t.Match.Regex;
+            _mmiLiving = t.LivingOnly;
+        });
     }
 
     // a freshly-added icon: default sprite, gold tint, global size, carrying the picked target (null = fallback anchor).
@@ -835,11 +854,11 @@ public partial class ExileCampaigns
         _bufForStepId = step.Id;
         _bufForObjIndex = -1;
         _strStepText = step.Text ?? "";
-        _strStepNote = step.Note ?? "";
         WriteBuffer(_bufAreaId, step.AreaId ?? "");
         WriteBuffer(_bufAreaName, step.AreaName ?? "");
         _stepAct = step.Act;
         _stepOptional = step.Optional;
+        _stepLeagueStart = step.LeagueStart;
         _stepCompleteWhen = (int)step.CompleteWhen;
     }
 

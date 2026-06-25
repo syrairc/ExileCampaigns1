@@ -109,6 +109,7 @@ public partial class ExileCampaigns
         var col = Settings.InteractIndicator.IconColor.Value;
 
         var dest = new RectangleF(screen.X - half, screen.Y - half + bob, size, size);
+        if (OverlapsSidePanel(dest)) return;   // hide under an open side panel
         var uv = SpriteAtlas.GetUVRectFlippedV(SpriteIcon.Arrow);   // up-arrow flipped to point down
         Graphics.DrawImage(IndicatorTexture, dest, uv, col);
     }

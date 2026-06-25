@@ -11,6 +11,8 @@ public interface IWorldState
     bool QuestFlagSatisfied(Pattern flag);
     bool InAreaSatisfied(Pattern area);
     bool WaypointPulsed();
+    bool JustLoggedIn();
+    bool NearTownPortal(float distance);
     bool ProximitySatisfied(IReadOnlyList<EntityMatcher>? entities, IReadOnlyList<Pattern>? tiles, float distance);
     bool LootSatisfied(IReadOnlyList<ItemMatcher>? items);
     int KillProgress(IReadOnlyList<EntityMatcher>? entities);
@@ -48,6 +50,8 @@ public static class AdvanceEngine
         ObjectiveType.QuestFlag       => o.Flag != null && world.QuestFlagSatisfied(o.Flag),
         ObjectiveType.EnterArea       => o.AreaTarget != null && world.InAreaSatisfied(o.AreaTarget),
         ObjectiveType.ActivateWaypoint => world.WaypointPulsed(),
+        ObjectiveType.Login           => world.JustLoggedIn(),
+        ObjectiveType.TownPortal      => world.NearTownPortal(o.Distance > 0f ? o.Distance : DefaultProximity),
         ObjectiveType.Manual          => false,
         _                             => false,
     };

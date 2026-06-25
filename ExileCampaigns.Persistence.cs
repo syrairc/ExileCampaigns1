@@ -39,6 +39,9 @@ public partial class ExileCampaigns
             try { File.Move(LegacyProgressPath, ProgressPath); } catch { /* leave legacy in place */ }
         }
 
+        // brand-new profile (no saved file even after migration) -> offer league-start mode once it's drawn
+        if (!File.Exists(ProgressPath)) _leagueStartPromptPending = true;
+
         LoadProgress();
         InitStats();      // new char -> fresh run timer/splits
         // masked, not the raw name: this lands in ExileCore's shared Verbose log

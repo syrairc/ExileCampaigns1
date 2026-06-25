@@ -9,7 +9,9 @@ using ExileCampaigns.Guide;
 using ExileCampaigns.Tracking;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
+using ExileCore.PoEMemory.MemoryObjects;
 using GameOffsets.Native;
+using ImGuiNET;
 using SharpDX;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
@@ -53,6 +55,11 @@ public partial class ExileCampaigns
     private HashSet<string>? _objectiveFlagSnapshot;         // progress flags true as of last poll (null = unseeded)
     private List<Vector2>? _objTileBase;                     // cached tile-cluster centroids for current step (stable baseline)
 
+    // nearest-mode tile step that split into several candidate clusters (e.g. many "stairsup", only one
+    // reachable this run). routes to all of them via the objective-route slots; DrawStepPath draws only the
+    // closest reachable (shortest path) instead of all. distinct from All-mode, which draws every path.
+    private bool _tileCandidateMode;
+
 
     // per-area terrain, read on AreaChange (needed to project grid points to screen)
     private float[][]? _heightData;
@@ -60,77 +67,6 @@ public partial class ExileCampaigns
     private DateTime _lastPathPoll;
 
     private bool PathsEnabled => Settings.Path.ShowPathOnGround || Settings.Path.ShowPathOnMinimap;
-
-    // authored area-id -> Radar tile-name pattern. path fallback when no live entity resolves (e.g. a
-    // {kill|Boss} step whose boss isn't in memory yet: path to the boss arena / zone exit tile). tiles are
-    // static geometry, available from area load, so the path shows the moment you enter. patterns must be
-    // bridge-usable: a literal tile name or Metadata/...tdt path, NOT a room "*" wildcard (ClusterTarget
-    // drops the room filter, so "*" matches the whole map). copied from Radar's targets.json (keyed by area RawName, e.g. G1_1)
-    private string AreaTargetsPath => Path.Combine(DirectoryFullName, "Data", "poe2", "area-targets.json");
-    private string AreaTransitionsPath => Path.Combine(DirectoryFullName, "Data", "poe2", "area-transitions.json");
-
-    private void LoadAreaTargets()
-    {
-        try
-        {
-            var map = LoadAreaTargetMap();
-            var transitions = LoadAreaTransitionMap();
-            _targetResolver = new StepTargetResolver(map, transitions);
-            LogMessage($"ExileCampaigns -> area-targets: {map.Count} boss tiles, {transitions.Count} transition areas.");
-        }
-        catch (Exception ex)
-        {
-            LogError($"ExileCampaigns -> area-targets map load failed: {ex.Message}");
-            _targetResolver = new StepTargetResolver();
-        }
-    }
-
-    // area-id -> single boss-arena tile pattern.
-    private Dictionary<string, string> LoadAreaTargetMap()
-    {
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (!File.Exists(AreaTargetsPath))
-        {
-            LogMessage($"ExileCampaigns -> area-targets map not found at {AreaTargetsPath}; boss path fallback disabled.");
-            return map;
-        }
-        var root = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(AreaTargetsPath));
-        foreach (var prop in root.Properties())
-        {
-            if (prop.Name.StartsWith("_")) continue;   // skip _comment metadata
-            var pattern = (string?)prop.Value;
-            if (!string.IsNullOrWhiteSpace(pattern))
-                map[prop.Name] = pattern!;
-        }
-        return map;
-    }
-
-    // source area-id -> [{destination match, transition tile}] for "Enter/Exit X" pre-load paths.
-    private Dictionary<string, IReadOnlyList<(string Match, string Tile)>> LoadAreaTransitionMap()
-    {
-        var map = new Dictionary<string, IReadOnlyList<(string, string)>>(StringComparer.OrdinalIgnoreCase);
-        if (!File.Exists(AreaTransitionsPath))
-        {
-            LogMessage($"ExileCampaigns -> area-transitions map not found at {AreaTransitionsPath}; transition path fallback disabled.");
-            return map;
-        }
-        var root = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(AreaTransitionsPath));
-        foreach (var prop in root.Properties())
-        {
-            if (prop.Name.StartsWith("_")) continue;
-            if (prop.Value is not Newtonsoft.Json.Linq.JArray arr) continue;
-            var list = new List<(string, string)>();
-            foreach (var e in arr)
-            {
-                var m = (string?)e["match"];
-                var tile = (string?)e["tile"];
-                if (!string.IsNullOrWhiteSpace(m) && !string.IsNullOrWhiteSpace(tile))
-                    list.Add((m!, tile!));
-            }
-            if (list.Count > 0) map[prop.Name] = list;
-        }
-        return map;
-    }
 
     // lazily grab the Radar bridge methods; retry until present (Radar may init after us)
     private void EnsureRadarBridge()
@@ -173,16 +109,27 @@ public partial class ExileCampaigns
         // reacting to per-obelisk progress flags. takes over the path for this step (no single target).
         if (UpdateObjectivePaths(step, areaId)) return;
 
-        if (_currentTarget != null) return;       // already routing for this step
-        var target = _targetResolver.Resolve(GameController, step, _radarClusterTarget, areaId);
-        if (target == null)
+        if (_currentTarget != null || _tileCandidateMode) return;   // already routing for this step
+
+        // nearest-mode tile step: a Tile child can resolve to several clusters (e.g. many "stairsup", only
+        // one reachable in this instance). route to EVERY candidate and draw the closest reachable one -- a
+        // geometric-nearest pick can land on an unreachable instance, Radar returns no path, nothing draws.
+        var tiles = GuidanceView.PathTilePatterns(step);
+        if (tiles.Count > 0 && _radarClusterTarget != null)
         {
-            // single-resolve only honors the FIRST Tile child (via Meta.PathTarget). when it can't resolve
-            // (the present staircase is a later variant), try the nearest across ALL the step's Tile children.
-            var tiles = _route.CurrentStep?.Model is { } model ? GuidanceView.PathTilePatterns(model) : null;
-            if (tiles is { Count: > 0 })
-                target = _targetResolver.ResolveTiles(GameController, tiles, _radarClusterTarget);
+            var clusters = _targetResolver.ResolveTileClusters(GameController, tiles, _radarClusterTarget);
+            if (clusters.Count > 1)
+            {
+                CancelPath();
+                _currentTarget = null;
+                _tileCandidateMode = true;
+                StartObjectiveRoutes(clusters);
+                RecordDiagPathTarget(clusters[0]);
+                return;
+            }
         }
+
+        var target = _targetResolver.Resolve(GameController, step, _radarClusterTarget, areaId);
         if (target == null) return;               // nothing resolvable yet, retry next poll
 
         _currentTarget = target;
@@ -195,11 +142,24 @@ public partial class ExileCampaigns
     // reads the v2 Paths[] children directly -- the old count>1 / Meta.PathTarget inference is gone.
     private bool UpdateObjectivePaths(RouteStep step, string? areaId)
     {
+        // tile-candidate routes (Nearest mode, many clusters) live in the same objective-path slots. don't let
+        // the Nearest cancel below wipe them -- bail without touching them; UpdatePathTarget's guard returns next.
+        if (_tileCandidateMode) return false;
+
         var model = _route.CurrentStep?.Model;
-        if (model == null || !GuidanceView.WantsAllPaths(model)) { CancelObjectivePaths(); return false; }
+        if (model == null) { CancelObjectivePaths(); return false; }
 
         var tilePats = GuidanceView.PathTilePatterns(model);
         var entPats = GuidanceView.PathEntityPatterns(model).ToList();
+
+        // entity-only path children route to matching entities regardless of All/Nearest mode -- they don't use
+        // Radar tiles so the mode distinction doesn't apply. WorldItems vanish when looted, so done-marking
+        // clears the path naturally.
+        if (entPats.Count > 0 && tilePats.Count == 0) return UpdateEntityObjectivePaths(entPats);
+
+        // tile + room multi-objective: All mode only.
+        if (!GuidanceView.WantsAllPaths(model)) { CancelObjectivePaths(); return false; }
+
         var roomPats = GuidanceView.PathRoomPatterns(model);
 
         // tile (+ optional entity upgrade): a route per tile cluster across all Tile children, each snapping to
@@ -399,6 +359,7 @@ public partial class ExileCampaigns
         CancelObjectivePaths();   // clears the targets + done arrays too
         _objectiveFlagSnapshot = null;
         _objTileBase = null;
+        _tileCandidateMode = false;
     }
 
     private Vector2? PlayerGridXY()
@@ -471,35 +432,85 @@ public partial class ExileCampaigns
         catch { /* map element not ready */ }
         var mapVisible = largeMap is { IsVisible: true };
 
-        DrawOnePath(_currentPath, hd, mapVisible, largeMap);
-
-        // multi-objective steps: a line to each not-yet-completed objective room. array slots (no List version
-        // churn from the background Radar callback); skip targets marked done (their sub-objective is finished).
+        // gather every path we'll draw this frame so we can flag the shortest. array slots for the objective
+        // paths (no List churn from the background Radar callback); skip targets marked done.
+        var live = new List<List<Vector2i>>();
+        if (_currentPath is { Count: >= 2 }) live.Add(_currentPath);
         var objs = _objectivePaths;
         var done = _objectiveDone;
         if (objs != null)
             for (int i = 0; i < objs.Length; i++)
             {
                 if (done != null && i < done.Length && done[i]) continue;
-                DrawOnePath(objs[i], hd, mapVisible, largeMap);
+                if (objs[i] is { Count: >= 2 } op) live.Add(op);
             }
+
+        // tile-candidate step: many clusters were routed; only reachable ones returned a path. draw just the
+        // closest reachable (shortest) -- the others are unreachable instances or farther staircases.
+        if (_tileCandidateMode)
+        {
+            if (live.Count == 0) return;
+            int pick = 0;
+            float bestLen = PathLength(live[0]);
+            for (int i = 1; i < live.Count; i++)
+            {
+                float len = PathLength(live[i]);
+                if (len < bestLen) { bestLen = len; pick = i; }
+            }
+            DrawOnePath(live[pick], hd, mapVisible, largeMap, Settings.Path.PathColor.Value);
+            return;
+        }
+
+        int shortest = -1;
+        if (Settings.Path.HighlightShortest.Value && live.Count > 1)
+        {
+            float best = float.MaxValue;
+            for (int i = 0; i < live.Count; i++)
+            {
+                float len = PathLength(live[i]);
+                if (len < best) { best = len; shortest = i; }
+            }
+        }
+
+        var normal = Settings.Path.PathColor.Value;
+        var hot = Settings.Path.ShortestPathColor.Value;
+        for (int i = 0; i < live.Count; i++)
+            DrawOnePath(live[i], hd, mapVisible, largeMap, i == shortest ? hot : normal);
     }
 
-    private void DrawOnePath(List<Vector2i>? path, float[][] hd, bool mapVisible, SubMap? largeMap)
+    // path length in grid units (Radar hands back grid points). only used to pick the shortest of several.
+    private static float PathLength(List<Vector2i> path)
+    {
+        float d = 0f;
+        for (int i = 1; i < path.Count; i++)
+        {
+            float dx = path[i].X - path[i - 1].X;
+            float dy = path[i].Y - path[i - 1].Y;
+            d += MathF.Sqrt(dx * dx + dy * dy);
+        }
+        return d;
+    }
+
+    private void DrawOnePath(List<Vector2i>? path, float[][] hd, bool mapVisible, SubMap? largeMap, Color color)
     {
         if (path == null || path.Count < 2) return;
 
         if (Settings.Path.ShowPathOnMinimap && mapVisible && largeMap != null)
-            DrawPathMinimap(path, hd, largeMap);
+            DrawPathMinimap(path, hd, largeMap, color);
 
         if (Settings.Path.ShowPathOnGround && (!mapVisible || !Settings.Path.ShowGroundPathOnlyWithClosedMap))
-            DrawPathGround(path, hd);
+        {
+            bool comets = Settings.Path.ShowComets;
+            if (!(comets && Settings.Path.CometsOnly))
+                DrawPathGround(path, hd, color);
+            if (comets)
+                DrawPathGroundComets(path, hd);
+        }
     }
 
-    private void DrawPathGround(List<Vector2i> path, float[][] hd)
+    private void DrawPathGround(List<Vector2i> path, float[][] hd, Color color)
     {
         var cam = GameController.IngameState.Camera;
-        var color = Settings.Path.PathColor.Value;
         var thickness = Settings.Path.PathThickness.Value;
         var nth = Math.Max(1, Settings.Path.DrawEveryNthSegment.Value);
         var wr = GameController.Window.GetWindowRectangle();
@@ -513,13 +524,14 @@ public partial class ExileCampaigns
             if (!InBounds(e, hd)) { prev = null; continue; }
             Vector2 screen = cam.WorldToScreen(
                 new Vector3(e.X * GridToWorldMultiplier, e.Y * GridToWorldMultiplier, hd[e.Y][e.X]));
-            if (prev is { } p && (rect.Contains(p.X, p.Y) || rect.Contains(screen.X, screen.Y)))
+            if (prev is { } p && (rect.Contains(p.X, p.Y) || rect.Contains(screen.X, screen.Y))
+                && !PointInSidePanel(p) && !PointInSidePanel(screen))   // skip segments under a side panel
                 Graphics.DrawLine(p, screen, thickness, color);
             prev = screen;
         }
     }
 
-    private void DrawPathMinimap(List<Vector2i> path, float[][] hd, SubMap largeMap)
+    private void DrawPathMinimap(List<Vector2i> path, float[][] hd, SubMap largeMap, Color color)
     {
         var pos = GameController.Player?.GetComponent<Positioned>();
         var render = GameController.Player?.GetComponent<Render>();
@@ -529,7 +541,6 @@ public partial class ExileCampaigns
         var playerHeight = -render.UnclampedHeight;
         var mapCenter = largeMap.MapCenter;
         var mapScale = largeMap.MapScale;
-        var color = Settings.Path.PathColor.Value;
         var thickness = Settings.Path.PathThickness.Value;
         var nth = Math.Max(1, Settings.Path.DrawEveryNthSegment.Value);
 
@@ -541,7 +552,7 @@ public partial class ExileCampaigns
             if (!InBounds(e, hd)) { prev = null; continue; }
             var delta = GridDeltaToMapDelta(new Vector2(e.X, e.Y) - playerGrid, playerHeight + hd[e.Y][e.X], mapScale);
             var screen = mapCenter + delta;
-            if (prev is { } p)
+            if (prev is { } p && !PointInSidePanel(p) && !PointInSidePanel(screen))   // skip segments under a side panel
                 Graphics.DrawLine(p, screen, thickness, color);
             prev = screen;
         }
@@ -557,4 +568,122 @@ public partial class ExileCampaigns
 
     private static bool InBounds(Vector2i e, float[][] hd)
         => e.Y >= 0 && e.Y < hd.Length && e.X >= 0 && e.X < hd[e.Y].Length;
+
+    // --- flowing comets ---
+
+    private const string CometTexture = "ExileCampaigns_Comet";
+    private bool _cometTexLoaded;
+
+    // load the comet sprite once. white/grayscale png, head pointing +X, tinted at draw time
+    private void InitCometTexture()
+    {
+        if (_cometTexLoaded) return;
+        try
+        {
+            var path = Path.Combine(DirectoryFullName, "textures", "comet_decal.png");
+            if (File.Exists(path))
+            {
+                Graphics.InitImage(CometTexture, path);
+                _cometTexLoaded = true;
+            }
+            else LogError($"ExileCampaigns -> comet texture not found: {path}");
+        }
+        catch (Exception ex) { LogError($"ExileCampaigns -> comet texture init failed: {ex.Message}"); }
+    }
+
+    // slide N comet sprites along the path toward the objective. resample by arc length so spacing is even
+    // (Radar points are dense + uneven), then place an oriented quad at each comet's animated distance.
+    private void DrawPathGroundComets(List<Vector2i> path, float[][] hd)
+    {
+        if (!_cometTexLoaded) return;
+        int n = path.Count;
+        if (n < 2) return;
+
+        // order from the player end -> objective end so comets flow toward the goal
+        var player = PlayerGridXY();
+        bool rev = player is { } pg &&
+            Vector2.DistanceSquared(new Vector2(path[0].X, path[0].Y), pg) >
+            Vector2.DistanceSquared(new Vector2(path[n - 1].X, path[n - 1].Y), pg);
+
+        var pts = new Vector2[n];
+        for (int i = 0; i < n; i++)
+        {
+            var e = rev ? path[n - 1 - i] : path[i];
+            pts[i] = new Vector2(e.X, e.Y);
+        }
+        var cum = new float[n];
+        for (int i = 1; i < n; i++) cum[i] = cum[i - 1] + Vector2.Distance(pts[i], pts[i - 1]);
+        float total = cum[n - 1];
+        if (total < 1f) return;
+
+        // fixed grid spacing -> comet count scales with path length.
+        float spacing = Math.Max(1f, Settings.Path.CometSpacing.Value);
+        float speed = Settings.Path.CometSpeed.Value;
+        float size = Settings.Path.CometSize.Value;
+
+        var cam = GameController.IngameState.Camera;
+        var texId = Graphics.GetTextureId(CometTexture);
+        var color = Settings.Path.CometColor.Value;
+        // near-plane guard: a quad edge can't sanely exceed half the screen height. catches the WorldToScreen
+        // blowup when a corner falls near/behind the camera (foreground comets near the bottom of the screen).
+        float maxEdge = GameController.Window.GetWindowRectangle().Height * 0.5f;
+
+        // anchor the comet grid to the objective (fixed) end, not the player end. Radar keeps re-cutting the
+        // path behind you as you walk, so measuring distance from the player end makes every comet jump on each
+        // update. d here is arc-from-player but the spacing is laid out from `total` (the objective), so each
+        // comet stays glued to the same ground spot; they only spawn/despawn at the player end.
+        float off = (float)(ImGui.GetTime() * speed) % spacing;
+        for (float d = total - spacing + off; d > 0f; d -= spacing)
+            DrawOneComet(pts, cum, d, size, hd, cam, texId, color, maxEdge);
+    }
+
+    private void DrawOneComet(Vector2[] pts, float[] cum, float d, float size,
+        float[][] hd, Camera cam, nint texId, Color color, float maxEdge)
+    {
+        int seg = 1;
+        while (seg < cum.Length - 1 && cum[seg] < d) seg++;
+        float segLen = cum[seg] - cum[seg - 1];
+        float t = segLen > 0.001f ? (d - cum[seg - 1]) / segLen : 0f;
+        Vector2 a = pts[seg - 1], b = pts[seg];
+        Vector2 fwd = b - a;
+        if (fwd.LengthSquared() < 1e-4f) return;
+        fwd = Vector2.Normalize(fwd);
+        var right = new Vector2(-fwd.Y, fwd.X);
+        Vector2 pos = Vector2.Lerp(a, b, t);
+
+        // head sits at pos; quad runs 0.6 back (tail) + 0.4 forward, half-width each side. matches the sprite
+        // layout (head ~60% to the right). corner order a,b,c,d = uv (0,0)(1,0)(1,1)(0,1)
+        Vector2 baseB = pos - 0.6f * size * fwd;
+        Vector2 g00 = baseB + 0.5f * size * right;
+        Vector2 g10 = baseB + size * fwd + 0.5f * size * right;
+        Vector2 g11 = baseB + size * fwd - 0.5f * size * right;
+        Vector2 g01 = baseB - 0.5f * size * right;
+
+        if (!ProjectGrid(g00, hd, cam, out var s00)) return;
+        if (!ProjectGrid(g10, hd, cam, out var s10)) return;
+        if (!ProjectGrid(g11, hd, cam, out var s11)) return;
+        if (!ProjectGrid(g01, hd, cam, out var s01)) return;
+
+        // drop the comet if projection blew up (corner near/behind camera) -> giant or non-finite quad
+        float e0 = Vector2.Distance(s00, s10), e1 = Vector2.Distance(s10, s11);
+        float e2 = Vector2.Distance(s11, s01), e3 = Vector2.Distance(s01, s00);
+        if (!float.IsFinite(e0) || !float.IsFinite(e1) || !float.IsFinite(e2) || !float.IsFinite(e3)) return;
+        if (e0 > maxEdge || e1 > maxEdge || e2 > maxEdge || e3 > maxEdge) return;
+
+        // hide under an open side panel
+        if (PointInSidePanel(s00) || PointInSidePanel(s10) || PointInSidePanel(s11) || PointInSidePanel(s01)) return;
+
+        Graphics.DrawQuad(texId, s00, s10, s11, s01, color);
+    }
+
+    // grid (float) -> screen, sampling terrain height at the nearest cell. false if out of bounds
+    private bool ProjectGrid(Vector2 g, float[][] hd, Camera cam, out Vector2 screen)
+    {
+        screen = default;
+        int gx = (int)MathF.Round(g.X), gy = (int)MathF.Round(g.Y);
+        if (gy < 0 || gy >= hd.Length || gx < 0 || gx >= hd[gy].Length) return false;
+        screen = cam.WorldToScreen(
+            new Vector3(g.X * GridToWorldMultiplier, g.Y * GridToWorldMultiplier, hd[gy][gx]));
+        return true;
+    }
 }

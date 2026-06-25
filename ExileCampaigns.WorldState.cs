@@ -17,6 +17,7 @@ public partial class ExileCampaigns
         public readonly HashSet<uint> InteractedIds = new();     // matched entities seen non-interactable
         public readonly HashSet<string> DialogNames = new();     // npc names whose dialog opened
         public bool WaypointPulsed;
+        public bool LoggedInPulse;                               // set on a fresh login, cleared on step change
         public readonly HashSet<uint> SeenLiveInteract = new();  // ids we saw interactable at least once
     }
 
@@ -149,10 +150,32 @@ public partial class ExileCampaigns
             return n;
         }
 
+        // area IDs are exact identifiers, so literal patterns use equality not substring.
+        // regex mode still works for wildcards if needed.
         public bool InAreaSatisfied(Pattern area) =>
-            new PatternMatcher(area).IsMatch(_p._areaId);
+            area.Regex
+                ? new PatternMatcher(area).IsMatch(_p._areaId)
+                : string.Equals(area.Value, _p._areaId, StringComparison.OrdinalIgnoreCase);
 
         public bool WaypointPulsed() => _p._progress.WaypointPulsed;
+
+        public bool JustLoggedIn() => _p._progress.LoggedInPulse;
+
+        // near a live TownPortal entity (a placed/town portal). lets "take portal" steps auto-advance as
+        // you walk up to one. instantaneous truth, no per-step state.
+        public bool NearTownPortal(float distance)
+        {
+            try
+            {
+                var ents = _p.GameController?.EntityListWrapper?.Entities;
+                if (ents == null) return false;
+                foreach (var e in ents)
+                    if (e != null && e.IsValid && e.Type == EntityType.TownPortal && e.DistancePlayer <= distance)
+                        return true;
+            }
+            catch { /* entities not ready */ }
+            return false;
+        }
 
         public bool ProximitySatisfied(IReadOnlyList<EntityMatcher>? entities, IReadOnlyList<Pattern>? tiles, float distance)
         {

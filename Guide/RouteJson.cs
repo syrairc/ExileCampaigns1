@@ -43,12 +43,12 @@ public static class RouteJson
             ["areaId"] = s.AreaId,
             ["areaName"] = s.AreaName,
             ["text"] = s.Text,
-            ["note"] = s.Note,
             ["optional"] = s.Optional,
             ["completeWhen"] = s.CompleteWhen.ToString(),
             ["objectives"] = new JArray(s.Objectives.Select(ObjToJson)),
         };
         if (s.ImportFp != null) j["importFp"] = s.ImportFp;
+        if (s.LeagueStart) j["leagueStart"] = true;
         return j;
     }
 
@@ -62,11 +62,11 @@ public static class RouteJson
             (string?)o["areaId"] ?? "",
             (string?)o["areaName"] ?? "",
             (string?)o["text"] ?? "",
-            (string?)o["note"] ?? "",
             (bool?)o["optional"] ?? false,
             ParseEnum((string?)o["completeWhen"], CompleteWhen.All),
             objs,
-            (string?)o["importFp"]);
+            (string?)o["importFp"],
+            (bool?)o["leagueStart"] ?? false);
     }
 
     private static JObject ObjToJson(Objective o)

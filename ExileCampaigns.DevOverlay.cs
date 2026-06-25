@@ -73,6 +73,10 @@ public partial class ExileCampaigns
                     var br = DevMapPoint(maxGrid,                              playerGrid, playerHeight, mapCenter, mapScale);
                     var bl = DevMapPoint(new Vector2(minGrid.X, maxGrid.Y),   playerGrid, playerHeight, mapCenter, mapScale);
 
+                    // hide rooms tucked under an open side panel
+                    if (PointInSidePanel(tl) || PointInSidePanel(tr) || PointInSidePanel(br) || PointInSidePanel(bl))
+                        continue;
+
                     var lineColor = Color.YellowGreen;
                     Graphics.DrawLine(tl, tr, 1f, lineColor);
                     Graphics.DrawLine(tr, br, 1f, lineColor);
@@ -118,6 +122,7 @@ public partial class ExileCampaigns
 
             var entityGrid = new Vector2(pos.GridX, pos.GridY);
             var screen = DevMapPoint(entityGrid, playerGrid, playerHeight, mapCenter, mapScale);
+            if (PointInSidePanel(screen)) continue;   // hide under an open side panel
 
             var label = DevShortPath(path);
             var color = isTransition ? Color.Cyan : isWaypoint ? Color.Gold : Color.OrangeRed;
@@ -134,6 +139,7 @@ public partial class ExileCampaigns
     private void DrawDevTargetMarker(Vector2 target, Vector2 playerGrid, float playerHeight, Vector2 mapCenter, float mapScale)
     {
         var screen = DevMapPoint(target, playerGrid, playerHeight, mapCenter, mapScale);
+        if (PointInSidePanel(screen)) return;   // hide under an open side panel
         const float r = 7f;
         var c = Color.Lime;
         Graphics.DrawLine(screen + new Vector2(-r, 0), screen + new Vector2(r, 0), 2f, c);

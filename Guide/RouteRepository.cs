@@ -34,6 +34,15 @@ public sealed class RouteRepository
     public IReadOnlyList<FlatStep> Steps => _steps;
     public int Current { get; private set; }
     public string? Status { get; private set; }
+
+    // mirrors Settings.ShowOptional. when false, optional steps are hidden from the overlay AND navigation
+    // skips them -- auto/manual advance and back land only on visible steps, never a hidden optional one.
+    // default true so position restore / sync / tests behave exactly as before unless the host sets it.
+    public bool IncludeOptional { get; set; } = true;
+
+    // mirrors Settings.ShowLeagueStart. when false, league-start steps (crafting recipes, trials) are hidden
+    // from the overlay AND navigation skips them, same as a hidden optional. default true.
+    public bool IncludeLeagueStart { get; set; } = true;
     public FlatStep? CurrentStep => _steps.Count > 0 && Current < _steps.Count ? _steps[Current] : null;
 
     // effective area id of the current step: its own AreaId if it has one (zone header), else the most
@@ -51,6 +60,26 @@ public sealed class RouteRepository
     // a zone-label line: kept in the model for the area->index map, but never an objective. navigation
     // never rests on one and they're excluded from Previous/Upcoming.
     private static bool IsHeaderStep(FlatStep s) => s.IsHeader;
+
+    // a step navigation must never rest on: a zone-label header always, plus -- when optional is hidden --
+    // an optional step. headers and (hidden) optionals are stepped over together by advance/back.
+    private bool IsSkippable(int i) =>
+        IsHeaderStep(_steps[i])
+        || (!IncludeOptional && (_steps[i].Model?.Optional ?? false))
+        || (!IncludeLeagueStart && (_steps[i].Model?.LeagueStart ?? false));
+
+    // after an advance landed Current on a skippable row (header, or hidden optional), step forward to the
+    // next visible objective. falls back to the nearest visible step behind so we never rest on a hidden
+    // row when nothing visible lies ahead (e.g. last step is a hidden optional).
+    private void SnapForwardVisible()
+    {
+        if (_steps.Count == 0) { Current = 0; return; }
+        if (!IsSkippable(Current)) return;
+        for (int i = Current; i < _steps.Count; i++)
+            if (!IsSkippable(i)) { Current = i; return; }
+        for (int i = Current - 1; i >= 0; i--)
+            if (!IsSkippable(i)) { Current = i; return; }
+    }
 
     // if Current landed on a zone-label header, move to the first real step in that zone (forward
     // preferred so entering a zone lands on its first task; fall back to the last real step behind).
@@ -121,9 +150,10 @@ public sealed class RouteRepository
             if (i >= Current && i - Current <= AdvanceWindow && i < next) next = i;
         if (next == int.MaxValue) return;
 
-        // the matched step is the zone-label header. rest the objective on the zone's first real task.
-        while (next < _steps.Count && IsHeaderStep(_steps[next])) next++;
-        if (next < _steps.Count) Current = next;
+        // the matched step is the zone-label header. rest the objective on the zone's first VISIBLE task
+        // (skips the header and, when optional is hidden, any leading optional steps).
+        Current = next;
+        SnapForwardVisible();
     }
 
     // advance past the current step iff it itself matches, area-agnostic. for a global flag that should only
@@ -137,7 +167,7 @@ public sealed class RouteRepository
         int target = Math.Min(Current + 1, _steps.Count - 1);
         if (target <= Current) return false;
         Current = target;
-        SnapOffHeader();
+        SnapForwardVisible();
         return true;
     }
 
@@ -174,12 +204,12 @@ public sealed class RouteRepository
         return false;
     }
 
-    // step over zone-label headers so manual next/prev lands only on real objectives.
+    // step over zone-label headers (and hidden optionals) so manual next/prev lands only on visible objectives.
     public void Next()
     {
         if (_steps.Count == 0) return;
         int i = Current + 1;
-        while (i < _steps.Count && IsHeaderStep(_steps[i])) i++;
+        while (i < _steps.Count && IsSkippable(i)) i++;
         if (i < _steps.Count) Current = i;
     }
 
@@ -187,7 +217,7 @@ public sealed class RouteRepository
     {
         if (_steps.Count == 0) return;
         int i = Current - 1;
-        while (i >= 0 && IsHeaderStep(_steps[i])) i--;
+        while (i >= 0 && IsSkippable(i)) i--;
         if (i >= 0) Current = i;
     }
 
@@ -200,13 +230,14 @@ public sealed class RouteRepository
     }
 
     // upcoming steps after current (optionally hiding optional), up to `count`.
-    public IEnumerable<FlatStep> Upcoming(int count, bool includeOptional)
+    public IEnumerable<FlatStep> Upcoming(int count, bool includeOptional, bool includeLeagueStart = true)
     {
         int taken = 0;
         for (int i = Current + 1; i < _steps.Count && taken < count; i++)
         {
             if (IsHeaderStep(_steps[i])) continue;              // zone labels aren't objectives
             if (!includeOptional && (_steps[i].Model?.Optional ?? false)) continue;
+            if (!includeLeagueStart && (_steps[i].Model?.LeagueStart ?? false)) continue;
             taken++;
             yield return _steps[i];
         }
@@ -214,13 +245,14 @@ public sealed class RouteRepository
 
     // `count` steps before current (optionally hiding optional), oldest first so they read
     // top-to-bottom above the current step.
-    public IEnumerable<FlatStep> Previous(int count, bool includeOptional)
+    public IEnumerable<FlatStep> Previous(int count, bool includeOptional, bool includeLeagueStart = true)
     {
         var result = new List<FlatStep>();
         for (int i = Current - 1; i >= 0 && result.Count < count; i--)
         {
             if (IsHeaderStep(_steps[i])) continue;              // zone labels aren't objectives
             if (!includeOptional && (_steps[i].Model?.Optional ?? false)) continue;
+            if (!includeLeagueStart && (_steps[i].Model?.LeagueStart ?? false)) continue;
             result.Add(_steps[i]);
         }
         result.Reverse();

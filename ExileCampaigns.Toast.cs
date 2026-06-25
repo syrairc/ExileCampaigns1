@@ -97,6 +97,8 @@ public partial class ExileCampaigns
             var min = new Vector2(anchorX - boxSize.X / 2f, top);
             var max = min + boxSize;
 
+            if (OverlapsSidePanel(min, max)) return max.Y + gap;   // skip under a side panel, keep the stack flowing
+
             var bg = Fade(t.BackgroundColor.Value, alpha);
             if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
             dl.AddRectFilled(min, new Vector2(min.X + ToastAccentW, max.Y), U32(Fade(ToastAccent(level), alpha)));

@@ -9,7 +9,7 @@ namespace ExileCampaigns;
 public partial class ExileCampaigns
 {
     private string UserRoutePath => Path.Combine(ConfigDirectory, "route", "route.json");
-    private string BundledRoutePath => Path.Combine(DirectoryFullName, "Data", "poe2", "route", "route.json");
+    private string BundledRoutePath => Path.Combine(DirectoryFullName, "Data", "poe1", "route", "route.json");
 
     // load the effective RouteDocument: user copy wins, else bundled.
     private RouteDocument LoadRouteDocument()

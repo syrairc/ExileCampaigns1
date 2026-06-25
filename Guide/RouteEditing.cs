@@ -10,8 +10,8 @@ public enum ChildKind { Path, Indicator, MinimapIcon }
 // record-rebuilding lives here so it's unit-tested without any game state.
 public static class RouteEditing
 {
-    public static RouteStep SkeletonStep(int act, string areaId, string areaName, string? note) =>
-        new(Guid.NewGuid().ToString("N"), act, areaId, areaName, "(new step)", note ?? "", false,
+    public static RouteStep SkeletonStep(int act, string areaId, string areaName) =>
+        new(Guid.NewGuid().ToString("N"), act, areaId, areaName, "(new step)", false,
             CompleteWhen.All, new List<Objective> { new(ObjectiveType.Manual) }, null);
 
     public static Objective BlankObjective() => new(ObjectiveType.Manual);
