@@ -15,10 +15,10 @@ public class DevSettings
     public ToggleNode ShowDevOverlay { get; set; } = new ToggleNode(false);
 
     [Menu("Room names", "Draw AreaGraph room outlines + name labels (shows tile patterns for ClusterTarget authored fallbacks)")]
-    public ToggleNode ShowRoomNames { get; set; } = new ToggleNode(true);
+    public ToggleNode ShowRoomNames { get; set; } = new ToggleNode(false);
 
     [Menu("Entity labels", "Label AreaTransition / Waypoint / boss entities with their shortened entity path")]
-    public ToggleNode ShowEntityLabels { get; set; } = new ToggleNode(true);
+    public ToggleNode ShowEntityLabels { get; set; } = new ToggleNode(false);
 
     [Menu("Show quick edit panel", "Floating dev panel for in-game route editing: quick-add step/objective " +
         "seeded from live state, move/delete steps, bind advances, and set Radar paths on the current objective")]
@@ -44,10 +44,10 @@ public class PathRenderSettings
     public ToggleNode ShowPathOnMinimap { get; set; } = new ToggleNode(true);
 
     [Menu("Ground path only with map closed", "Hide the ground line while the large map is open (the minimap path covers it then)")]
-    public ToggleNode ShowGroundPathOnlyWithClosedMap { get; set; } = new ToggleNode(true);
+    public ToggleNode ShowGroundPathOnlyWithClosedMap { get; set; } = new ToggleNode(false);
 
     [Menu("Path color")]
-    public ColorNode PathColor { get; set; } = new ColorNode(new Color(80, 200, 255, 255));
+    public ColorNode PathColor { get; set; } = new ColorNode(new Color(104, 255, 0, 132));
 
     [Menu("Highlight shortest path", "When a step draws several paths at once, tint the shortest a different color")]
     public ToggleNode HighlightShortest { get; set; } = new ToggleNode(true);
@@ -62,22 +62,22 @@ public class PathRenderSettings
     public RangeNode<int> DrawEveryNthSegment { get; set; } = new RangeNode<int>(2, 1, 10);
 
     [Menu("Flowing comets", "Slide comet sprites along the ground path toward the objective (in addition to / instead of the line)")]
-    public ToggleNode ShowComets { get; set; } = new ToggleNode(false);
+    public ToggleNode ShowComets { get; set; } = new ToggleNode(true);
 
     [Menu("Comets only (hide line)", "When comets are on, don't draw the solid ground line")]
     public ToggleNode CometsOnly { get; set; } = new ToggleNode(false);
 
     [Menu("Comet color")]
-    public ColorNode CometColor { get; set; } = new ColorNode(new Color(255, 180, 80, 255));
+    public ColorNode CometColor { get; set; } = new ColorNode(new Color(104, 255, 0, 255));
 
     [Menu("Comet spacing", "Grid units between comets; count scales with path length (smaller = denser)")]
-    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(80f, 10f, 400f);
+    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(60f, 10f, 400f);
 
     [Menu("Comet size", "Comet length in grid units")]
-    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(4f, 1f, 80f);
+    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(14f, 1f, 80f);
 
     [Menu("Comet speed", "Flow speed in grid units per second")]
-    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(40f, 5f, 300f);
+    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(60f, 5f, 300f);
 }
 
 // golden arrow over the step's interact target, plus the interaction auto-advance thresholds
@@ -181,16 +181,16 @@ public class StepsOverlayStyle
     [Menu("Text size", "Font height in pixels")]
     public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(16f, 8f, 48f);
     [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(0, 0, 8);
-    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(6, 0, 40);
+    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(20, 0, 40);
     [Menu("Steps shown behind", "How many completed steps to show above the current one")]
     public RangeNode<int> StepsBehind { get; set; } = new RangeNode<int>(2, 0, 12);
     [Menu("Steps shown ahead", "How many upcoming steps to show below the current one")]
-    public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(3, 0, 12);
+    public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(7, 0, 12);
 
     // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
-    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(40, 0, 4000);
-    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(300, 0, 2160);
-    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(69, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(637, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(998, 0, 2000);
 }
 
 // transient top-centre banner shown when the tracker auto-advances on a zone change
@@ -210,19 +210,19 @@ public class BannerStyle
     [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
     [Menu("Background color", "Alpha controls opacity")]
     public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 170));
-    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(120, 220, 255, 200));
+    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(120, 220, 255, 40));
 
     // -- Sliders --
     [Menu("Text size", "Font height in pixels")]
     public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(28f, 8f, 96f);
-    [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(2, 0, 8);
+    [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(1, 0, 8);
     [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(12, 0, 60);
     [Menu("Duration (seconds)", "How long the banner stays on screen; it fades out over the last 0.5s")]
     public RangeNode<float> DurationSeconds { get; set; } = new RangeNode<float>(4f, 0.5f, 15f);
 
     // -- Hidden: set by dragging in Preview mode, persisted but not in the menu --
-    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(960, 0, 4000);
-    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(80, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(1717, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(394, 0, 2160);
     [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(900, 0, 2000);
 }
 
@@ -238,19 +238,19 @@ public class ToastSettings
 
     [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
     [Menu("Background color", "Alpha controls opacity")]
-    public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 215));
-    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(120, 120, 160, 160));
+    public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 104));
+    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(120, 120, 160, 83));
 
     [Menu("Text size", "Font height in pixels")]
     public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(20f, 8f, 72f);
     [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(1, 0, 8);
-    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(8, 0, 40);
+    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(10, 0, 40);
     [Menu("Duration (seconds)", "How long each toast stays; it fades out over the last 0.5s")]
-    public RangeNode<float> DurationSeconds { get; set; } = new RangeNode<float>(3f, 0.5f, 15f);
+    public RangeNode<float> DurationSeconds { get; set; } = new RangeNode<float>(1.6f, 0.5f, 15f);
 
     // -- Hidden: set by dragging in Preview mode (centre X / top Y / wrap width), persisted but not in the menu --
-    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(960, 0, 4000);
-    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(880, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(1730, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(1034, 0, 2160);
     [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(600, 0, 2000);
 }
 
@@ -301,7 +301,7 @@ public class ExileCampaignsSettings : ISettings
     public StepsOverlayStyle Steps { get; set; } = new StepsOverlayStyle();
 
     [Menu("Statistics", "Run timer + per-act split, level, XP%, current area, level gap, route progress, xp/hour")]
-    public OverlayStyle CharStats { get; set; } = new OverlayStyle { PosX = new RangeNode<int>(40, 0, 4000), PosY = new RangeNode<int>(600, 0, 2160) };
+    public OverlayStyle CharStats { get; set; } = new OverlayStyle { PosX = new RangeNode<int>(69, 0, 4000), PosY = new RangeNode<int>(466, 0, 2160), Padding = new RangeNode<int>(20, 0, 40) };
 
     [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
     public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);

@@ -826,7 +826,9 @@ public partial class ExileCampaigns
         for (int i = 0; i < steps.Count; i++)
         {
             if (steps[i].Model?.Id != stepId) continue;
+            int before = _route.Current;
             _route.SetCurrent(i);
+            if (_route.Current < before) _holdAutoAdvanceUntilZone = true;   // backward set sticks until next zone
             MaybeSaveProgress();
             var txt = _route.CurrentStep?.DisplayText ?? "";
             ShowToast(string.IsNullOrEmpty(txt) ? "Progress moved" : $"Progress -> {txt}", ToastLevel.Success);

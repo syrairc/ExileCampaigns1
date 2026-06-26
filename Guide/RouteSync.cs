@@ -19,10 +19,23 @@ public static class RouteSync
     {
         if (steps == null || steps.Count == 0) return -1;
 
-        // furthest step (route order) whose QuestFlag objective is currently satisfied.
+        // cap the flag scan at the act you're physically in. quest flags aren't guaranteed monotonic, so a
+        // stray later-act flag reading true would otherwise set flagFloor near the end and the forward-only
+        // nudge below couldn't pull back. current act = first route step in the current area; no match -> no cap.
+        int currentAct = int.MaxValue;
+        if (!string.IsNullOrEmpty(currentAreaLower))
+            for (int i = 0; i < steps.Count; i++)
+            {
+                var m = steps[i].Model;
+                if (m != null && string.Equals(m.AreaId, currentAreaLower, StringComparison.OrdinalIgnoreCase))
+                { currentAct = steps[i].Act; break; }
+            }
+
+        // furthest step (route order) whose QuestFlag objective is satisfied, ignoring later-act flags.
         int flagFloor = -1;
         for (int i = 0; i < steps.Count; i++)
         {
+            if (steps[i].Act > currentAct) break;   // past the player's act, flags here can't be real progress
             var m = steps[i].Model;
             if (m?.Objectives == null) continue;
             foreach (var o in m.Objectives)

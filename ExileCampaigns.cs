@@ -151,6 +151,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         {
             CaptureArea(area);
             _mmiCacheKey = null;
+            _holdAutoAdvanceUntilZone = false;   // a real zone change resumes auto-advance
             RecordDiagArea();
             OnActChangedStats(_act);
             var before = _route.Current;
@@ -196,11 +197,16 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     private DateTime _lastAdvanceEval = DateTime.MinValue;
 
+    // set when the user manually moves the cursor backward. holds off auto-advance so a deliberate
+    // back-step onto already-completed content sticks; cleared on the next real zone change.
+    private bool _holdAutoAdvanceUntilZone;
+
     // single advance gate: the current step's objectives, evaluated against live state. replaces
     // AutoAdvanceFromQuestFlags + MaybeAdvanceOnInteraction + MaybeAdvanceOnObjectiveComplete.
     private void EvaluateAdvance()
     {
         if (!Settings.AutoAdvance) return;
+        if (_holdAutoAdvanceUntilZone) return;
         if ((DateTime.UtcNow - _lastAdvanceEval).TotalSeconds < 0.4) return;
         _lastAdvanceEval = DateTime.UtcNow;
 
@@ -227,7 +233,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.ToggleKey.PressedOnce()) _visible = !_visible;
         if (Settings.SyncKey.PressedOnce()) SyncToCharacter();
         if (Settings.NextStepKey.PressedOnce()) _route.Next();
-        if (Settings.PrevStepKey.PressedOnce()) _route.Prev();
+        if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
         if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
 
         try
