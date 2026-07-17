@@ -41,6 +41,8 @@ public partial class ExileCampaigns
             ImGui.SeparatorText("Statistics Overlay");
             DrawOverlayStyle(Settings.CharStats, "charstats");
             SliderInt("XP rate window (min)", Settings.XpRateWindowMinutes, "Average xp/hour + time-to-level over the last N minutes");
+            ImGui.SeparatorText("Build Planner Overlay");
+            DrawOverlayStyle(Settings.BuildPanel, "buildpanel");
             ImGui.EndTabItem();
         }
 

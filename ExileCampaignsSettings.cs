@@ -303,6 +303,14 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Statistics", "Run timer + per-act split, level, XP%, current area, level gap, route progress, xp/hour")]
     public OverlayStyle CharStats { get; set; } = new OverlayStyle { PosX = new RangeNode<int>(69, 0, 4000), PosY = new RangeNode<int>(466, 0, 2160), Padding = new RangeNode<int>(20, 0, 40) };
 
+    [Menu("Build planner", "What to equip now and what unlocks next, from the active build set")]
+    public OverlayStyle BuildPanel { get; set; } = new OverlayStyle
+    {
+        PosX = new RangeNode<int>(69, 0, 4000),
+        PosY = new RangeNode<int>(700, 0, 2160),
+        Padding = new RangeNode<int>(20, 0, 40),
+    };
+
     [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
     public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);
 

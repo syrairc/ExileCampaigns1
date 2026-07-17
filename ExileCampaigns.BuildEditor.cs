@@ -18,6 +18,31 @@ public partial class ExileCampaigns
 
     private void DrawBuildTab()
     {
+        // pin a set so you can author the 31-55 loadout at level 4
+        var active = ActiveSet();
+        var pinned = _build.FindSet(_build.ActiveSetOverrideId);
+        ImGui.SetNextItemWidth(240);
+        if (ImGui.BeginCombo("Active set", pinned?.Name ?? $"auto ({active?.Name ?? "none"})"))
+        {
+            if (ImGui.Selectable("auto (follow level)", pinned == null))
+            {
+                _build.ActiveSetOverrideId = null;
+                SaveProgress();
+            }
+            foreach (var s in _build.Sets)
+            {
+                ImGui.PushID(s.Id);
+                if (ImGui.Selectable(s.Name, s.Id == _build.ActiveSetOverrideId))
+                {
+                    _build.ActiveSetOverrideId = s.Id;
+                    SaveProgress();
+                }
+                ImGui.PopID();
+            }
+            ImGui.EndCombo();
+        }
+        ImGui.Separator();
+
         DrawSetList();
         ImGui.SameLine();
         DrawSetDetail();

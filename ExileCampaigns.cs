@@ -347,6 +347,9 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.CharStats.Enable)
             DrawOverlay("char", BuildCharStatsLines(Settings.CharStats), Settings.CharStats);
 
+        if (Settings.BuildPanel.Enable)
+            DrawOverlay("build", BuildPanelLines(Settings.BuildPanel), Settings.BuildPanel);
+
         DrawRouteEditor();
         DrawBuildDialog();
         DrawTriageOverlay();
