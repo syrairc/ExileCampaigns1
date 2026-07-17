@@ -240,7 +240,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
         if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
         if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
-        DetectBuildUsed();
 
         try
         {
@@ -281,6 +280,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         UpdateWaypointPulse();
         UpdateLoginPulse();
         UpdateInteractTarget();
+        // runs after profile switch resolves above, so a swap window never scans the new char against the old build
+        DetectBuildUsed();
         EvaluateAdvance();
 
         MaybeSaveProgress();

@@ -9,14 +9,13 @@ namespace ExileCampaigns;
 // directly, ignoring route steps. used entries drop off.
 public partial class ExileCampaigns
 {
-    // pinned set wins, else the first whose range covers the character. overlaps are first-wins by design:
-    // validating ranges would buy a modal error in exchange for nothing.
-    private BuildSet? ActiveSet()
-    {
-        var pinned = _build.FindSet(_build.ActiveSetOverrideId);
-        if (pinned != null) return pinned;
-        return _build.Sets.FirstOrDefault(s => _playerLevel >= s.MinLevel && _playerLevel <= s.MaxLevel);
-    }
+    // first set whose range covers the character, no pin. overlaps are first-wins by design: validating
+    // ranges would buy a modal error in exchange for nothing.
+    private BuildSet? LevelSet() =>
+        _build.Sets.FirstOrDefault(s => _playerLevel >= s.MinLevel && _playerLevel <= s.MaxLevel);
+
+    // pinned set wins (authoring aid, for editing a bracket you haven't reached yet), else the level set.
+    private BuildSet? ActiveSet() => _build.FindSet(_build.ActiveSetOverrideId) ?? LevelSet();
 
     // "Added Lightning Damage (+ Kinetic Blast)" - the suffix is what tells duplicate names apart
     private string EntryLabel(BuildEntry e)
