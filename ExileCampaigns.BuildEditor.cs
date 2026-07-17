@@ -303,7 +303,13 @@ public partial class ExileCampaigns
 
         ImGui.SameLine();
         if (ImGui.Button("Cancel", new Vector2(90, 0)))
+        {
+            // clear pending state too, same as Add - don't rely on the next opener to reset it
+            _pendingPick = null;
+            _pendingItem = default;
+            _pendingLinkId = null;
             ImGui.CloseCurrentPopup();
+        }
 
         ImGui.EndPopup();
     }
@@ -388,6 +394,12 @@ public partial class ExileCampaigns
 
         ImGui.EndTable();
 
-        if (remove != null) { set.Entries.Remove(remove); SaveProgress(); }
+        if (remove != null)
+        {
+            // clear any support's link back to it so a deleted skill doesn't leave a dangling LinkedToId
+            foreach (var e in set.Entries) if (e.LinkedToId == remove.Id) e.LinkedToId = null;
+            set.Entries.Remove(remove);
+            SaveProgress();
+        }
     }
 }
