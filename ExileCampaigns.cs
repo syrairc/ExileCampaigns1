@@ -7,6 +7,7 @@ using System.Text;
 using SharpDX;
 using Vector2 = System.Numerics.Vector2;
 using Vector4 = System.Numerics.Vector4;
+using ExileCampaigns.Build;
 using ExileCampaigns.Guide;
 using ExileCore;
 using ExileCore.PoEMemory.Components;
@@ -61,6 +62,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     private int _playerLevel;
     private bool _visible = true;
+
+    private BuildPlan _build = new();
 
     // auto-advance banner: new step's text and when it was shown.
     private string? _bannerText;

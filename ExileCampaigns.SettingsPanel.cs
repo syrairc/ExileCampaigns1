@@ -44,6 +44,12 @@ public partial class ExileCampaigns
             ImGui.EndTabItem();
         }
 
+        if (ImGui.BeginTabItem("Build"))
+        {
+            DrawBuildTab();
+            ImGui.EndTabItem();
+        }
+
         if (ImGui.BeginTabItem("Path & Indicator"))
         {
             ImGui.SeparatorText("Path to next step");

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using ExileCampaigns.Build;
 using ExileCampaigns.Guide;
 using Newtonsoft.Json.Linq;
 
@@ -54,11 +55,14 @@ public partial class ExileCampaigns
         {
             if (!File.Exists(ProgressPath))
             {
+                _build = new BuildPlan();
                 _route.SetCurrent(0);     // no saved progress -> start at the top
                 _lastSavedStep = _route.Current;
                 return;
             }
             var o = JObject.Parse(File.ReadAllText(ProgressPath));
+            // build is optional: profiles written before this feature simply have no key
+            _build = o["build"]?.ToObject<BuildPlan>() ?? new BuildPlan();
             var savedId = (string?)o["stepId"];
             int savedIndex = (int?)o["step"] ?? 0;
             if (!string.IsNullOrEmpty(savedId))
@@ -101,6 +105,7 @@ public partial class ExileCampaigns
                 ["area"] = _areaId,
                 ["step"] = _route.Current,
                 ["stepId"] = _route.CurrentStep?.Model?.Id ?? "",
+                ["build"] = JObject.FromObject(_build),
             }.ToString());
         }
         catch { /* config dir not writable */ }
