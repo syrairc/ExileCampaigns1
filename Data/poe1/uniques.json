@@ -1,0 +1,5212 @@
+[
+ {
+  "name": "Abberath's Hooves",
+  "base": "Goathide Boots",
+  "req": 12
+ },
+ {
+  "name": "Abberath's Horn",
+  "base": "Goat's Horn",
+  "req": 0
+ },
+ {
+  "name": "Abhorrent Interrogation",
+  "base": "Ambush Mitts",
+  "req": 45
+ },
+ {
+  "name": "Abyssus",
+  "base": "Ezomyte Burgonet",
+  "req": 60
+ },
+ {
+  "name": "Actum",
+  "base": "Butcher Axe",
+  "req": 0
+ },
+ {
+  "name": "Admiral's Arrogance",
+  "base": "Antique Gauntlets",
+  "req": 39
+ },
+ {
+  "name": "Advancing Fortress",
+  "base": "Gut Ripper",
+  "req": 46
+ },
+ {
+  "name": "Aegis Aurora",
+  "base": "Champion Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Agnerod East",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Agnerod North",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Agnerod South",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Agnerod West",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Ahkeli's Meadow",
+  "base": "Ruby Ring",
+  "req": 49
+ },
+ {
+  "name": "Ahkeli's Mountain",
+  "base": "Ruby Ring",
+  "req": 49
+ },
+ {
+  "name": "Ahkeli's Valley",
+  "base": "Ruby Ring",
+  "req": 49
+ },
+ {
+  "name": "Ahn's Contempt",
+  "base": "Praetor Crown",
+  "req": 68
+ },
+ {
+  "name": "Ahn's Heritage",
+  "base": "Colossal Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Ahn's Might",
+  "base": "Midnight Blade",
+  "req": 0
+ },
+ {
+  "name": "Ahuana's Bite",
+  "base": "Sharktooth Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Akoya's Gaze",
+  "base": "Regicide Mask",
+  "req": 52
+ },
+ {
+  "name": "Al Dhih",
+  "base": "Timeworn Claw",
+  "req": 26
+ },
+ {
+  "name": "Alberon's Warpath",
+  "base": "Soldier Boots",
+  "req": 0
+ },
+ {
+  "name": "Algor Mortis",
+  "base": "Carnal Mitts",
+  "req": 50
+ },
+ {
+  "name": "Allelopathy",
+  "base": "{variant:1}Sorcerer Gloves",
+  "req": 0
+ },
+ {
+  "name": "Allure",
+  "base": "Vaal Claw",
+  "req": 66
+ },
+ {
+  "name": "Alpha's Howl",
+  "base": "Sinner Tricorne",
+  "req": 64
+ },
+ {
+  "name": "Ambu's Charge",
+  "base": "Crusader Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Amplification Rod",
+  "base": "Spiraled Wand",
+  "req": 0
+ },
+ {
+  "name": "Anathema",
+  "base": "Moonstone Ring",
+  "req": 0
+ },
+ {
+  "name": "Ancient Skull",
+  "base": "Bone Helmet",
+  "req": 73
+ },
+ {
+  "name": "Andvarius",
+  "base": "Gold Ring",
+  "req": 20
+ },
+ {
+  "name": "Annihilation's Approach",
+  "base": "Dragonscale Boots",
+  "req": 0
+ },
+ {
+  "name": "Apep's Rage",
+  "base": "{variant:1,2,3,4,5}Opal Wand",
+  "req": 0
+ },
+ {
+  "name": "Apep's Slumber",
+  "base": "{variant:1}Ancient Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Apep's Supremacy",
+  "base": "Vaal Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Arakaali's Fang",
+  "base": "Fiend Dagger",
+  "req": 53
+ },
+ {
+  "name": "Araku Tiki",
+  "base": "Coral Amulet",
+  "req": 0
+ },
+ {
+  "name": "Arborix",
+  "base": "Assassin Bow",
+  "req": 62
+ },
+ {
+  "name": "Architect's Hand",
+  "base": "{variant:1}Strapped Mitts",
+  "req": 0
+ },
+ {
+  "name": "Arn's Anguish",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Ascent From Flesh",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Asenath's Chant",
+  "base": "Iron Circlet",
+  "req": 45
+ },
+ {
+  "name": "Asenath's Gentle Touch",
+  "base": "Silk Gloves",
+  "req": 25
+ },
+ {
+  "name": "Asenath's Mark",
+  "base": "Iron Circlet",
+  "req": 8
+ },
+ {
+  "name": "Ashcaller",
+  "base": "{variant:1,2,3}Quartz Wand",
+  "req": 0
+ },
+ {
+  "name": "Ashes of the Stars",
+  "base": "Onyx Amulet",
+  "req": 60
+ },
+ {
+  "name": "Ashrend",
+  "base": "Buckskin Tunic",
+  "req": 0
+ },
+ {
+  "name": "Asphyxia's Wrath",
+  "base": "{variant:1,2}Two-Point Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Assailum",
+  "base": "Sinner Tricorne",
+  "req": 64
+ },
+ {
+  "name": "Astral Projector",
+  "base": "Topaz Ring",
+  "req": 40
+ },
+ {
+  "name": "Astramentis",
+  "base": "Onyx Amulet",
+  "req": 20
+ },
+ {
+  "name": "Atziri's Acuity",
+  "base": "Vaal Gauntlets",
+  "req": 75
+ },
+ {
+  "name": "Atziri's Disfavour",
+  "base": "Vaal Axe",
+  "req": 0
+ },
+ {
+  "name": "Atziri's Foible",
+  "base": "Paua Amulet",
+  "req": 16
+ },
+ {
+  "name": "Atziri's Mirror",
+  "base": "Golden Buckler",
+  "req": 0
+ },
+ {
+  "name": "Atziri's Reflection",
+  "base": "Golden Buckler",
+  "req": 0
+ },
+ {
+  "name": "Atziri's Rule",
+  "base": "Judgement Staff",
+  "req": 68
+ },
+ {
+  "name": "Atziri's Splendour",
+  "base": "Sacrificial Garb",
+  "req": 0
+ },
+ {
+  "name": "Atziri's Step",
+  "base": "Slink Boots",
+  "req": 69
+ },
+ {
+  "name": "Augyre",
+  "base": "Void Sceptre",
+  "req": 68
+ },
+ {
+  "name": "Aukuna's Will",
+  "base": "Clasped Mitts",
+  "req": 31
+ },
+ {
+  "name": "Aul's Uprising",
+  "base": "Onyx Amulet",
+  "req": 55
+ },
+ {
+  "name": "Aurseize",
+  "base": "Steelscale Gauntlets",
+  "req": 36
+ },
+ {
+  "name": "Aurumvorax",
+  "base": "Basket Rapier",
+  "req": 0
+ },
+ {
+  "name": "Auxium",
+  "base": "{variant:1,2}Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Axiom Perpetuum",
+  "base": "Bronze Sceptre",
+  "req": 10
+ },
+ {
+  "name": "Azadi Crest",
+  "base": "Lacquered Buckler",
+  "req": 60
+ },
+ {
+  "name": "Badge of the Brotherhood",
+  "base": "Turquoise Amulet",
+  "req": 0
+ },
+ {
+  "name": "Balefire",
+  "base": "Opal Sceptre",
+  "req": 60
+ },
+ {
+  "name": "Bated Breath",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Beacon of Madness",
+  "base": "{variant:1}Two-Toned Boots (Armour/Evasion)",
+  "req": 0
+ },
+ {
+  "name": "Bear's Girdle",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Belly of the Beast",
+  "base": "Full Wyrmscale",
+  "req": 0
+ },
+ {
+  "name": "Belt of the Deceiver",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Beltimber Blade",
+  "base": "Eternal Sword",
+  "req": 0
+ },
+ {
+  "name": "Berek's Grip",
+  "base": "Two-Stone Ring",
+  "req": 20
+ },
+ {
+  "name": "Berek's Pass",
+  "base": "Two-Stone Ring",
+  "req": 20
+ },
+ {
+  "name": "Berek's Respite",
+  "base": "Two-Stone Ring",
+  "req": 20
+ },
+ {
+  "name": "Betrayal's Sting",
+  "base": "Steel Ring",
+  "req": 80
+ },
+ {
+  "name": "Binds of Bloody Vengeance",
+  "base": "Vanguard Belt",
+  "req": 78
+ },
+ {
+  "name": "Bino's Kitchen Knife",
+  "base": "Slaughter Knife",
+  "req": 65
+ },
+ {
+  "name": "Bisco's Collar",
+  "base": "Gold Amulet",
+  "req": 30
+ },
+ {
+  "name": "Bisco's Leash",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Bitter Instinct",
+  "base": "Spiny Round Shield",
+  "req": 68
+ },
+ {
+  "name": "Bitterbind Point",
+  "base": "Titanium Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Bitterdream",
+  "base": "Shadow Sceptre",
+  "req": 32
+ },
+ {
+  "name": "Black Sun Crest",
+  "base": "Lacquered Helmet",
+  "req": 51
+ },
+ {
+  "name": "Black Zenith",
+  "base": "Fingerless Silk Gloves",
+  "req": 70
+ },
+ {
+  "name": "Blackflame",
+  "base": "Amethyst Ring",
+  "req": 49
+ },
+ {
+  "name": "Blackgleam",
+  "base": "{variant:1}Cured Quiver",
+  "req": 0
+ },
+ {
+  "name": "Blackheart",
+  "base": "Iron Ring",
+  "req": 0
+ },
+ {
+  "name": "Blasphemer's Grasp",
+  "base": "Assassin's Mitts",
+  "req": 58
+ },
+ {
+  "name": "Blightwell",
+  "base": "Clutching Talisman",
+  "req": 28
+ },
+ {
+  "name": "Blood of Corruption",
+  "base": "Amber Amulet",
+  "req": 5
+ },
+ {
+  "name": "Blood Price",
+  "base": "Reaver Helmet",
+  "req": 0
+ },
+ {
+  "name": "Bloodboil",
+  "base": "Coral Ring",
+  "req": 24
+ },
+ {
+  "name": "Bloodbond",
+  "base": "Bone Armour",
+  "req": 0
+ },
+ {
+  "name": "Bloodgrip",
+  "base": "{variant:1}Coral Amulet",
+  "req": 74
+ },
+ {
+  "name": "Bloodplay",
+  "base": "Stiletto",
+  "req": 15
+ },
+ {
+  "name": "Bloodseeker",
+  "base": "Hellion's Paw",
+  "req": 62
+ },
+ {
+  "name": "Bloodsoaked Medallion",
+  "base": "Amber Amulet",
+  "req": 0
+ },
+ {
+  "name": "Blunderbore",
+  "base": "Astral Plate",
+  "req": 0
+ },
+ {
+  "name": "Bonemeld",
+  "base": "Marble Amulet",
+  "req": 74
+ },
+ {
+  "name": "Bones of Ullr",
+  "base": "Silk Slippers",
+  "req": 22
+ },
+ {
+  "name": "Bound Fate",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Brain Rattler",
+  "base": "Meatgrinder",
+  "req": 0
+ },
+ {
+  "name": "Bramblejack",
+  "base": "Plate Vest",
+  "req": 0
+ },
+ {
+  "name": "Breath of the Council",
+  "base": "Carnal Sceptre",
+  "req": 66
+ },
+ {
+  "name": "Breathstealer",
+  "base": "Hydrascale Gauntlets",
+  "req": 59
+ },
+ {
+  "name": "Brightbeak",
+  "base": "War Hammer",
+  "req": 20
+ },
+ {
+  "name": "Brinerot Flag",
+  "base": "Tarnished Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Brinerot Mark",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Brinerot Whalers",
+  "base": "Trapper Boots",
+  "req": 41
+ },
+ {
+  "name": "Briskwrap",
+  "base": "{variant:1,2,3}Strapped Leather",
+  "req": 0
+ },
+ {
+  "name": "Broken Faith",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Bronn's Lithe",
+  "base": "Cutthroat's Garb",
+  "req": 0
+ },
+ {
+  "name": "Brutus' Lead Sprinkler",
+  "base": "Ritual Sceptre",
+  "req": 28
+ },
+ {
+  "name": "Bubonic Trail",
+  "base": "Murder Boots",
+  "req": 69
+ },
+ {
+  "name": "Cadigan's Authority",
+  "base": "Platinum Sceptre",
+  "req": 62
+ },
+ {
+  "name": "Cadigan's Crown",
+  "base": "Runic Crown",
+  "req": 68
+ },
+ {
+  "name": "Call of the Brotherhood",
+  "base": "Two-Stone Ring",
+  "req": 20
+ },
+ {
+  "name": "Call of the Void",
+  "base": "Sapphire Ring",
+  "req": 16
+ },
+ {
+  "name": "Callinellus Malleus",
+  "base": "Auric Mace",
+  "req": 66
+ },
+ {
+  "name": "Cameria's Avarice",
+  "base": "Gavel",
+  "req": 60
+ },
+ {
+  "name": "Cameria's Maul",
+  "base": "Gavel",
+  "req": 60
+ },
+ {
+  "name": "Cane of Unravelling",
+  "base": "Ezomyte Staff",
+  "req": 0
+ },
+ {
+  "name": "Carcass Jack",
+  "base": "Varnished Coat",
+  "req": 0
+ },
+ {
+  "name": "Carnage Heart",
+  "base": "Onyx Amulet",
+  "req": 20
+ },
+ {
+  "name": "Ceaseless Feast",
+  "base": "Spiked Gloves",
+  "req": 70
+ },
+ {
+  "name": "Ceinture of Benevolence",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Cerberus Limb",
+  "base": "Blood Sceptre",
+  "req": 47
+ },
+ {
+  "name": "Chaber Cairn",
+  "base": "Great Mallet",
+  "req": 60
+ },
+ {
+  "name": "Chain of Endurance",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Chains of Command",
+  "base": "Saintly Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Chains of Emancipation",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Chalice of Horrors",
+  "base": "War Buckler",
+  "req": 0
+ },
+ {
+  "name": "Chernobog's Pillar",
+  "base": "Ebony Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Cherrubim's Maleficence",
+  "base": "Triumphant Lamellar",
+  "req": 0
+ },
+ {
+  "name": "Chin Sol",
+  "base": "Assassin Bow",
+  "req": 62
+ },
+ {
+  "name": "Chitus' Apex",
+  "base": "Necromancer Circlet",
+  "req": 54
+ },
+ {
+  "name": "Chitus' Needle",
+  "base": "Elegant Foil",
+  "req": 0
+ },
+ {
+  "name": "Chober Chaber",
+  "base": "Great Mallet",
+  "req": 40
+ },
+ {
+  "name": "Choir of the Storm",
+  "base": "Lapis Amulet",
+  "req": 69
+ },
+ {
+  "name": "Circle of Ambition",
+  "base": "Prismatic Ring",
+  "req": 20
+ },
+ {
+  "name": "Circle of Anguish",
+  "base": "Ruby Ring",
+  "req": 52
+ },
+ {
+  "name": "Circle of Fear",
+  "base": "Sapphire Ring",
+  "req": 52
+ },
+ {
+  "name": "Circle of Guilt",
+  "base": "Iron Ring",
+  "req": 52
+ },
+ {
+  "name": "Circle of Nostalgia",
+  "base": "Amethyst Ring",
+  "req": 52
+ },
+ {
+  "name": "Circle of Regret",
+  "base": "Topaz Ring",
+  "req": 52
+ },
+ {
+  "name": "Clayshaper",
+  "base": "Rock Breaker",
+  "req": 41
+ },
+ {
+  "name": "Cloak of Defiance",
+  "base": "Lacquered Garb",
+  "req": 0
+ },
+ {
+  "name": "Cloak of Flame",
+  "base": "Scholar's Robe",
+  "req": 0
+ },
+ {
+  "name": "Cloak of Tawm'r Isley",
+  "base": "Savant's Robe",
+  "req": 0
+ },
+ {
+  "name": "Coiling Whisper",
+  "base": "Amethyst Ring",
+  "req": 32
+ },
+ {
+  "name": "Cold Iron Point",
+  "base": "Ezomyte Dagger",
+  "req": 62
+ },
+ {
+  "name": "Command of the Pit",
+  "base": "Riveted Gloves",
+  "req": 37
+ },
+ {
+  "name": "Corona Solaris",
+  "base": "Crystal Wand",
+  "req": 0
+ },
+ {
+  "name": "Corpsewalker",
+  "base": "Carnal Boots",
+  "req": 55
+ },
+ {
+  "name": "Cospri's Malice",
+  "base": "Jewelled Foil",
+  "req": 0
+ },
+ {
+  "name": "Cospri's Will",
+  "base": "Assassin's Garb",
+  "req": 0
+ },
+ {
+  "name": "Coward's Chains",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Coward's Legacy",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Cowards' Wail",
+  "base": "Ezomyte Tower Shield",
+  "req": 64
+ },
+ {
+  "name": "Cowl of the Ceraunophile",
+  "base": "Solaris Circlet",
+  "req": 59
+ },
+ {
+  "name": "Cowl of the Cryophile",
+  "base": "Silken Hood",
+  "req": 60
+ },
+ {
+  "name": "Cowl of the Thermophile",
+  "base": "Ezomyte Burgonet",
+  "req": 60
+ },
+ {
+  "name": "Cragfall",
+  "base": "Serrated Arrow Quiver",
+  "req": 5
+ },
+ {
+  "name": "Craghead",
+  "base": "Serrated Arrow Quiver",
+  "req": 5
+ },
+ {
+  "name": "Craiceann's Carapace",
+  "base": "Golden Plate",
+  "req": 0
+ },
+ {
+  "name": "Craiceann's Chitin",
+  "base": "Magistrate Crown",
+  "req": 58
+ },
+ {
+  "name": "Craiceann's Pincers",
+  "base": "Titan Gauntlets",
+  "req": 69
+ },
+ {
+  "name": "Craiceann's Tracks",
+  "base": "Goliath Greaves",
+  "req": 54
+ },
+ {
+  "name": "Crest of Desire",
+  "base": "Fluted Bascinet",
+  "req": 58
+ },
+ {
+  "name": "Crest of Perandus",
+  "base": "Pine Buckler",
+  "req": 0
+ },
+ {
+  "name": "Crown of Eyes",
+  "base": "Hubris Circlet",
+  "req": 69
+ },
+ {
+  "name": "Crown of the Inward Eye",
+  "base": "Prophet Crown",
+  "req": 63
+ },
+ {
+  "name": "Crown of the Pale King",
+  "base": "Regicide Mask",
+  "req": 52
+ },
+ {
+  "name": "Crown of the Tyrant",
+  "base": "Magistrate Crown",
+  "req": 58
+ },
+ {
+  "name": "Crown of Thorns",
+  "base": "Vine Circlet",
+  "req": 0
+ },
+ {
+  "name": "Crystal Vault",
+  "base": "Latticed Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Crystallised Omniscience",
+  "base": "Onyx Amulet",
+  "req": 61
+ },
+ {
+  "name": "Curtain Call",
+  "base": "Plague Mask",
+  "req": 20
+ },
+ {
+  "name": "Cybil's Paw",
+  "base": "Thresher Claw",
+  "req": 37
+ },
+ {
+  "name": "Cyclopean Coil",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Dance of the Offered",
+  "base": "{variant:1}Shackled Boots",
+  "req": 0
+ },
+ {
+  "name": "Daresso's Courage",
+  "base": "Baroque Round Shield",
+  "req": 0
+ },
+ {
+  "name": "Daresso's Defiance",
+  "base": "Full Dragonscale",
+  "req": 0
+ },
+ {
+  "name": "Daresso's Passion",
+  "base": "Estoc",
+  "req": 0
+ },
+ {
+  "name": "Daresso's Salute",
+  "base": "Citrine Amulet",
+  "req": 16
+ },
+ {
+  "name": "Darkness Enthroned",
+  "base": "Stygian Vise",
+  "req": 0
+ },
+ {
+  "name": "Darkray Vectors",
+  "base": "Dragonscale Boots",
+  "req": 65
+ },
+ {
+  "name": "Darkscorn",
+  "base": "Assassin Bow",
+  "req": 62
+ },
+ {
+  "name": "Dawnbreaker",
+  "base": "Colossal Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Dawnstrider",
+  "base": "Vaal Greaves",
+  "req": 0
+ },
+ {
+  "name": "Death Rush",
+  "base": "Amethyst Ring",
+  "req": 46
+ },
+ {
+  "name": "Death's Door",
+  "base": "Crusader Boots",
+  "req": 64
+ },
+ {
+  "name": "Death's Hand",
+  "base": "Karui Sceptre",
+  "req": 56
+ },
+ {
+  "name": "Death's Harp",
+  "base": "Death Bow",
+  "req": 32
+ },
+ {
+  "name": "Death's Oath",
+  "base": "Astral Plate",
+  "req": 0
+ },
+ {
+  "name": "Death's Opus",
+  "base": "Death Bow",
+  "req": 44
+ },
+ {
+  "name": "Debeon's Dirge",
+  "base": "Despot Axe",
+  "req": 0
+ },
+ {
+  "name": "Deerstalker",
+  "base": "Deerskin Boots",
+  "req": 22
+ },
+ {
+  "name": "Defiance of Destiny",
+  "base": "Paua Amulet",
+  "req": 0
+ },
+ {
+  "name": "Deidbell",
+  "base": "Gilded Sallet",
+  "req": 33
+ },
+ {
+  "name": "Deidbellow",
+  "base": "Gilded Sallet",
+  "req": 33
+ },
+ {
+  "name": "Demon Stitcher",
+  "base": "Satin Gloves",
+  "req": 41
+ },
+ {
+  "name": "Dendrobate",
+  "base": "Sentinel Jacket",
+  "req": 0
+ },
+ {
+  "name": "Devoto's Devotion",
+  "base": "Nightmare Bascinet",
+  "req": 67
+ },
+ {
+  "name": "Dialla's Malefaction",
+  "base": "Sage's Robe",
+  "req": 0
+ },
+ {
+  "name": "Disintegrator",
+  "base": "Maelstrom Staff",
+  "req": 64
+ },
+ {
+  "name": "Divinarius",
+  "base": "Imperial Skean",
+  "req": 66
+ },
+ {
+  "name": "Doedre's Damning",
+  "base": "Paua Ring",
+  "req": 0
+ },
+ {
+  "name": "Doedre's Malevolence",
+  "base": "Velvet Gloves",
+  "req": 64
+ },
+ {
+  "name": "Doedre's Scorn",
+  "base": "Lunaris Circlet",
+  "req": 39
+ },
+ {
+  "name": "Doedre's Skin",
+  "base": "Widowsilk Robe",
+  "req": 0
+ },
+ {
+  "name": "Doedre's Tenure",
+  "base": "Velvet Gloves",
+  "req": 12
+ },
+ {
+  "name": "Doedre's Tongue",
+  "base": "Lapis Amulet",
+  "req": 0
+ },
+ {
+  "name": "Doomfletch",
+  "base": "Royal Bow",
+  "req": 28
+ },
+ {
+  "name": "Doomfletch's Prism",
+  "base": "Royal Bow",
+  "req": 40
+ },
+ {
+  "name": "Doomsower",
+  "base": "Lion Sword",
+  "req": 0
+ },
+ {
+  "name": "Doon Cuebiyari",
+  "base": "Vaal Sceptre",
+  "req": 64
+ },
+ {
+  "name": "Doppelgänger Guise",
+  "base": "Sadist Garb",
+  "req": 0
+ },
+ {
+  "name": "Doryani's Catalyst",
+  "base": "Vaal Sceptre",
+  "req": 75
+ },
+ {
+  "name": "Doryani's Delusion",
+  "base": "Titan Greaves",
+  "req": 68
+ },
+ {
+  "name": "Doryani's Fist",
+  "base": "Vaal Gauntlets",
+  "req": 63
+ },
+ {
+  "name": "Doryani's Invitation",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Doryani's Prototype",
+  "base": "Saint's Hauberk",
+  "req": 0
+ },
+ {
+  "name": "Dreadarc",
+  "base": "Cleaver",
+  "req": 0
+ },
+ {
+  "name": "Dreadbeak",
+  "base": "Rusted Sword",
+  "req": 0
+ },
+ {
+  "name": "Dreadsurge",
+  "base": "Cleaver",
+  "req": 0
+ },
+ {
+  "name": "Dream Fragments",
+  "base": "Sapphire Ring",
+  "req": 24
+ },
+ {
+  "name": "Dreamfeather",
+  "base": "Eternal Sword",
+  "req": 0
+ },
+ {
+  "name": "Drillneck",
+  "base": "Penetrating Arrow Quiver",
+  "req": 36
+ },
+ {
+  "name": "Duskblight",
+  "base": "Ironscale Boots",
+  "req": 40
+ },
+ {
+  "name": "Duskdawn",
+  "base": "Maelström Staff",
+  "req": 64
+ },
+ {
+  "name": "Dusktoe",
+  "base": "{variant:1}Leatherscale Boots",
+  "req": 0
+ },
+ {
+  "name": "Dyadian Dawn",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Dyadus",
+  "base": "Infernal Axe",
+  "req": 0
+ },
+ {
+  "name": "Dying Breath",
+  "base": "{variant:1}Coiled Staff",
+  "req": 0
+ },
+ {
+  "name": "Earendel's Embrace",
+  "base": "Grinning Fetish",
+  "req": 35
+ },
+ {
+  "name": "Eber's Unification",
+  "base": "Hubris Circlet",
+  "req": 69
+ },
+ {
+  "name": "Echoes of Creation",
+  "base": "Shaper Item",
+  "req": 65
+ },
+ {
+  "name": "Echoforge",
+  "base": "Infernal Sword",
+  "req": 0
+ },
+ {
+  "name": "Eclipse Solaris",
+  "base": "{variant:1,2,3,4}Crystal Wand",
+  "req": 0
+ },
+ {
+  "name": "Edge of Madness",
+  "base": "Etched Greatsword",
+  "req": 0
+ },
+ {
+  "name": "El'Abin's Visage",
+  "base": "Fencer Helm",
+  "req": 0
+ },
+ {
+  "name": "Elevore",
+  "base": "Wolf Pelt",
+  "req": 0
+ },
+ {
+  "name": "Emberwake",
+  "base": "Ruby Ring",
+  "req": 16
+ },
+ {
+  "name": "Emperor's Vigilance",
+  "base": "Steel Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Empire's Grasp",
+  "base": "Goliath Gauntlets",
+  "req": 53
+ },
+ {
+  "name": "Enmity's Embrace",
+  "base": "Vermillion Ring",
+  "req": 80
+ },
+ {
+  "name": "Entropic Devastation",
+  "base": "Assassin's Mitts",
+  "req": 0
+ },
+ {
+  "name": "Ephemeral Edge",
+  "base": "Dusk Blade",
+  "req": 0
+ },
+ {
+  "name": "Esh's Mirror",
+  "base": "{variant:1}Thorium Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Esh's Visage",
+  "base": "Vaal Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Essence Worm",
+  "base": "Unset Ring",
+  "req": 38
+ },
+ {
+  "name": "Essentia Sanguis",
+  "base": "{variant:1,2,3}Eye Gouger",
+  "req": 0
+ },
+ {
+  "name": "Eternal Damnation",
+  "base": "Agate Amulet",
+  "req": 0
+ },
+ {
+  "name": "Ewar's Mirage",
+  "base": "Antique Rapier",
+  "req": 0
+ },
+ {
+  "name": "Expedition's End",
+  "base": "Sentinel Jacket",
+  "req": 0
+ },
+ {
+  "name": "Extractor Mentis",
+  "base": "Agate Amulet",
+  "req": 16
+ },
+ {
+  "name": "Eye of Chayula",
+  "base": "Onyx Amulet",
+  "req": 20
+ },
+ {
+  "name": "Eye of Innocence",
+  "base": "Citrine Amulet",
+  "req": 68
+ },
+ {
+  "name": "Eye of Malice",
+  "base": "Callous Mask",
+  "req": 45
+ },
+ {
+  "name": "Eyes of the Greatwolf",
+  "base": "Greatwolf Talisman",
+  "req": 52
+ },
+ {
+  "name": "Ezomyte Hold",
+  "base": "Iron Hat",
+  "req": 0
+ },
+ {
+  "name": "Ezomyte Peak",
+  "base": "Iron Hat",
+  "req": 0
+ },
+ {
+  "name": "Facebreaker",
+  "base": "Strapped Mitts",
+  "req": 16
+ },
+ {
+  "name": "Fairgraves' Tricorne",
+  "base": "Tricorne",
+  "req": 12
+ },
+ {
+  "name": "Faithguard",
+  "base": "Runic Helm",
+  "req": 0
+ },
+ {
+  "name": "Faminebind",
+  "base": "Rustic Sash",
+  "req": 0
+ },
+ {
+  "name": "Farrul's Bite",
+  "base": "Harlequin Mask",
+  "req": 57
+ },
+ {
+  "name": "Farrul's Chase",
+  "base": "Slink Boots",
+  "req": 69
+ },
+ {
+  "name": "Farrul's Fur",
+  "base": "Triumphant Lamellar",
+  "req": 0
+ },
+ {
+  "name": "Farrul's Pounce",
+  "base": "Hydrascale Gauntlets",
+  "req": 59
+ },
+ {
+  "name": "Fate of the Vaal",
+  "base": "Gemstone Sword",
+  "req": 0
+ },
+ {
+  "name": "Fated End",
+  "base": "Paua Ring",
+  "req": 38
+ },
+ {
+  "name": "Feastbind",
+  "base": "Rustic Sash",
+  "req": 0
+ },
+ {
+  "name": "Femurs of the Saints",
+  "base": "Primordial Staff",
+  "req": 58
+ },
+ {
+  "name": "Fencoil",
+  "base": "Gnarled Branch",
+  "req": 0
+ },
+ {
+  "name": "Fenumus' Shroud",
+  "base": "Widowsilk Robe",
+  "req": 0
+ },
+ {
+  "name": "Fenumus' Spinnerets",
+  "base": "Assassin's Boots",
+  "req": 63
+ },
+ {
+  "name": "Fenumus' Toxins",
+  "base": "Necromancer Circlet",
+  "req": 65
+ },
+ {
+  "name": "Fenumus' Weave",
+  "base": "Carnal Mitts",
+  "req": 50
+ },
+ {
+  "name": "Festering Resentment",
+  "base": "Demon Dagger",
+  "req": 68
+ },
+ {
+  "name": "Fidelitas' Spike",
+  "base": "Jagged Foil",
+  "req": 0
+ },
+ {
+  "name": "Flamesight",
+  "base": "Solaris Circlet",
+  "req": 59
+ },
+ {
+  "name": "Flesh and Spirit",
+  "base": "Ironscale Gauntlets",
+  "req": 15
+ },
+ {
+  "name": "Flesh-Eater",
+  "base": "Dream Mace",
+  "req": 32
+ },
+ {
+  "name": "Fleshcrafter",
+  "base": "Necromancer Silks",
+  "req": 0
+ },
+ {
+  "name": "Font of Thunder",
+  "base": "Mirrored Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Fox's Fortune",
+  "base": "Wild Leather",
+  "req": 0
+ },
+ {
+  "name": "Foxshade",
+  "base": "Wild Leather",
+  "req": 0
+ },
+ {
+  "name": "Fractal Thoughts",
+  "base": "Vaal Mask",
+  "req": 0
+ },
+ {
+  "name": "Frostbreath",
+  "base": "Ornate Mace",
+  "req": 50
+ },
+ {
+  "name": "Frostferno",
+  "base": "Leather Hood",
+  "req": 60
+ },
+ {
+  "name": "Fury Valve",
+  "base": "Turquoise Amulet",
+  "req": 40
+ },
+ {
+  "name": "Galesight",
+  "base": "Solaris Circlet",
+  "req": 59
+ },
+ {
+  "name": "Gamblesprint",
+  "base": "Hydrascale Boots",
+  "req": 59
+ },
+ {
+  "name": "Gang's Momentum",
+  "base": "Legion Boots",
+  "req": 58
+ },
+ {
+  "name": "Garb of the Ephemeral",
+  "base": "Savant's Robe",
+  "req": 0
+ },
+ {
+  "name": "Garukhan's Flight",
+  "base": "Stealth Boots",
+  "req": 62
+ },
+ {
+  "name": "Geofri's Baptism",
+  "base": "Brass Maul",
+  "req": 27
+ },
+ {
+  "name": "Geofri's Crest",
+  "base": "Great Crown",
+  "req": 0
+ },
+ {
+  "name": "Geofri's Devotion",
+  "base": "Brass Maul",
+  "req": 61
+ },
+ {
+  "name": "Geofri's Legacy",
+  "base": "Great Crown",
+  "req": 0
+ },
+ {
+  "name": "Geofri's Sanctuary",
+  "base": "Elegant Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Ghostwrithe",
+  "base": "Silken Vest",
+  "req": 0
+ },
+ {
+  "name": "Giantsbane",
+  "base": "Bronze Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Gifts from Above",
+  "base": "Diamond Ring",
+  "req": 28
+ },
+ {
+  "name": "Glimpse of Chaos",
+  "base": "Vaal Mask",
+  "req": 62
+ },
+ {
+  "name": "Glitterdisc",
+  "base": "Burnished Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Gloomfang",
+  "base": "Blue Pearl Amulet",
+  "req": 77
+ },
+ {
+  "name": "Gluttony",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Goblinedge",
+  "base": "Ambusher",
+  "req": 60
+ },
+ {
+  "name": "Goldrim",
+  "base": "Leather Cap",
+  "req": 0
+ },
+ {
+  "name": "Goldwyrm",
+  "base": "Nubuck Boots",
+  "req": 34
+ },
+ {
+  "name": "Gorebreaker",
+  "base": "Spiked Club",
+  "req": 10
+ },
+ {
+  "name": "Goredrill",
+  "base": "Skinning Knife",
+  "req": 5
+ },
+ {
+  "name": "Gorgon's Gaze",
+  "base": "Regicide Mask",
+  "req": 52
+ },
+ {
+  "name": "Grace of the Goddess",
+  "base": "Prophecy Wand",
+  "req": 0
+ },
+ {
+  "name": "Grattus Signet",
+  "base": "Diamond Ring",
+  "req": 64
+ },
+ {
+  "name": "Gravebind",
+  "base": "Hydrascale Gauntlets",
+  "req": 59
+ },
+ {
+  "name": "Graven's Secret",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Great Old One's Tentacles",
+  "base": "Eelskin Gloves",
+  "req": 38
+ },
+ {
+  "name": "Great Old One's Ward",
+  "base": "Corrugated Buckler",
+  "req": 0
+ },
+ {
+  "name": "Greed's Embrace",
+  "base": "Golden Plate",
+  "req": 0
+ },
+ {
+  "name": "Greedtrap",
+  "base": "Velvet Slippers",
+  "req": 0
+ },
+ {
+  "name": "Grelwood Shank",
+  "base": "Eternal Sword",
+  "req": 0
+ },
+ {
+  "name": "Grip of the Council",
+  "base": "Arcanist Gloves",
+  "req": 60
+ },
+ {
+  "name": "Gruthkul's Pelt",
+  "base": "Wyrmscale Doublet",
+  "req": 0
+ },
+ {
+  "name": "Haemophilia",
+  "base": "Serpentscale Gauntlets",
+  "req": 43
+ },
+ {
+  "name": "Hale Negator",
+  "base": "Mind Cage",
+  "req": 65
+ },
+ {
+  "name": "Hand of Heresy",
+  "base": "Martyr Gloves",
+  "req": 77
+ },
+ {
+  "name": "Hand of the Fervent",
+  "base": "Zealot Gloves",
+  "req": 43
+ },
+ {
+  "name": "Hand of the Lords",
+  "base": "Carnal Mitts",
+  "req": 68
+ },
+ {
+  "name": "Hand of Thought and Motion",
+  "base": "{variant:1,2,3}Blinder",
+  "req": 0
+ },
+ {
+  "name": "Hand of Wisdom and Action",
+  "base": "Imperial Claw",
+  "req": 68
+ },
+ {
+  "name": "Hands of the High Templar",
+  "base": "Crusader Gloves",
+  "req": 0
+ },
+ {
+  "name": "Hateforge",
+  "base": "Ancient Gauntlets",
+  "req": 47
+ },
+ {
+  "name": "Haunting Memories",
+  "base": "Turquoise Amulet",
+  "req": 64
+ },
+ {
+  "name": "Headhunter",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Heartbound Loop",
+  "base": "Moonstone Ring",
+  "req": 20
+ },
+ {
+  "name": "Heartbreaker",
+  "base": "Royal Skean",
+  "req": 50
+ },
+ {
+  "name": "Heatshiver",
+  "base": "Leather Hood",
+  "req": 20
+ },
+ {
+  "name": "Hegemony's Era",
+  "base": "Judgement Staff",
+  "req": 68
+ },
+ {
+  "name": "Heretic's Veil",
+  "base": "Deicide Mask",
+  "req": 67
+ },
+ {
+  "name": "Hezmana's Bloodlust",
+  "base": "Vaal Axe",
+  "req": 0
+ },
+ {
+  "name": "Hiltless",
+  "base": "Reaver Sword",
+  "req": 0
+ },
+ {
+  "name": "Hinekora's Sight",
+  "base": "Onyx Amulet",
+  "req": 20
+ },
+ {
+  "name": "Honoured Alliance",
+  "base": "Coral Ring",
+  "req": 0
+ },
+ {
+  "name": "Honourhome",
+  "base": "Soldier Helmet",
+  "req": 12
+ },
+ {
+  "name": "Hopeshredder",
+  "base": "Ranger Bow",
+  "req": 60
+ },
+ {
+  "name": "Howlcrack",
+  "base": "Ezomyte Burgonet",
+  "req": 60
+ },
+ {
+  "name": "Hrimburn",
+  "base": "Goathide Gloves",
+  "req": 24
+ },
+ {
+  "name": "Hrimnor's Dirge",
+  "base": "Sledgehammer",
+  "req": 36
+ },
+ {
+  "name": "Hrimnor's Hymn",
+  "base": "Sledgehammer",
+  "req": 17
+ },
+ {
+  "name": "Hrimnor's Resolve",
+  "base": "Samnite Helmet",
+  "req": 55
+ },
+ {
+  "name": "Hrimsorrow",
+  "base": "Goathide Gloves",
+  "req": 9
+ },
+ {
+  "name": "Hyaon's Fury",
+  "base": "Legion Sword",
+  "req": 0
+ },
+ {
+  "name": "Hyperboreus",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Hyrri's Bite",
+  "base": "Sharktooth Arrow Quiver",
+  "req": 14
+ },
+ {
+  "name": "Hyrri's Demise",
+  "base": "Sharktooth Arrow Quiver",
+  "req": 45
+ },
+ {
+  "name": "Hyrri's Ire",
+  "base": "Zodiac Leather",
+  "req": 0
+ },
+ {
+  "name": "Hyrri's Truth",
+  "base": "Jade Amulet",
+  "req": 64
+ },
+ {
+  "name": "Icefang Orbit",
+  "base": "Iron Ring",
+  "req": 0
+ },
+ {
+  "name": "Icetomb",
+  "base": "Latticed Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Ichimonji",
+  "base": "Corsair Sword",
+  "req": 0
+ },
+ {
+  "name": "Ikiaho's Promise",
+  "base": "Coral Amulet",
+  "req": 0
+ },
+ {
+  "name": "Immortal Flesh",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Impresence",
+  "base": "Onyx Amulet",
+  "req": 64
+ },
+ {
+  "name": "Incandescent Heart",
+  "base": "Saintly Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Indigon",
+  "base": "Hubris Circlet",
+  "req": 69
+ },
+ {
+  "name": "Inextricable Fate",
+  "base": "Fugitive Boots",
+  "req": 70
+ },
+ {
+  "name": "Infernal Mantle",
+  "base": "{variant:1}Occultist's Vestment",
+  "req": 0
+ },
+ {
+  "name": "Infractem",
+  "base": "Decimation Bow",
+  "req": 53
+ },
+ {
+  "name": "Innsbury Edge",
+  "base": "Elder Sword",
+  "req": 0
+ },
+ {
+  "name": "Inpulsa's Broken Heart",
+  "base": "Sadist Garb",
+  "req": 0
+ },
+ {
+  "name": "Invictus Solaris",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Inya's Epiphany",
+  "base": "Arcanist Slippers",
+  "req": 61
+ },
+ {
+  "name": "Iron Commander",
+  "base": "Death Bow",
+  "req": 32
+ },
+ {
+  "name": "Iron Heart",
+  "base": "Crusader Plate",
+  "req": 0
+ },
+ {
+  "name": "Ixchel's Temptation",
+  "base": "Gold Ring",
+  "req": 20
+ },
+ {
+  "name": "Izaro's Dilemma",
+  "base": "Imperial Claw",
+  "req": 68
+ },
+ {
+  "name": "Jack, the Axe",
+  "base": "Vaal Hatchet",
+  "req": 0
+ },
+ {
+  "name": "Jaws of Agony",
+  "base": "Supreme Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Jiquani's Potential",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Jorrhast's Blacksteel",
+  "base": "Steelhead",
+  "req": 44
+ },
+ {
+  "name": "Kahuturoa's Certainty",
+  "base": "Ancient Greaves",
+  "req": 46
+ },
+ {
+  "name": "Kalandra's Touch",
+  "base": "Ring",
+  "req": 0
+ },
+ {
+  "name": "Kalisa's Grace",
+  "base": "Samite Gloves",
+  "req": 55
+ },
+ {
+  "name": "Kaltenhalt",
+  "base": "Painted Buckler",
+  "req": 0
+ },
+ {
+  "name": "Kaltensoul",
+  "base": "Painted Buckler",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Binding",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Command",
+  "base": "Siege Helmet",
+  "req": 48
+ },
+ {
+  "name": "Kaom's Heart",
+  "base": "Glorious Plate",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Primacy",
+  "base": "Karui Chopper",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Roots",
+  "base": "Titan Greaves",
+  "req": 68
+ },
+ {
+  "name": "Kaom's Sign",
+  "base": "Coral Ring",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Spirit",
+  "base": "Titan Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Kaom's Way",
+  "base": "Coral Ring",
+  "req": 32
+ },
+ {
+  "name": "Karui Charge",
+  "base": "Jade Amulet",
+  "req": 24
+ },
+ {
+  "name": "Karui Ward",
+  "base": "Jade Amulet",
+  "req": 5
+ },
+ {
+  "name": "Kikazaru",
+  "base": "Topaz Ring",
+  "req": 20
+ },
+ {
+  "name": "Kiloava's Bluster",
+  "base": "Ironwood Buckler",
+  "req": 57
+ },
+ {
+  "name": "Kingmaker",
+  "base": "Despot Axe",
+  "req": 0
+ },
+ {
+  "name": "Kingsguard",
+  "base": "Conquest Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Kintsugi",
+  "base": "Exquisite Leather",
+  "req": 0
+ },
+ {
+  "name": "Kitava's Feast",
+  "base": "Void Axe",
+  "req": 0
+ },
+ {
+  "name": "Kitava's Thirst",
+  "base": "Zealot Helmet",
+  "req": 44
+ },
+ {
+  "name": "Kondo's Pride",
+  "base": "Ezomyte Blade",
+  "req": 0
+ },
+ {
+  "name": "Kongming's Stratagem",
+  "base": "{variant:1,2,3,4}Ivory Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Kongor's Undying Rage",
+  "base": "Terror Maul",
+  "req": 67
+ },
+ {
+  "name": "Lakishu's Blade",
+  "base": "Elegant Sword",
+  "req": 0
+ },
+ {
+  "name": "Last Resort",
+  "base": "Nailed Fist",
+  "req": 0
+ },
+ {
+  "name": "Lavianga's Wisdom",
+  "base": "War Hammer",
+  "req": 20
+ },
+ {
+  "name": "Law of the Wilds",
+  "base": "Hellion's Paw",
+  "req": 62
+ },
+ {
+  "name": "Le Heup of All",
+  "base": "Iron Ring",
+  "req": 24
+ },
+ {
+  "name": "Leadership's Price",
+  "base": "Onyx Amulet",
+  "req": 68
+ },
+ {
+  "name": "Leash of Oblation",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Leer Cast",
+  "base": "Festival Mask",
+  "req": 0
+ },
+ {
+  "name": "Legacy of Fury",
+  "base": "Wyrmscale Boots",
+  "req": 69
+ },
+ {
+  "name": "Legacy of the Rose",
+  "base": "Judgement Staff",
+  "req": 68
+ },
+ {
+  "name": "Leper's Alms",
+  "base": "Mirrored Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Lifesprig",
+  "base": "Driftwood Wand",
+  "req": 0
+ },
+ {
+  "name": "Light of Lunaris",
+  "base": "Jingling Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Lightbane Raiment",
+  "base": "Ornate Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Lightning Coil",
+  "base": "Desert Brigandine",
+  "req": 0
+ },
+ {
+  "name": "Lightpoacher",
+  "base": "Great Crown",
+  "req": 0
+ },
+ {
+  "name": "Limbsplit",
+  "base": "Woodsplitter",
+  "req": 0
+ },
+ {
+  "name": "Lioneye's Glare",
+  "base": "Imperial Bow",
+  "req": 66
+ },
+ {
+  "name": "Lioneye's Paws",
+  "base": "Bronzescale Boots",
+  "req": 30
+ },
+ {
+  "name": "Lioneye's Remorse",
+  "base": "Pinnacle Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Lioneye's Vision",
+  "base": "Crusader Plate",
+  "req": 0
+ },
+ {
+  "name": "Lochtonial Caress",
+  "base": "Iron Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Loreweave",
+  "base": "Elegant Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Lori's Lantern",
+  "base": "Prismatic Ring",
+  "req": 30
+ },
+ {
+  "name": "Lost Unity",
+  "base": "Formless Ring",
+  "req": 42
+ },
+ {
+  "name": "Lycosidae",
+  "base": "Rawhide Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Maata's Teaching",
+  "base": "Karui Sceptre",
+  "req": 56
+ },
+ {
+  "name": "Machina Mitts",
+  "base": "Murder Mitts",
+  "req": 0
+ },
+ {
+  "name": "Mageblood",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Magna Eclipsis",
+  "base": "Pinnacle Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Mahuxotl's Machination",
+  "base": "Steel Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Malachai's Artifice",
+  "base": "Unset Ring",
+  "req": 5
+ },
+ {
+  "name": "Malachai's Awakening",
+  "base": "Iron Mask",
+  "req": 60
+ },
+ {
+  "name": "Malachai's Loop",
+  "base": "Harmonic Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Malachai's Mark",
+  "base": "Murder Mitts",
+  "req": 67
+ },
+ {
+  "name": "Malachai's Simula",
+  "base": "Iron Mask",
+  "req": 0
+ },
+ {
+  "name": "Malachai's Vision",
+  "base": "Praetor Crown",
+  "req": 0
+ },
+ {
+  "name": "Maligaro's Cruelty",
+  "base": "Turquoise Amulet",
+  "req": 20
+ },
+ {
+  "name": "Maligaro's Lens",
+  "base": "Compound Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Maligaro's Restraint",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Maligaro's Virtuosity",
+  "base": "Deerskin Gloves",
+  "req": 21
+ },
+ {
+  "name": "Maloney's Mechanism",
+  "base": "Ornate Quiver",
+  "req": 45
+ },
+ {
+  "name": "Maloney's Nightfall",
+  "base": "{variant:1,2}Blunt Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Manastorm",
+  "base": "{variant:1}Fossilised Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "March of the Legion",
+  "base": "Legion Boots",
+  "req": 58
+ },
+ {
+  "name": "Mark of Submission",
+  "base": "Unset Ring",
+  "req": 24
+ },
+ {
+  "name": "Mark of the Doubting Knight",
+  "base": "Platinum Kris",
+  "req": 64
+ },
+ {
+  "name": "Mark of the Elder",
+  "base": "Steel Ring",
+  "req": 80
+ },
+ {
+  "name": "Mark of the Red Covenant",
+  "base": "Tribal Circlet",
+  "req": 26
+ },
+ {
+  "name": "Mark of the Shaper",
+  "base": "Opal Ring",
+  "req": 80
+ },
+ {
+  "name": "Marohi Erqi",
+  "base": "Karui Maul",
+  "req": 57
+ },
+ {
+  "name": "Martyr of Innocence",
+  "base": "Highborn Staff",
+  "req": 52
+ },
+ {
+  "name": "Martyr's Crown",
+  "base": "Vine Circlet",
+  "req": 52
+ },
+ {
+  "name": "Marylene's Fallacy",
+  "base": "Lapis Amulet",
+  "req": 40
+ },
+ {
+  "name": "Mask of the Spirit Drinker",
+  "base": "{variant:1}Crusader Helmet",
+  "req": 0
+ },
+ {
+  "name": "Mask of the Stitched Demon",
+  "base": "Magistrate Crown",
+  "req": 58
+ },
+ {
+  "name": "Mask of the Tribunal",
+  "base": "Magistrate Crown",
+  "req": 58
+ },
+ {
+  "name": "Matua Tupuna",
+  "base": "Tarnished Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Maw of Conquest",
+  "base": "Steel Circlet",
+  "req": 48
+ },
+ {
+  "name": "Maw of Mischief",
+  "base": "Bone Helmet",
+  "req": 73
+ },
+ {
+  "name": "Medved's Challenge",
+  "base": "Runic Gauntlets",
+  "req": 69
+ },
+ {
+  "name": "Meginord's Girdle",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Meginord's Vise",
+  "base": "Steel Gauntlets",
+  "req": 35
+ },
+ {
+  "name": "Memory Vault",
+  "base": "Praetor Crown",
+  "req": 68
+ },
+ {
+  "name": "Mercenary's Lot",
+  "base": "Slink Gloves",
+  "req": 70
+ },
+ {
+  "name": "Midnight Bargain",
+  "base": "{variant:1,2,3}Engraved Wand",
+  "req": 0
+ },
+ {
+  "name": "Mightflay",
+  "base": "Flaying Knife",
+  "req": 35
+ },
+ {
+  "name": "Mind of the Council",
+  "base": "Harlequin Mask",
+  "req": 57
+ },
+ {
+  "name": "Mindspiral",
+  "base": "Aventail Helmet",
+  "req": 37
+ },
+ {
+  "name": "Ming's Heart",
+  "base": "Amethyst Ring",
+  "req": 69
+ },
+ {
+  "name": "Mirebough",
+  "base": "Gnarled Branch",
+  "req": 32
+ },
+ {
+  "name": "Mistwall",
+  "base": "Lacquered Buckler",
+  "req": 0
+ },
+ {
+  "name": "Mjölner",
+  "base": "Gavel",
+  "req": 60
+ },
+ {
+  "name": "Mokou's Embrace",
+  "base": "Ruby Ring",
+  "req": 16
+ },
+ {
+  "name": "Mon'tregul's Grasp",
+  "base": "Void Sceptre",
+  "req": 68
+ },
+ {
+  "name": "Moonbender's Wing",
+  "base": "Tomahawk",
+  "req": 0
+ },
+ {
+  "name": "Moonsorrow",
+  "base": "Imbued Wand",
+  "req": 0
+ },
+ {
+  "name": "Mortem Morsu",
+  "base": "Fright Claw",
+  "req": 34
+ },
+ {
+  "name": "Mother's Embrace",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Mutewind Pennant",
+  "base": "Enameled Buckler",
+  "req": 0
+ },
+ {
+  "name": "Mutewind Seal",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Mutewind Whispersteps",
+  "base": "Serpentscale Boots",
+  "req": 42
+ },
+ {
+  "name": "Mystic Refractor",
+  "base": "Pagan Wand",
+  "req": 34
+ },
+ {
+  "name": "Nametaker",
+  "base": "Graceful Sword",
+  "req": 50
+ },
+ {
+  "name": "Natural Hierarchy",
+  "base": "Rotfeather Talisman",
+  "req": 44
+ },
+ {
+  "name": "Nebulis",
+  "base": "Void Sceptre",
+  "req": 68
+ },
+ {
+  "name": "Nebuloch",
+  "base": "Nightmare Mace",
+  "req": 68
+ },
+ {
+  "name": "Nevalius Inheritance",
+  "base": "Cloth Belt",
+  "req": 16
+ },
+ {
+  "name": "Ngamahu Tiki",
+  "base": "Coral Amulet",
+  "req": 36
+ },
+ {
+  "name": "Ngamahu's Flame",
+  "base": "Abyssal Axe",
+  "req": 0
+ },
+ {
+  "name": "Ngamahu's Sign",
+  "base": "Ruby Ring",
+  "req": 29
+ },
+ {
+  "name": "Night's Hold",
+  "base": "Black Maw Talisman",
+  "req": 12
+ },
+ {
+  "name": "Nightgrip",
+  "base": "Runic Gages",
+  "req": 48
+ },
+ {
+  "name": "Nimis",
+  "base": "Topaz Ring",
+  "req": 0
+ },
+ {
+  "name": "Nomic's Storm",
+  "base": "Strapped Boots",
+  "req": 16
+ },
+ {
+  "name": "Null and Void",
+  "base": "Legion Gloves",
+  "req": 57
+ },
+ {
+  "name": "Null's Inclination",
+  "base": "Ranger Bow",
+  "req": 60
+ },
+ {
+  "name": "Nuro's Harp",
+  "base": "Harbinger Bow",
+  "req": 68
+ },
+ {
+  "name": "Nycta's Lantern",
+  "base": "Crystal Sceptre",
+  "req": 41
+ },
+ {
+  "name": "Obliteration",
+  "base": "{variant:1,2,3,4}Demon's Horn",
+  "req": 0
+ },
+ {
+  "name": "Obscurantis",
+  "base": "Lion Pelt",
+  "req": 70
+ },
+ {
+  "name": "Offering to the Serpent",
+  "base": "Legion Gloves",
+  "req": 57
+ },
+ {
+  "name": "Olesya's Delight",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Olroth's Charge",
+  "base": "Runic Sollerets",
+  "req": 48
+ },
+ {
+  "name": "Omeyocan",
+  "base": "Carnal Boots",
+  "req": 55
+ },
+ {
+  "name": "Ondar's Clasp",
+  "base": "Wrapped Mitts",
+  "req": 5
+ },
+ {
+  "name": "Oni-Goroshi",
+  "base": "Charan's Sword",
+  "req": 0
+ },
+ {
+  "name": "Orbala's Stand",
+  "base": "Eelskin Boots",
+  "req": 0
+ },
+ {
+  "name": "Original Sin",
+  "base": "Amethyst Ring",
+  "req": 0
+ },
+ {
+  "name": "Ornament of the East",
+  "base": "Gut Ripper",
+  "req": 46
+ },
+ {
+  "name": "Oro's Sacrifice",
+  "base": "Infernal Sword",
+  "req": 0
+ },
+ {
+  "name": "Oskarm",
+  "base": "Nubuck Gloves",
+  "req": 52
+ },
+ {
+  "name": "Painseeker",
+  "base": "Shagreen Gloves",
+  "req": 54
+ },
+ {
+  "name": "Panquetzaliztli",
+  "base": "Jagged Maul",
+  "req": 61
+ },
+ {
+  "name": "Perandus Blazon",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Perandus Signet",
+  "base": "Paua Ring",
+  "req": 0
+ },
+ {
+  "name": "Perepiteia",
+  "base": "Ezomyte Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Perfidy",
+  "base": "Glorious Plate",
+  "req": 0
+ },
+ {
+  "name": "Perquil's Toe",
+  "base": "Gold Amulet",
+  "req": 29
+ },
+ {
+  "name": "Perseverance",
+  "base": "Vanguard Belt",
+  "req": 0
+ },
+ {
+  "name": "Pillar of the Caged God",
+  "base": "Iron Staff",
+  "req": 13
+ },
+ {
+  "name": "Piscator's Vigil",
+  "base": "{variant:1,2,3}Tornado Wand",
+  "req": 0
+ },
+ {
+  "name": "Pledge of Hands",
+  "base": "Judgement Staff",
+  "req": 68
+ },
+ {
+  "name": "Plume of Pursuit",
+  "base": "Bone Circlet",
+  "req": 64
+ },
+ {
+  "name": "Polaric Devastation",
+  "base": "Opal Ring",
+  "req": 80
+ },
+ {
+  "name": "Pragmatism",
+  "base": "Colosseum Plate",
+  "req": 49
+ },
+ {
+  "name": "Praxis",
+  "base": "Paua Ring",
+  "req": 22
+ },
+ {
+  "name": "Presence of Chayula",
+  "base": "Onyx Amulet",
+  "req": 60
+ },
+ {
+  "name": "Prism Guardian",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Prismatic Eclipse",
+  "base": "Twilight Blade",
+  "req": 0
+ },
+ {
+  "name": "Prismweave",
+  "base": "Rustic Sash",
+  "req": 0
+ },
+ {
+  "name": "Profane Proxy",
+  "base": "Unset Ring",
+  "req": 0
+ },
+ {
+  "name": "Prospero's Protection",
+  "base": "Iron Ring",
+  "req": 32
+ },
+ {
+  "name": "Putembo's Meadow",
+  "base": "Topaz Ring",
+  "req": 49
+ },
+ {
+  "name": "Putembo's Mountain",
+  "base": "Topaz Ring",
+  "req": 49
+ },
+ {
+  "name": "Putembo's Valley",
+  "base": "Topaz Ring",
+  "req": 49
+ },
+ {
+  "name": "Pyre",
+  "base": "Sapphire Ring",
+  "req": 11
+ },
+ {
+  "name": "Pyroshock Clasp",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Qotra's Regulator",
+  "base": "Sovereign Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Quecholli",
+  "base": "Jagged Maul",
+  "req": 22
+ },
+ {
+  "name": "Queen of the Forest",
+  "base": "Destiny Leather",
+  "req": 0
+ },
+ {
+  "name": "Queen's Decree",
+  "base": "Ornate Sword",
+  "req": 0
+ },
+ {
+  "name": "Queen's Escape",
+  "base": "Ornate Sword",
+  "req": 0
+ },
+ {
+  "name": "Quill Rain",
+  "base": "Short Bow",
+  "req": 5
+ },
+ {
+  "name": "Rainbowstride",
+  "base": "Conjurer Boots",
+  "req": 53
+ },
+ {
+  "name": "Rakiata's Dance",
+  "base": "Engraved Greatsword",
+  "req": 48
+ },
+ {
+  "name": "Ralakesh's Impatience",
+  "base": "Riveted Boots",
+  "req": 36
+ },
+ {
+  "name": "Rashkaldor's Patience",
+  "base": "Jade Amulet",
+  "req": 48
+ },
+ {
+  "name": "Rat's Nest",
+  "base": "Ursine Pelt",
+  "req": 55
+ },
+ {
+  "name": "Rathpith Globe",
+  "base": "Titanium Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Ravenous Passion",
+  "base": "Zealot Helmet",
+  "req": 0
+ },
+ {
+  "name": "Razor of the Seventh Sun",
+  "base": "Midnight Blade",
+  "req": 0
+ },
+ {
+  "name": "Reach of the Council",
+  "base": "Spine Bow",
+  "req": 0
+ },
+ {
+  "name": "Realm Ender",
+  "base": "Iron Staff",
+  "req": 40
+ },
+ {
+  "name": "Realmshaper",
+  "base": "Iron Staff",
+  "req": 18
+ },
+ {
+  "name": "Reaper's Pursuit",
+  "base": "Shadow Axe",
+  "req": 0
+ },
+ {
+  "name": "Rearguard",
+  "base": "{variant:1}Broadhead Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Rebuke of the Vaal",
+  "base": "Vaal Blade",
+  "req": 0
+ },
+ {
+  "name": "Redbeak",
+  "base": "Rusted Sword",
+  "req": 0
+ },
+ {
+  "name": "Redblade Band",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Redblade Banner",
+  "base": "Painted Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Redblade Tramplers",
+  "base": "Ancient Greaves",
+  "req": 46
+ },
+ {
+  "name": "Refuge in Isolation",
+  "base": "Paladin Crown",
+  "req": 78
+ },
+ {
+  "name": "Relentless Fury",
+  "base": "Decorative Axe",
+  "req": 0
+ },
+ {
+  "name": "Relic of the Pact",
+  "base": "{variant:1}Spiraled Wand",
+  "req": 0
+ },
+ {
+  "name": "Repentance",
+  "base": "Crusader Gloves",
+  "req": 66
+ },
+ {
+  "name": "Replica Abyssus",
+  "base": "Ezomyte Burgonet",
+  "req": 60
+ },
+ {
+  "name": "Replica Advancing Fortress",
+  "base": "Gut Ripper",
+  "req": 46
+ },
+ {
+  "name": "Replica Alberon's Warpath",
+  "base": "Soldier Boots",
+  "req": 0
+ },
+ {
+  "name": "Replica Allelopathy",
+  "base": "{variant:1}Sorcerer Gloves",
+  "req": 0
+ },
+ {
+  "name": "Replica Allure",
+  "base": "Vaal Claw",
+  "req": 66
+ },
+ {
+  "name": "Replica Alpha's Howl",
+  "base": "Sinner Tricorne",
+  "req": 64
+ },
+ {
+  "name": "Replica Ambu's Charge",
+  "base": "Crusader Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Replica Atziri's Acuity",
+  "base": "Vaal Gauntlets",
+  "req": 63
+ },
+ {
+  "name": "Replica Atziri's Foible",
+  "base": "Paua Amulet",
+  "req": 16
+ },
+ {
+  "name": "Replica Badge of the Brotherhood",
+  "base": "Turquoise Amulet",
+  "req": 0
+ },
+ {
+  "name": "Replica Bated Breath",
+  "base": "Chain Belt",
+  "req": 0
+ },
+ {
+  "name": "Replica Bitterdream",
+  "base": "Shadow Sceptre",
+  "req": 32
+ },
+ {
+  "name": "Replica Blood Thorn",
+  "base": "Gnarled Branch",
+  "req": 0
+ },
+ {
+  "name": "Replica Bloodplay",
+  "base": "Stiletto",
+  "req": 15
+ },
+ {
+  "name": "Replica Bones of Ullr",
+  "base": "Silk Slippers",
+  "req": 22
+ },
+ {
+  "name": "Replica Cold Iron Point",
+  "base": "Ezomyte Dagger",
+  "req": 62
+ },
+ {
+  "name": "Replica Covenant",
+  "base": "Spidersilk Robe",
+  "req": 0
+ },
+ {
+  "name": "Replica Doedre's Damning",
+  "base": "Paua Ring",
+  "req": 0
+ },
+ {
+  "name": "Replica Dreamfeather",
+  "base": "Eternal Sword",
+  "req": 0
+ },
+ {
+  "name": "Replica Duskdawn",
+  "base": "Maelström Staff",
+  "req": 64
+ },
+ {
+  "name": "Replica Earendel's Embrace",
+  "base": "Grinning Fetish",
+  "req": 35
+ },
+ {
+  "name": "Replica Emberwake",
+  "base": "Ruby Ring",
+  "req": 16
+ },
+ {
+  "name": "Replica Eternity Shroud",
+  "base": "Blood Raiment",
+  "req": 0
+ },
+ {
+  "name": "Replica Farrul's Fur",
+  "base": "Triumphant Lamellar",
+  "req": 0
+ },
+ {
+  "name": "Replica Fencoil",
+  "base": "Gnarled Branch",
+  "req": 0
+ },
+ {
+  "name": "Replica Frostbreath",
+  "base": "Ornate Mace",
+  "req": 50
+ },
+ {
+  "name": "Replica Grip of the Council",
+  "base": "Arcanist Gloves",
+  "req": 60
+ },
+ {
+  "name": "Replica Harvest",
+  "base": "Jasper Chopper",
+  "req": 0
+ },
+ {
+  "name": "Replica Headhunter",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Replica Heartbreaker",
+  "base": "Royal Skean",
+  "req": 50
+ },
+ {
+  "name": "Replica Heatshiver",
+  "base": "Leather Hood",
+  "req": 0
+ },
+ {
+  "name": "Replica Hinekora's Sight",
+  "base": "Onyx Amulet",
+  "req": 0
+ },
+ {
+  "name": "Replica Hyrri's Ire",
+  "base": "Zodiac Leather",
+  "req": 0
+ },
+ {
+  "name": "Replica Hyrri's Truth",
+  "base": "Jade Amulet",
+  "req": 0
+ },
+ {
+  "name": "Replica Infractem",
+  "base": "Decimation Bow",
+  "req": 53
+ },
+ {
+  "name": "Replica Innsbury Edge",
+  "base": "Elder Sword",
+  "req": 0
+ },
+ {
+  "name": "Replica Inya's Epiphany",
+  "base": "Arcanist Slippers",
+  "req": 61
+ },
+ {
+  "name": "Replica Iron Commander",
+  "base": "Death Bow",
+  "req": 32
+ },
+ {
+  "name": "Replica Kalisa's Grace",
+  "base": "Samite Gloves",
+  "req": 55
+ },
+ {
+  "name": "Replica Kaom's Heart",
+  "base": "Glorious Plate",
+  "req": 0
+ },
+ {
+  "name": "Replica Karui Ward",
+  "base": "Jade Amulet",
+  "req": 5
+ },
+ {
+  "name": "Replica Kongor's Undying Rage",
+  "base": "Terror Maul",
+  "req": 67
+ },
+ {
+  "name": "Replica Last Resort",
+  "base": "Nailed Fist",
+  "req": 0
+ },
+ {
+  "name": "Replica Leer Cast",
+  "base": "Festival Mask",
+  "req": 0
+ },
+ {
+  "name": "Replica Lioneye's Paws",
+  "base": "Bronzescale Boots",
+  "req": 30
+ },
+ {
+  "name": "Replica Loreweave",
+  "base": "Elegant Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Replica Malachai's Artifice",
+  "base": "Unset Ring",
+  "req": 5
+ },
+ {
+  "name": "Replica Maloney's Mechanism",
+  "base": "Ornate Quiver",
+  "req": 45
+ },
+ {
+  "name": "Replica Midnight Bargain",
+  "base": "{variant:1}Engraved Wand",
+  "req": 0
+ },
+ {
+  "name": "Replica Mistwall",
+  "base": "Lacquered Buckler",
+  "req": 0
+ },
+ {
+  "name": "Replica Nebulis",
+  "base": "Void Sceptre",
+  "req": 68
+ },
+ {
+  "name": "Replica Oro's Sacrifice",
+  "base": "Infernal Sword",
+  "req": 0
+ },
+ {
+  "name": "Replica Perfect Form",
+  "base": "Zodiac Leather",
+  "req": 0
+ },
+ {
+  "name": "Replica Prismweave",
+  "base": "Rustic Sash",
+  "req": 0
+ },
+ {
+  "name": "Replica Quill Rain",
+  "base": "Short Bow",
+  "req": 5
+ },
+ {
+  "name": "Replica Red Trail",
+  "base": "Titan Greaves",
+  "req": 68
+ },
+ {
+  "name": "Replica Restless Ward",
+  "base": "Carnal Armour",
+  "req": 0
+ },
+ {
+  "name": "Replica Shroud of the Lightless",
+  "base": "Carnal Armour",
+  "req": 0
+ },
+ {
+  "name": "Replica Siegebreaker",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Replica Soul Strike",
+  "base": "Spike-Point Arrow Quiver",
+  "req": 64
+ },
+ {
+  "name": "Replica Soul Taker",
+  "base": "Siege Axe",
+  "req": 0
+ },
+ {
+  "name": "Replica Soul Tether",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Replica Stampede",
+  "base": "Assassin's Boots",
+  "req": 63
+ },
+ {
+  "name": "Replica Tasalio's Sign",
+  "base": "Sapphire Ring",
+  "req": 20
+ },
+ {
+  "name": "Replica Tempestuous Steel",
+  "base": "War Sword",
+  "req": 0
+ },
+ {
+  "name": "Replica Three-step Assault",
+  "base": "Shagreen Boots",
+  "req": 55
+ },
+ {
+  "name": "Replica Trypanon",
+  "base": "Great Mallet",
+  "req": 40
+ },
+ {
+  "name": "Replica Tukohama's Fortress",
+  "base": "Ebony Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Replica Tulfall",
+  "base": "{variant:1}Tornado Wand",
+  "req": 0
+ },
+ {
+  "name": "Replica Twyzel",
+  "base": "{variant:1}Sage Wand",
+  "req": 0
+ },
+ {
+  "name": "Replica Ungil's Gauche",
+  "base": "Boot Knife",
+  "req": 20
+ },
+ {
+  "name": "Replica Veil of the Night",
+  "base": "Great Helmet",
+  "req": 22
+ },
+ {
+  "name": "Replica Victario's Charity",
+  "base": "Laminated Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Replica Voideye",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Replica Voidwalker",
+  "base": "Murder Boots",
+  "req": 69
+ },
+ {
+  "name": "Replica Volkuur's Guidance",
+  "base": "Zealot Gloves",
+  "req": 43
+ },
+ {
+  "name": "Replica Windripper",
+  "base": "Imperial Bow",
+  "req": 66
+ },
+ {
+  "name": "Replica Wings of Entropy",
+  "base": "Ezomyte Axe",
+  "req": 0
+ },
+ {
+  "name": "Replica Winterheart",
+  "base": "Gold Amulet",
+  "req": 42
+ },
+ {
+  "name": "Retaliation Charm",
+  "base": "Citrine Amulet",
+  "req": 30
+ },
+ {
+  "name": "Reverberation Rod",
+  "base": "Spiraled Wand",
+  "req": 0
+ },
+ {
+  "name": "Rigwald's Charge",
+  "base": "Highland Blade",
+  "req": 0
+ },
+ {
+  "name": "Rigwald's Command",
+  "base": "Midnight Blade",
+  "req": 0
+ },
+ {
+  "name": "Rigwald's Crest",
+  "base": "Two-Stone Ring",
+  "req": 49
+ },
+ {
+  "name": "Rigwald's Curse",
+  "base": "Wereclaw Talisman",
+  "req": 28
+ },
+ {
+  "name": "Rigwald's Hunt",
+  "base": "General's Brigandine",
+  "req": 66
+ },
+ {
+  "name": "Rigwald's Quills",
+  "base": "Two-Point Arrow Quiver",
+  "req": 56
+ },
+ {
+  "name": "Rigwald's Savagery",
+  "base": "Royal Axe",
+  "req": 0
+ },
+ {
+  "name": "Rime Gaze",
+  "base": "Mind Cage",
+  "req": 65
+ },
+ {
+  "name": "Rise of the Phoenix",
+  "base": "Mosaic Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Rive",
+  "base": "Terror Claw",
+  "req": 70
+ },
+ {
+  "name": "Romira's Banquet",
+  "base": "Diamond Ring",
+  "req": 60
+ },
+ {
+  "name": "Rotblood Promise",
+  "base": "Unset Ring",
+  "req": 56
+ },
+ {
+  "name": "Roth's Reach",
+  "base": "Recurve Bow",
+  "req": 18
+ },
+ {
+  "name": "Rotting Legion",
+  "base": "Loricated Ringmail",
+  "req": 0
+ },
+ {
+  "name": "Ryslatha's Coil",
+  "base": "Studded Belt",
+  "req": 0
+ },
+ {
+  "name": "Sacrificial Heart",
+  "base": "Paua Amulet",
+  "req": 32
+ },
+ {
+  "name": "Sadima's Touch",
+  "base": "Wool Gloves",
+  "req": 11
+ },
+ {
+  "name": "Saemus' Gift",
+  "base": "{variant:1}Spike-Point Arrow Quiver",
+  "req": 45
+ },
+ {
+  "name": "Saffell's Frame",
+  "base": "Branded Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Sandstorm Visage",
+  "base": "Necromancer Circlet",
+  "req": 0
+ },
+ {
+  "name": "Sanguine Gambol",
+  "base": "Skinning Knife",
+  "req": 59
+ },
+ {
+  "name": "Saqawal's Flock",
+  "base": "Silken Hood",
+  "req": 60
+ },
+ {
+  "name": "Saqawal's Nest",
+  "base": "Blood Raiment",
+  "req": 0
+ },
+ {
+  "name": "Saqawal's Talons",
+  "base": "Hydrascale Boots",
+  "req": 59
+ },
+ {
+  "name": "Saqawal's Winds",
+  "base": "Soldier Gloves",
+  "req": 51
+ },
+ {
+  "name": "Scaeva",
+  "base": "Gladius",
+  "req": 0
+ },
+ {
+  "name": "Scold's Bridle",
+  "base": "Mind Cage",
+  "req": 65
+ },
+ {
+  "name": "Scornflux",
+  "base": "Satin Slippers",
+  "req": 54
+ },
+ {
+  "name": "Scorpion's Call",
+  "base": "{variant:1}Broadhead Arrow Quiver",
+  "req": 57
+ },
+ {
+  "name": "Sentari's Answer",
+  "base": "Brass Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Serle's Masterwork",
+  "base": "Phantom Mace",
+  "req": 53
+ },
+ {
+  "name": "Servant of Decay",
+  "base": "Torturer Garb",
+  "req": 78
+ },
+ {
+  "name": "Seven Teachings",
+  "base": "Waxed Garb",
+  "req": 77
+ },
+ {
+  "name": "Seven-League Step",
+  "base": "Rawhide Boots",
+  "req": 0
+ },
+ {
+  "name": "Severed in Sleep",
+  "base": "Cutlass",
+  "req": 0
+ },
+ {
+  "name": "Shackles of the Wretched",
+  "base": "Chain Gloves",
+  "req": 7
+ },
+ {
+  "name": "Shade of Solaris",
+  "base": "Sage Wand",
+  "req": 0
+ },
+ {
+  "name": "Shadows and Dust",
+  "base": "Clasped Mitts",
+  "req": 31
+ },
+ {
+  "name": "Shadowstitch",
+  "base": "Sacrificial Garb",
+  "req": 0
+ },
+ {
+  "name": "Shaper's Seed",
+  "base": "Agate Amulet",
+  "req": 16
+ },
+ {
+  "name": "Shaper's Touch",
+  "base": "Crusader Gloves",
+  "req": 66
+ },
+ {
+  "name": "Shattershard",
+  "base": "Crimson Round Shield",
+  "req": 0
+ },
+ {
+  "name": "Shavronne's Gambit",
+  "base": "Scholar Boots",
+  "req": 32
+ },
+ {
+  "name": "Shavronne's Pace",
+  "base": "Scholar Boots",
+  "req": 32
+ },
+ {
+  "name": "Shavronne's Revelation",
+  "base": "Moonstone Ring",
+  "req": 30
+ },
+ {
+  "name": "Shavronne's Wrappings",
+  "base": "Occultist's Vestment",
+  "req": 0
+ },
+ {
+  "name": "Shimmeron",
+  "base": "Tornado Wand",
+  "req": 0
+ },
+ {
+  "name": "Shiversting",
+  "base": "Bastard Sword",
+  "req": 0
+ },
+ {
+  "name": "Shroud of the Lightless",
+  "base": "Carnal Armour",
+  "req": 0
+ },
+ {
+  "name": "Sibyl's Lament",
+  "base": "Coral Ring",
+  "req": 45
+ },
+ {
+  "name": "Sidhebreath",
+  "base": "Paua Amulet",
+  "req": 0
+ },
+ {
+  "name": "Siegebreaker",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Sign of the Sin Eater",
+  "base": "Tyrant's Sekhem",
+  "req": 58
+ },
+ {
+  "name": "Silverbough",
+  "base": "Crude Bow",
+  "req": 36
+ },
+ {
+  "name": "Silverbranch",
+  "base": "Crude Bow",
+  "req": 2
+ },
+ {
+  "name": "Sin Trek",
+  "base": "Stealth Boots",
+  "req": 62
+ },
+ {
+  "name": "Singularity",
+  "base": "Platinum Sceptre",
+  "req": 62
+ },
+ {
+  "name": "Sinvicta's Mettle",
+  "base": "Ezomyte Axe",
+  "req": 0
+ },
+ {
+  "name": "Sire of Shards",
+  "base": "Serpentine Staff",
+  "req": 49
+ },
+ {
+  "name": "Skin of the Loyal",
+  "base": "Simple Robe",
+  "req": 0
+ },
+ {
+  "name": "Skirmish",
+  "base": "Two-Point Arrow Quiver",
+  "req": 36
+ },
+ {
+  "name": "Skullhead",
+  "base": "Secutor Helm",
+  "req": 36
+ },
+ {
+  "name": "Skyforth",
+  "base": "Sorcerer Boots",
+  "req": 67
+ },
+ {
+  "name": "Slavedriver's Hand",
+  "base": "Ambush Mitts",
+  "req": 45
+ },
+ {
+  "name": "Slitherpinch",
+  "base": "Bronzescale Gauntlets",
+  "req": 27
+ },
+ {
+  "name": "Slivertongue",
+  "base": "Harbinger Bow",
+  "req": 68
+ },
+ {
+  "name": "Snakebite",
+  "base": "Assassin's Mitts",
+  "req": 58
+ },
+ {
+  "name": "Snakepit",
+  "base": "Sapphire Ring",
+  "req": 68
+ },
+ {
+  "name": "Solaris Lorica",
+  "base": "Copper Plate",
+  "req": 0
+ },
+ {
+  "name": "Solstice Vigil",
+  "base": "Onyx Amulet",
+  "req": 64
+ },
+ {
+  "name": "Soul Ascension",
+  "base": "Carnal Mitts",
+  "req": 0
+ },
+ {
+  "name": "Soul Mantle",
+  "base": "Spidersilk Robe",
+  "req": 0
+ },
+ {
+  "name": "Soul Strike",
+  "base": "Spike-Point Arrow Quiver",
+  "req": 64
+ },
+ {
+  "name": "Soul Taker",
+  "base": "Siege Axe",
+  "req": 0
+ },
+ {
+  "name": "Soul Tether",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Soulbound",
+  "base": "Paua Ring",
+  "req": 0
+ },
+ {
+  "name": "Soulthirst",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Soulwrest",
+  "base": "Ezomyte Staff",
+  "req": 62
+ },
+ {
+  "name": "Southbound",
+  "base": "Soldier Gloves",
+  "req": 51
+ },
+ {
+  "name": "Speaker's Wreath",
+  "base": "Prophet Crown",
+  "req": 63
+ },
+ {
+  "name": "Spine of the First Claimant",
+  "base": "Iron Sceptre",
+  "req": 20
+ },
+ {
+  "name": "Spinehail",
+  "base": "Vile Arrow Quiver",
+  "req": 55
+ },
+ {
+  "name": "Sporeguard",
+  "base": "Saint's Hauberk",
+  "req": 0
+ },
+ {
+  "name": "Springleaf",
+  "base": "Plank Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Squirming Terror",
+  "base": "Unset Ring",
+  "req": 32
+ },
+ {
+  "name": "Star of Wraeclast",
+  "base": "Ruby Amulet",
+  "req": 28
+ },
+ {
+  "name": "Starcaller",
+  "base": "Abyssal Axe",
+  "req": 55
+ },
+ {
+  "name": "Starforge",
+  "base": "Infernal Sword",
+  "req": 0
+ },
+ {
+  "name": "Starkonja's Head",
+  "base": "Silken Hood",
+  "req": 60
+ },
+ {
+  "name": "Stasis Prison",
+  "base": "Carnal Armour",
+  "req": 0
+ },
+ {
+  "name": "Steelworm",
+  "base": "Broadhead Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Steppan Eard",
+  "base": "Sorcerer Boots",
+  "req": 67
+ },
+ {
+  "name": "Stone of Lazhwar",
+  "base": "Lapis Amulet",
+  "req": 5
+ },
+ {
+  "name": "Storm Cloud",
+  "base": "Long Bow",
+  "req": 9
+ },
+ {
+  "name": "Storm Prison",
+  "base": "{variant:1,2}Carved Wand",
+  "req": 0
+ },
+ {
+  "name": "Storm Secret",
+  "base": "Topaz Ring",
+  "req": 56
+ },
+ {
+  "name": "Storm's Gift",
+  "base": "Assassin's Mitts",
+  "req": 58
+ },
+ {
+  "name": "Stormcharger",
+  "base": "Plated Greaves",
+  "req": 0
+ },
+ {
+  "name": "Stormfire",
+  "base": "Opal Ring",
+  "req": 80
+ },
+ {
+  "name": "Stormseeker",
+  "base": "Ambush Mitts",
+  "req": 0
+ },
+ {
+  "name": "Story of the Vaal",
+  "base": "{variant:1}Variscite Blade",
+  "req": 0
+ },
+ {
+  "name": "Stranglegasp",
+  "base": "Onyx Amulet",
+  "req": 52
+ },
+ {
+  "name": "String of Servitude",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Sudden Dawn",
+  "base": "Steel Circlet",
+  "req": 48
+ },
+ {
+  "name": "Sunblast",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "Sundance",
+  "base": "Clasped Boots",
+  "req": 27
+ },
+ {
+  "name": "Sunspite",
+  "base": "Clasped Boots",
+  "req": 59
+ },
+ {
+  "name": "Surgebinders",
+  "base": "Dragonscale Gauntlets",
+  "req": 67
+ },
+ {
+  "name": "Survivor's Guilt",
+  "base": "Heavy Belt",
+  "req": 0
+ },
+ {
+  "name": "Svalinn",
+  "base": "Girded Tower Shield",
+  "req": 51
+ },
+ {
+  "name": "Tabula Rasa",
+  "base": "Simple Robe",
+  "req": 0
+ },
+ {
+  "name": "Tainted Pact",
+  "base": "Coral Amulet",
+  "req": 0
+ },
+ {
+  "name": "Tanu Ahi",
+  "base": "Wyrmscale Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Taproot",
+  "base": "Ambusher",
+  "req": 60
+ },
+ {
+  "name": "Taryn's Shiver",
+  "base": "Maelström Staff",
+  "req": 64
+ },
+ {
+  "name": "Tasalio's Sign",
+  "base": "Sapphire Ring",
+  "req": 20
+ },
+ {
+  "name": "Tavukai",
+  "base": "Coral Amulet",
+  "req": 54
+ },
+ {
+  "name": "Tawhanuku's Timing",
+  "base": "Moonstone Ring",
+  "req": 0
+ },
+ {
+  "name": "Tawhoa's Felling",
+  "base": "Piledriver",
+  "req": 61
+ },
+ {
+  "name": "Tear of Purity",
+  "base": "Lapis Amulet",
+  "req": 5
+ },
+ {
+  "name": "Temptation Step",
+  "base": "Shagreen Boots",
+  "req": 55
+ },
+ {
+  "name": "Terminus Est",
+  "base": "Tiger Sword",
+  "req": 0
+ },
+ {
+  "name": "The Admiral",
+  "base": "Varnished Coat",
+  "req": 0
+ },
+ {
+  "name": "The Annihilating Light",
+  "base": "Quarterstaff",
+  "req": 68
+ },
+ {
+  "name": "The Anticipation",
+  "base": "Ezomyte Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "The Anvil",
+  "base": "Amber Amulet",
+  "req": 45
+ },
+ {
+  "name": "The Apostate",
+  "base": "Cabalist Regalia",
+  "req": 35
+ },
+ {
+  "name": "The Arkhon's Tools",
+  "base": "Cloth Belt",
+  "req": 16
+ },
+ {
+  "name": "The Ascetic",
+  "base": "Gold Amulet",
+  "req": 8
+ },
+ {
+  "name": "The Aylardex",
+  "base": "Agate Amulet",
+  "req": 32
+ },
+ {
+  "name": "The Baron",
+  "base": "Close Helmet",
+  "req": 26
+ },
+ {
+  "name": "The Beast Fur Shawl",
+  "base": "Vaal Regalia",
+  "req": 0
+ },
+ {
+  "name": "The Black Cane",
+  "base": "Royal Sceptre",
+  "req": 50
+ },
+ {
+  "name": "The Blood Dance",
+  "base": "Sharkskin Boots",
+  "req": 44
+ },
+ {
+  "name": "The Blood Reaper",
+  "base": "Headsman Axe",
+  "req": 0
+ },
+ {
+  "name": "The Blood Thorn",
+  "base": "Gnarled Branch",
+  "req": 0
+ },
+ {
+  "name": "The Brass Dome",
+  "base": "Gladiator Plate",
+  "req": 0
+ },
+ {
+  "name": "The Brine Crown",
+  "base": "Prophet Crown",
+  "req": 63
+ },
+ {
+  "name": "The Bringer of Rain",
+  "base": "Nightmare Bascinet",
+  "req": 67
+ },
+ {
+  "name": "The Broken Crown",
+  "base": "Prophet Crown",
+  "req": 63
+ },
+ {
+  "name": "The Burden of Shadows",
+  "base": "Primordial Staff",
+  "req": 58
+ },
+ {
+  "name": "The Burden of Truth",
+  "base": "Crystal Belt",
+  "req": 0
+ },
+ {
+  "name": "The Caged Mammoth",
+  "base": "Antique Gauntlets",
+  "req": 64
+ },
+ {
+  "name": "The Cauteriser",
+  "base": "Woodsplitter",
+  "req": 0
+ },
+ {
+  "name": "The Celestial Brace",
+  "base": "Goliath Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "The Coming Calamity",
+  "base": "Destroyer Regalia",
+  "req": 0
+ },
+ {
+  "name": "The Consuming Dark",
+  "base": "Fiend Dagger",
+  "req": 53
+ },
+ {
+  "name": "The Covenant",
+  "base": "Spidersilk Robe",
+  "req": 0
+ },
+ {
+  "name": "The Crimson Storm",
+  "base": "Steelwood Bow",
+  "req": 57
+ },
+ {
+  "name": "The Dancing Dervish",
+  "base": "Reaver Sword",
+  "req": 0
+ },
+ {
+  "name": "The Dancing Duo",
+  "base": "Reaver Sword",
+  "req": 0
+ },
+ {
+  "name": "The Dark Monarch",
+  "base": "Lich's Circlet",
+  "req": 80
+ },
+ {
+  "name": "The Dark Seer",
+  "base": "Shadow Sceptre",
+  "req": 32
+ },
+ {
+  "name": "The Deep One's Hide",
+  "base": "Studded Round Shield",
+  "req": 0
+ },
+ {
+  "name": "The Devourer of Minds",
+  "base": "Pig-Faced Bascinet",
+  "req": 63
+ },
+ {
+  "name": "The Devouring Diadem",
+  "base": "Necromancer Circlet",
+  "req": 54
+ },
+ {
+  "name": "The Druggery",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "The Effigon",
+  "base": "Gold Amulet",
+  "req": 57
+ },
+ {
+  "name": "The Embalmer",
+  "base": "Carnal Mitts",
+  "req": 50
+ },
+ {
+  "name": "The Enmity Divine",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "The Ephemeral Bond",
+  "base": "Lapis Amulet",
+  "req": 68
+ },
+ {
+  "name": "The Eternal Apple",
+  "base": "Chiming Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "The Eternal Struggle",
+  "base": "Onyx Amulet",
+  "req": 61
+ },
+ {
+  "name": "The Eternity Shroud",
+  "base": "Blood Raiment",
+  "req": 0
+ },
+ {
+  "name": "The Felbog Fang",
+  "base": "Citrine Amulet",
+  "req": 61
+ },
+ {
+  "name": "The Flawed Refuge",
+  "base": "Maple Round Shield",
+  "req": 39
+ },
+ {
+  "name": "The Fledgling",
+  "base": "Lacquered Helmet",
+  "req": 51
+ },
+ {
+  "name": "The Flow Untethered",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "The Formless Flame",
+  "base": "{variant:1,2}Siege Helmet",
+  "req": 48
+ },
+ {
+  "name": "The Formless Inferno",
+  "base": "Royal Burgonet",
+  "req": 65
+ },
+ {
+  "name": "The Fourth Vow",
+  "base": "Devout Chainmail",
+  "req": 0
+ },
+ {
+  "name": "The Fracturing Spinner",
+  "base": "Blunt Arrow Quiver",
+  "req": 60
+ },
+ {
+  "name": "The Fulcrum",
+  "base": "Ezomyte Staff",
+  "req": 60
+ },
+ {
+  "name": "The Geomantic Gyre",
+  "base": "Highborn Staff",
+  "req": 0
+ },
+ {
+  "name": "The Ghastly Theatre",
+  "base": "Teak Round Shield",
+  "req": 0
+ },
+ {
+  "name": "The Gluttonous Tide",
+  "base": "Citadel Bow",
+  "req": 58
+ },
+ {
+  "name": "The Goddess Bound",
+  "base": "Whalebone Rapier",
+  "req": 0
+ },
+ {
+  "name": "The Goddess Scorned",
+  "base": "Elegant Sword",
+  "req": 0
+ },
+ {
+  "name": "The Goddess Unleashed",
+  "base": "Eternal Sword",
+  "req": 0
+ },
+ {
+  "name": "The Golden Charlatan",
+  "base": "Lion Sword",
+  "req": 65
+ },
+ {
+  "name": "The Grey Spire",
+  "base": "Judgement Staff",
+  "req": 68
+ },
+ {
+  "name": "The Grey Wind",
+  "base": "Spectral Axe",
+  "req": 33
+ },
+ {
+  "name": "The Gryphon",
+  "base": "Jade Hatchet",
+  "req": 0
+ },
+ {
+  "name": "The Gull",
+  "base": "Raven Mask",
+  "req": 38
+ },
+ {
+  "name": "The Halcyon",
+  "base": "Jade Amulet",
+  "req": 35
+ },
+ {
+  "name": "The Hallowed Monarch",
+  "base": "Faithful Helmet",
+  "req": 73
+ },
+ {
+  "name": "The Hand of Phrecia",
+  "base": "Mesh Gloves",
+  "req": 32
+ },
+ {
+  "name": "The Harvest",
+  "base": "Jasper Chopper",
+  "req": 0
+ },
+ {
+  "name": "The Hateful Accuser",
+  "base": "Nameless Ring",
+  "req": 50
+ },
+ {
+  "name": "The Hidden Blade",
+  "base": "Ambusher",
+  "req": 60
+ },
+ {
+  "name": "The Highwayman",
+  "base": "Gold Ring",
+  "req": 44
+ },
+ {
+  "name": "The Hungry Loop",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "The Ignomon",
+  "base": "Gold Amulet",
+  "req": 8
+ },
+ {
+  "name": "The Immortal Will",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "The Infinite Pursuit",
+  "base": "{variant:1}Goliath Greaves",
+  "req": 54
+ },
+ {
+  "name": "The Iron Fortress",
+  "base": "Crusader Plate",
+  "req": 0
+ },
+ {
+  "name": "The Iron Mass",
+  "base": "Gladius",
+  "req": 0
+ },
+ {
+  "name": "The Ivory Tower",
+  "base": "Saint's Hauberk",
+  "req": 0
+ },
+ {
+  "name": "The Jinxed Juju",
+  "base": "Citrine Amulet",
+  "req": 48
+ },
+ {
+  "name": "The Living Blade",
+  "base": "Ezomyte Blade",
+  "req": 61
+ },
+ {
+  "name": "The Magnate",
+  "base": "Studded Belt",
+  "req": 0
+ },
+ {
+  "name": "The Monastery Bell",
+  "base": "Dream Mace",
+  "req": 32
+ },
+ {
+  "name": "The Nomad",
+  "base": "Studded Belt",
+  "req": 0
+ },
+ {
+  "name": "The Oak",
+  "base": "Plank Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "The Oppressor",
+  "base": "Elegant Round Shield",
+  "req": 0
+ },
+ {
+  "name": "The Pandemonius",
+  "base": "Jade Amulet",
+  "req": 64
+ },
+ {
+  "name": "The Pariah",
+  "base": "Unset Ring",
+  "req": 60
+ },
+ {
+  "name": "The Peregrine",
+  "base": "Visored Sallet",
+  "req": 23
+ },
+ {
+  "name": "The Perfect Form",
+  "base": "Zodiac Leather",
+  "req": 0
+ },
+ {
+  "name": "The Poet's Pen",
+  "base": "{variant:1}Carved Wand",
+  "req": 0
+ },
+ {
+  "name": "The Poised Prism",
+  "base": "Primal Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "The Primordial Chain",
+  "base": "Coral Amulet",
+  "req": 34
+ },
+ {
+  "name": "The Princess",
+  "base": "Sabre",
+  "req": 0
+ },
+ {
+  "name": "The Queller of Minds",
+  "base": "Nameless Ring",
+  "req": 50
+ },
+ {
+  "name": "The Rat Cage",
+  "base": "Sharkskin Tunic",
+  "req": 0
+ },
+ {
+  "name": "The Red Trail",
+  "base": "Titan Greaves",
+  "req": 68
+ },
+ {
+  "name": "The Redblade",
+  "base": "Gladius",
+  "req": 0
+ },
+ {
+  "name": "The Restless Ward",
+  "base": "Carnal Armour",
+  "req": 0
+ },
+ {
+  "name": "The Retch",
+  "base": "Rustic Sash",
+  "req": 0
+ },
+ {
+  "name": "The Rippling Thoughts",
+  "base": "Legion Sword",
+  "req": 0
+ },
+ {
+  "name": "The Saviour",
+  "base": "Legion Sword",
+  "req": 0
+ },
+ {
+  "name": "The Scales of Justice",
+  "base": "Chiming Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "The Scourge",
+  "base": "Terror Claw",
+  "req": 70
+ },
+ {
+  "name": "The Screaming Eagle",
+  "base": "Jade Hatchet",
+  "req": 0
+ },
+ {
+  "name": "The Searing Touch",
+  "base": "{variant:1}Long Staff",
+  "req": 0
+ },
+ {
+  "name": "The Selfish Shepherd",
+  "base": "Nameless Ring",
+  "req": 50
+ },
+ {
+  "name": "The Shattered Divinity",
+  "base": "Blunt Arrow Quiver",
+  "req": 60
+ },
+ {
+  "name": "The Signal Fire",
+  "base": "{variant:1}Cured Quiver",
+  "req": 0
+ },
+ {
+  "name": "The Snowblind Grace",
+  "base": "{variant:1,2}Coronal Leather",
+  "req": 0
+ },
+ {
+  "name": "The Squire",
+  "base": "Elegant Round Shield",
+  "req": 0
+ },
+ {
+  "name": "The Stampede",
+  "base": "Assassin's Boots",
+  "req": 63
+ },
+ {
+  "name": "The Stormheart",
+  "base": "Royal Staff",
+  "req": 28
+ },
+ {
+  "name": "The Stormwall",
+  "base": "Royal Staff",
+  "req": 60
+ },
+ {
+  "name": "The Sundered Will",
+  "base": "Fugitive Ring",
+  "req": 42
+ },
+ {
+  "name": "The Supreme Truth",
+  "base": "Crystal Sceptre",
+  "req": 41
+ },
+ {
+  "name": "The Surging Thoughts",
+  "base": "Legion Sword",
+  "req": 0
+ },
+ {
+  "name": "The Surrender",
+  "base": "Ezomyte Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "The Tactician",
+  "base": "Studded Belt",
+  "req": 0
+ },
+ {
+  "name": "The Taming",
+  "base": "Prismatic Ring",
+  "req": 30
+ },
+ {
+  "name": "The Tempest",
+  "base": "Long Bow",
+  "req": 32
+ },
+ {
+  "name": "The Tempest Rising",
+  "base": "Goliath Greaves",
+  "req": 54
+ },
+ {
+  "name": "The Tempest's Binding",
+  "base": "Callous Mask",
+  "req": 45
+ },
+ {
+  "name": "The Tempest's Liberation",
+  "base": "Callous Mask",
+  "req": 60
+ },
+ {
+  "name": "The Tempestuous Steel",
+  "base": "War Sword",
+  "req": 0
+ },
+ {
+  "name": "The Three Dragons",
+  "base": "Golden Mask",
+  "req": 35
+ },
+ {
+  "name": "The Tides of Time",
+  "base": "Vanguard Belt",
+  "req": 78
+ },
+ {
+  "name": "The Torrent's Reclamation",
+  "base": "Cloth Belt",
+  "req": 0
+ },
+ {
+  "name": "The Trickster's Smile",
+  "base": "Visored Sallet",
+  "req": 23
+ },
+ {
+  "name": "The Unseen Hue",
+  "base": "Opal Ring",
+  "req": 80
+ },
+ {
+  "name": "The Unshattered Will",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "The Untouched Soul",
+  "base": "Gold Amulet",
+  "req": 48
+ },
+ {
+  "name": "The Utmost",
+  "base": "Gold Amulet",
+  "req": 8
+ },
+ {
+  "name": "The Vertex",
+  "base": "Vaal Mask",
+  "req": 62
+ },
+ {
+  "name": "The Warden's Brand",
+  "base": "Iron Ring",
+  "req": 30
+ },
+ {
+  "name": "The Wasp Nest",
+  "base": "Throat Stabber",
+  "req": 60
+ },
+ {
+  "name": "The Whispering Ice",
+  "base": "Vile Staff",
+  "req": 33
+ },
+ {
+  "name": "The Will of Esh",
+  "base": "Synaptic Ring",
+  "req": 42
+ },
+ {
+  "name": "The Will of Tul",
+  "base": "Cryonic Ring",
+  "req": 42
+ },
+ {
+  "name": "The Will of Uul-Netol",
+  "base": "Organic Ring",
+  "req": 42
+ },
+ {
+  "name": "The Will of Xoph",
+  "base": "Enthalpic Ring",
+  "req": 42
+ },
+ {
+  "name": "The Winds of Fate",
+  "base": "Foul Staff",
+  "req": 0
+ },
+ {
+  "name": "The Yielding Mortality",
+  "base": "Imperial Staff",
+  "req": 66
+ },
+ {
+  "name": "Thief's Torment",
+  "base": "Prismatic Ring",
+  "req": 30
+ },
+ {
+  "name": "Thirst for Horrors",
+  "base": "War Buckler",
+  "req": 0
+ },
+ {
+  "name": "Thousand Ribbons",
+  "base": "Simple Robe",
+  "req": 0
+ },
+ {
+  "name": "Thousand Teeth Temu",
+  "base": "Vaal Buckler",
+  "req": 0
+ },
+ {
+  "name": "Three-step Assault",
+  "base": "Shagreen Boots",
+  "req": 55
+ },
+ {
+  "name": "Thrillsteel",
+  "base": "Barbute Helmet",
+  "req": 0
+ },
+ {
+  "name": "Thunderfist",
+  "base": "Murder Mitts",
+  "req": 67
+ },
+ {
+  "name": "Thundersight",
+  "base": "Solaris Circlet",
+  "req": 59
+ },
+ {
+  "name": "Tidebreaker",
+  "base": "Imperial Maul",
+  "req": 65
+ },
+ {
+  "name": "Timeclasp",
+  "base": "Moonstone Ring",
+  "req": 0
+ },
+ {
+  "name": "Timetwist",
+  "base": "Moonstone Ring",
+  "req": 0
+ },
+ {
+  "name": "Tinkerskin",
+  "base": "Sadist Garb",
+  "req": 0
+ },
+ {
+  "name": "Titucius' Span",
+  "base": "Reinforced Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Tombfist",
+  "base": "Steelscale Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Torchoak Step",
+  "base": "Antique Greaves",
+  "req": 37
+ },
+ {
+  "name": "Touch of Anguish",
+  "base": "Imperial Claw",
+  "req": 68
+ },
+ {
+  "name": "Tremor Rod",
+  "base": "Military Staff",
+  "req": 45
+ },
+ {
+  "name": "Triad Grip",
+  "base": "Mesh Gloves",
+  "req": 32
+ },
+ {
+  "name": "Triumvirate Authority",
+  "base": "Unset Ring",
+  "req": 64
+ },
+ {
+  "name": "Trolltimber Spire",
+  "base": "Cedar Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Trypanon",
+  "base": "Great Mallet",
+  "req": 40
+ },
+ {
+  "name": "Tukohama's Fortress",
+  "base": "Ebony Tower Shield",
+  "req": 0
+ },
+ {
+  "name": "Tulborn",
+  "base": "{variant:1,2}Spiraled Wand",
+  "req": 0
+ },
+ {
+  "name": "Tulfall",
+  "base": "{variant:1,2}Tornado Wand",
+  "req": 0
+ },
+ {
+  "name": "Twyzel",
+  "base": "{variant:1,2}Sage Wand",
+  "req": 0
+ },
+ {
+  "name": "Umbilicus Immortalis",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Ungil's Gauche",
+  "base": "Boot Knife",
+  "req": 20
+ },
+ {
+  "name": "Ungil's Harmony",
+  "base": "Turquoise Amulet",
+  "req": 23
+ },
+ {
+  "name": "United in Dream",
+  "base": "Cutlass",
+  "req": 0
+ },
+ {
+  "name": "Unlight Extant",
+  "base": "Sage Wand",
+  "req": 30
+ },
+ {
+  "name": "Unyielding Flame",
+  "base": "Archon Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Usurper's Penance",
+  "base": "Eternal Burgonet",
+  "req": 69
+ },
+ {
+  "name": "Utula's Hunger",
+  "base": "Majestic Plate",
+  "req": 53
+ },
+ {
+  "name": "Uul-Netol's Embrace",
+  "base": "Vaal Axe",
+  "req": 0
+ },
+ {
+  "name": "Uul-Netol's Kiss",
+  "base": "{variant:1}Labrys",
+  "req": 0
+ },
+ {
+  "name": "Uul-Netol's Vow",
+  "base": "Unset Amulet",
+  "req": 72
+ },
+ {
+  "name": "Uzaza's Meadow",
+  "base": "Sapphire Ring",
+  "req": 49
+ },
+ {
+  "name": "Uzaza's Mountain",
+  "base": "Sapphire Ring",
+  "req": 49
+ },
+ {
+  "name": "Uzaza's Valley",
+  "base": "Sapphire Ring",
+  "req": 49
+ },
+ {
+  "name": "Vaal Caress",
+  "base": "Bronzescale Gauntlets",
+  "req": 0
+ },
+ {
+  "name": "Valako's Sign",
+  "base": "Topaz Ring",
+  "req": 38
+ },
+ {
+  "name": "Valyrium",
+  "base": "Moonstone Ring",
+  "req": 38
+ },
+ {
+  "name": "Varunastra",
+  "base": "Vaal Blade",
+  "req": 0
+ },
+ {
+  "name": "Veil of the Night",
+  "base": "Great Helmet",
+  "req": 22
+ },
+ {
+  "name": "Venarius' Astrolabe",
+  "base": "Astrolabe Amulet",
+  "req": 69
+ },
+ {
+  "name": "Venopuncture",
+  "base": "Iron Ring",
+  "req": 0
+ },
+ {
+  "name": "Ventor's Gamble",
+  "base": "Gold Ring",
+  "req": 65
+ },
+ {
+  "name": "Veruso's Ambition",
+  "base": "Shackled Boots",
+  "req": 34
+ },
+ {
+  "name": "Veruso's Battering Rams",
+  "base": "Titan Gauntlets",
+  "req": 69
+ },
+ {
+  "name": "Victario's Acuity",
+  "base": "Turquoise Amulet",
+  "req": 16
+ },
+ {
+  "name": "Victario's Charity",
+  "base": "Laminated Kite Shield",
+  "req": 0
+ },
+ {
+  "name": "Victario's Flight",
+  "base": "Goathide Boots",
+  "req": 0
+ },
+ {
+  "name": "Victario's Influence",
+  "base": "Lacquered Garb",
+  "req": 0
+ },
+ {
+  "name": "Viper's Scales",
+  "base": "Full Scale Armour",
+  "req": 0
+ },
+ {
+  "name": "Viridi's Veil",
+  "base": "Praetor Crown",
+  "req": 68
+ },
+ {
+  "name": "Vis Mortis",
+  "base": "Necromancer Silks",
+  "req": 0
+ },
+ {
+  "name": "Vivinsect",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Vix Lunaris",
+  "base": "Cardinal Round Shield",
+  "req": 0
+ },
+ {
+  "name": "Vixen's Entrapment",
+  "base": "Embroidered Gloves",
+  "req": 36
+ },
+ {
+  "name": "Voice of the Storm",
+  "base": "Lapis Amulet",
+  "req": 69
+ },
+ {
+  "name": "Void Battery",
+  "base": "Prophecy Wand",
+  "req": 0
+ },
+ {
+  "name": "Voidbringer",
+  "base": "Conjurer Gloves",
+  "req": 55
+ },
+ {
+  "name": "Voideye",
+  "base": "Unset Ring",
+  "req": 45
+ },
+ {
+  "name": "Voidfletcher",
+  "base": "{variant:1,2}Penetrating Arrow Quiver",
+  "req": 0
+ },
+ {
+  "name": "Voidforge",
+  "base": "Infernal Sword",
+  "req": 0
+ },
+ {
+  "name": "Voidheart",
+  "base": "Iron Ring",
+  "req": 48
+ },
+ {
+  "name": "Voidhome",
+  "base": "Dread Maul",
+  "req": 54
+ },
+ {
+  "name": "Voidwalker",
+  "base": "Murder Boots",
+  "req": 69
+ },
+ {
+  "name": "Volkuur's Guidance",
+  "base": "Zealot Gloves",
+  "req": 43
+ },
+ {
+  "name": "Voll's Devotion",
+  "base": "Agate Amulet",
+  "req": 32
+ },
+ {
+  "name": "Voll's Protector",
+  "base": "Holy Chainmail",
+  "req": 0
+ },
+ {
+  "name": "Voll's Vision",
+  "base": "Praetor Crown",
+  "req": 0
+ },
+ {
+  "name": "Voltaxic Rift",
+  "base": "Spine Bow",
+  "req": 0
+ },
+ {
+  "name": "Vulconus",
+  "base": "Demon Dagger",
+  "req": 68
+ },
+ {
+  "name": "Wake of Destruction",
+  "base": "Mesh Boots",
+  "req": 28
+ },
+ {
+  "name": "Wall of Brambles",
+  "base": "Plate Vest",
+  "req": 0
+ },
+ {
+  "name": "Wanderlust",
+  "base": "Wool Shoes",
+  "req": 0
+ },
+ {
+  "name": "Warped Timepiece",
+  "base": "Turquoise Amulet",
+  "req": 50
+ },
+ {
+  "name": "Warrior's Legacy",
+  "base": "Ruby Ring",
+  "req": 16
+ },
+ {
+  "name": "Whakatutuki o Matua",
+  "base": "Tarnished Spirit Shield",
+  "req": 0
+ },
+ {
+  "name": "Wheel of the Stormsail",
+  "base": "Rotted Round Shield",
+  "req": 0
+ },
+ {
+  "name": "Whispers of Infinity",
+  "base": "Seaglass Amulet",
+  "req": 74
+ },
+ {
+  "name": "White Wind",
+  "base": "Imperial Skean",
+  "req": 66
+ },
+ {
+  "name": "Wideswing",
+  "base": "Poleaxe",
+  "req": 0
+ },
+ {
+  "name": "Widowhail",
+  "base": "Crude Bow",
+  "req": 0
+ },
+ {
+  "name": "Widowmaker",
+  "base": "Boot Blade",
+  "req": 44
+ },
+ {
+  "name": "Wildslash",
+  "base": "Awl",
+  "req": 12
+ },
+ {
+  "name": "Wildwrap",
+  "base": "Strapped Leather",
+  "req": 0
+ },
+ {
+  "name": "Willclash",
+  "base": "Golden Mask",
+  "req": 35
+ },
+ {
+  "name": "Willowgift",
+  "base": "Jade Amulet",
+  "req": 52
+ },
+ {
+  "name": "Wilma's Requital",
+  "base": "Solaris Circlet",
+  "req": 0
+ },
+ {
+  "name": "Windripper",
+  "base": "Imperial Bow",
+  "req": 66
+ },
+ {
+  "name": "Winds of Change",
+  "base": "Ancient Gauntlets",
+  "req": 47
+ },
+ {
+  "name": "Windscream",
+  "base": "Reinforced Greaves",
+  "req": 0
+ },
+ {
+  "name": "Windshriek",
+  "base": "Reinforced Greaves",
+  "req": 0
+ },
+ {
+  "name": "Wing of the Wyvern",
+  "base": "Imperial Bow",
+  "req": 66
+ },
+ {
+  "name": "Wings of Entropy",
+  "base": "{variant:1,2,3,4}Sundering Axe",
+  "req": 0
+ },
+ {
+  "name": "Winterheart",
+  "base": "Gold Amulet",
+  "req": 42
+ },
+ {
+  "name": "Winterweave",
+  "base": "Coral Ring",
+  "req": 24
+ },
+ {
+  "name": "Witchhunter's Judgment",
+  "base": "Highborn Staff",
+  "req": 68
+ },
+ {
+  "name": "Woespike",
+  "base": "Steel Ring",
+  "req": 80
+ },
+ {
+  "name": "Wondertrap",
+  "base": "Velvet Slippers",
+  "req": 0
+ },
+ {
+  "name": "Worldcarver",
+  "base": "Dragonscale Gauntlets",
+  "req": 67
+ },
+ {
+  "name": "Wraithlord",
+  "base": "Bone Circlet",
+  "req": 0
+ },
+ {
+  "name": "Wreath of Phrecia",
+  "base": "Iron Circlet",
+  "req": 8
+ },
+ {
+  "name": "Wurm's Molt",
+  "base": "Leather Belt",
+  "req": 0
+ },
+ {
+  "name": "Wyrmsign",
+  "base": "Wyrmscale Gauntlets",
+  "req": 49
+ },
+ {
+  "name": "Xirgil's Crank",
+  "base": "Coiled Staff",
+  "req": 28
+ },
+ {
+  "name": "Xoph's Blood",
+  "base": "Amber Amulet",
+  "req": 64
+ },
+ {
+  "name": "Xoph's Heart",
+  "base": "Amber Amulet",
+  "req": 35
+ },
+ {
+  "name": "Xoph's Inception",
+  "base": "{variant:1}Bone Bow",
+  "req": 23
+ },
+ {
+  "name": "Xoph's Nurture",
+  "base": "Citadel Bow",
+  "req": 64
+ },
+ {
+  "name": "Yaomac's Accord",
+  "base": "Vaal Sceptre",
+  "req": 64
+ },
+ {
+  "name": "Ylfeban's Trickery",
+  "base": "Hubris Circlet",
+  "req": 69
+ },
+ {
+  "name": "Ynda's Stand",
+  "base": "Studded Belt",
+  "req": 52
+ },
+ {
+  "name": "Yoke of Suffering",
+  "base": "Onyx Amulet",
+  "req": 70
+ },
+ {
+  "name": "Yriel's Fostering",
+  "base": "Exquisite Leather",
+  "req": 0
+ },
+ {
+  "name": "Zahndethus' Cassock",
+  "base": "Sage's Robe",
+  "req": 0
+ },
+ {
+  "name": "Zeel's Amplifier",
+  "base": "Polished Spiked Shield",
+  "req": 0
+ },
+ {
+  "name": "Zerphi's Heart",
+  "base": "Paua Amulet",
+  "req": 70
+ }
+]

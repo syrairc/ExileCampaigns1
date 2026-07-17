@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using System.Numerics;
 using ExileCampaigns.Build;
+using ExileCore;
+using ExileCore.Shared.Enums;
 using ImGuiNET;
 
 namespace ExileCampaigns;
@@ -90,10 +92,42 @@ public partial class ExileCampaigns
         }
 
         ImGui.Separator();
+        DrawPicker(set);
+
+        ImGui.Separator();
         DrawEntryTable(set);
 
         ImGui.PopID();
         ImGui.EndChild();
+    }
+
+    private BuildCatalog? _catalog;
+    private string _pickerInput = "";
+    private CatalogItem? _pickerSelection;
+
+    // add-by-name. the catalog is built on first use: BaseItemTypes is thousands of rows and the game
+    // files are not ready at plugin init anyway.
+    private void DrawPicker(BuildSet set)
+    {
+        _catalog ??= BuildCatalog.Load(GameController, DirectoryFullName, m => LogError($"ExileCampaigns -> {m}"));
+
+        ImGui.SetNextItemWidth(320);
+        var sel = _pickerSelection;
+        if (ImGuiHelpers.SearchCombobox("##ec_picker", ref _pickerInput, ref sel, _catalog.Items,
+                (item, filter) => ImGuiHelpers.WhitespaceSeparatedContains(item.Label, filter),
+                item => item.Label))
+            _pickerSelection = sel;
+
+        ImGui.SameLine();
+        if (ImGui.Button("Add by name") && _pickerSelection != null)
+        {
+            _pendingItem = default;
+            _pendingPick = _pickerSelection;
+            _dialogLevel = PrefillLevel(set, _pickerSelection.RequiredLevel);
+            _dialogNote = "";
+            _pendingLinkId = null;
+            _openBuildPopup = true;
+        }
     }
 
     private static int Clamp(int level) => level < 1 ? 1 : level > 100 ? 100 : level;
@@ -167,12 +201,29 @@ public partial class ExileCampaigns
         _pendingItem = snap;
         _dialogLevel = PrefillLevel(set, snap.RequiredLevel);
         _dialogNote = "";
+        _pendingPick = null;
+        _pendingLinkId = null;
         _openBuildPopup = true;
     }
 
     // the set says which loadout, the entry says when within it
     private int PrefillLevel(BuildSet set, int requiredLevel) =>
         Clamp(requiredLevel > set.MinLevel ? requiredLevel : set.MinLevel);
+
+    private CatalogItem? _pendingPick;    // set when the add came from the picker instead of a hover
+    private string? _pendingLinkId;
+
+    // the two add paths converge here so the dialog does not care where the item came from
+    private (string Name, string BaseType, string ItemClass, ItemRarity Rarity, bool IsGem, bool IsSupport, int ReqLevel, bool Valid) PendingFields()
+    {
+        if (_pendingPick != null)
+            return (_pendingPick.Name, _pendingPick.BaseType, _pendingPick.ItemClass,
+                ItemRarity.Normal, _pendingPick.IsGem, _pendingPick.IsSupport, _pendingPick.RequiredLevel, true);
+        if (_pendingItem.Valid)
+            return (_pendingItem.Name, _pendingItem.BaseType, _pendingItem.ItemClass,
+                _pendingItem.Rarity, _pendingItem.IsGem, _pendingItem.IsSupport, _pendingItem.RequiredLevel, true);
+        return ("", "", "", ItemRarity.Normal, false, false, 0, false);
+    }
 
     // called from Render, not from the settings tab: the popup must work while settings are closed
     private void DrawBuildDialog()
@@ -192,11 +243,12 @@ public partial class ExileCampaigns
             return;
 
         var set = SelectedSet;
-        if (set == null) { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
+        var f = PendingFields();
+        if (set == null || !f.Valid) { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
 
-        ImGui.Text(_pendingItem.Name);
-        var kind = _pendingItem.IsSupport ? "support gem" : _pendingItem.IsGem ? "skill gem" : _pendingItem.ItemClass;
-        ImGui.TextDisabled($"{_pendingItem.BaseType}  |  {kind}");
+        ImGui.Text(f.Name);
+        var kind = f.IsSupport ? "support gem" : f.IsGem ? "skill gem" : f.ItemClass;
+        ImGui.TextDisabled($"{f.BaseType}  |  {kind}");
         ImGui.TextDisabled($"into set: {set.Name} ({set.MinLevel}-{set.MaxLevel})");
         ImGui.Separator();
 
@@ -205,15 +257,50 @@ public partial class ExileCampaigns
         ImGui.InputInt("Target level", ref _dialogLevel);
         _dialogLevel = Clamp(_dialogLevel);
 
+        // a support is only ever "used" once it shares a link group with its skill, so the link is required
+        if (f.IsSupport)
+        {
+            var skills = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && !e.IsSupport).ToList();
+            if (skills.Count == 0)
+            {
+                ImGui.TextColored(new Vector4(0.9f, 0.5f, 0.3f, 1f), "Add a skill gem to this set first.");
+            }
+            else
+            {
+                var linked = _build.FindEntry(_pendingLinkId);
+                ImGui.SetNextItemWidth(240);
+                if (ImGui.BeginCombo("Supports", linked?.Name ?? "<pick a skill>"))
+                {
+                    foreach (var s in skills)
+                    {
+                        ImGui.PushID(s.Id);
+                        if (ImGui.Selectable(s.Name, s.Id == _pendingLinkId)) _pendingLinkId = s.Id;
+                        ImGui.PopID();
+                    }
+                    ImGui.EndCombo();
+                }
+            }
+        }
+
         ImGui.SetNextItemWidth(320);
         ImGui.InputText("Note", ref _dialogNote, 128);
 
         ImGui.Separator();
+
+        bool blocked = f.IsSupport && _pendingLinkId == null;
+        ImGui.BeginDisabled(blocked);
         if (ImGui.Button("Add", new Vector2(90, 0)))
         {
-            AddPendingItem(set);
+            AddPending(set, f);
             ImGui.CloseCurrentPopup();
         }
+        ImGui.EndDisabled();
+        if (blocked)
+        {
+            ImGui.SameLine();
+            ImGui.TextDisabled("pick the skill it supports");
+        }
+
         ImGui.SameLine();
         if (ImGui.Button("Cancel", new Vector2(90, 0)))
             ImGui.CloseCurrentPopup();
@@ -221,24 +308,29 @@ public partial class ExileCampaigns
         ImGui.EndPopup();
     }
 
-    private void AddPendingItem(BuildSet set)
+    private void AddPending(BuildSet set,
+        (string Name, string BaseType, string ItemClass, ItemRarity Rarity, bool IsGem, bool IsSupport, int ReqLevel, bool Valid) f)
     {
-        if (!_pendingItem.Valid) return;
+        if (!f.Valid) return;
         set.Entries.Add(new BuildEntry
         {
-            Name = _pendingItem.Name,
-            BaseType = _pendingItem.BaseType,
-            ItemClass = _pendingItem.ItemClass,
-            Rarity = _pendingItem.Rarity,
-            Kind = _pendingItem.IsGem ? BuildItemKind.Gem : BuildItemKind.Equipment,
-            IsSupport = _pendingItem.IsSupport,
+            Name = f.Name,
+            BaseType = f.BaseType,
+            ItemClass = f.ItemClass,
+            Rarity = f.Rarity,
+            Kind = f.IsGem ? BuildItemKind.Gem : BuildItemKind.Equipment,
+            IsSupport = f.IsSupport,
+            LinkedToId = f.IsSupport ? _pendingLinkId : null,
             TargetLevel = _dialogLevel,
-            RequiredLevel = _pendingItem.RequiredLevel,
+            RequiredLevel = f.ReqLevel,
             Note = _dialogNote.Trim(),
-            CapturedAt = System.DateTime.Now,
+            CapturedAt = DateTime.Now,
         });
+        _pendingPick = null;
+        _pendingItem = default;
+        _pendingLinkId = null;
         SaveProgress();
-        ShowToast($"Added {_pendingItem.Name} @ Lvl {_dialogLevel}", ToastLevel.Success);
+        ShowToast($"Added {f.Name} @ Lvl {_dialogLevel}", ToastLevel.Success);
     }
 
     // entry table for the selected set. per-row PushID: without it every row's widgets share an id and
@@ -271,7 +363,9 @@ public partial class ExileCampaigns
             ImGui.TableNextRow();
 
             ImGui.TableNextColumn();
-            if (e.Used) ImGui.TextDisabled(e.Name); else ImGui.Text(e.Name);
+            var linkedTo = _build.FindEntry(e.LinkedToId);
+            var label = linkedTo != null ? $"{e.Name} (+ {linkedTo.Name})" : e.Name;
+            if (e.Used) ImGui.TextDisabled(label); else ImGui.Text(label);
 
             ImGui.TableNextColumn();
             ImGui.TextDisabled(e.IsSupport ? "support" : e.Kind == BuildItemKind.Gem ? "gem" : "item");
