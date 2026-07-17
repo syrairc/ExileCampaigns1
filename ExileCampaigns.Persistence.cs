@@ -56,6 +56,7 @@ public partial class ExileCampaigns
             if (!File.Exists(ProgressPath))
             {
                 _build = new BuildPlan();
+                _buildIndex.Rebuild(_build);
                 _route.SetCurrent(0);     // no saved progress -> start at the top
                 _lastSavedStep = _route.Current;
                 return;
@@ -63,6 +64,7 @@ public partial class ExileCampaigns
             var o = JObject.Parse(File.ReadAllText(ProgressPath));
             // build is optional: profiles written before this feature simply have no key
             _build = o["build"]?.ToObject<BuildPlan>() ?? new BuildPlan();
+            _buildIndex.Rebuild(_build);
             var savedId = (string?)o["stepId"];
             int savedIndex = (int?)o["step"] ?? 0;
             if (!string.IsNullOrEmpty(savedId))

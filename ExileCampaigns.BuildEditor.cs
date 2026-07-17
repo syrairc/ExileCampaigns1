@@ -16,6 +16,13 @@ public partial class ExileCampaigns
     private BuildSet? SelectedSet =>
         _build.FindSet(_selectedSetId) ?? _build.Sets.FirstOrDefault();
 
+    // every build mutation goes through here: persist and re-index in one place
+    private void SaveBuild()
+    {
+        _buildIndex.Rebuild(_build);
+        SaveProgress();
+    }
+
     private void DrawBuildTab()
     {
         // pin a set so you can author the 31-55 loadout at level 4
@@ -27,7 +34,7 @@ public partial class ExileCampaigns
             if (ImGui.Selectable("auto (follow level)", pinned == null))
             {
                 _build.ActiveSetOverrideId = null;
-                SaveProgress();
+                SaveBuild();
             }
             foreach (var s in _build.Sets)
             {
@@ -35,7 +42,7 @@ public partial class ExileCampaigns
                 if (ImGui.Selectable(s.Name, s.Id == _build.ActiveSetOverrideId))
                 {
                     _build.ActiveSetOverrideId = s.Id;
-                    SaveProgress();
+                    SaveBuild();
                 }
                 ImGui.PopID();
             }
@@ -57,7 +64,7 @@ public partial class ExileCampaigns
             var set = new BuildSet { Name = "New set" };
             _build.Sets.Add(set);
             _selectedSetId = set.Id;
-            SaveProgress();
+            SaveBuild();
         }
         ImGui.Separator();
 
@@ -89,14 +96,14 @@ public partial class ExileCampaigns
 
         var name = set.Name;
         ImGui.SetNextItemWidth(200);
-        if (ImGui.InputText("Name", ref name, 64)) { set.Name = name; SaveProgress(); }
+        if (ImGui.InputText("Name", ref name, 64)) { set.Name = name; SaveBuild(); }
 
         int min = set.MinLevel, max = set.MaxLevel;
         ImGui.SetNextItemWidth(80);
-        if (ImGui.InputInt("Min level", ref min)) { set.MinLevel = Clamp(min); SaveProgress(); }
+        if (ImGui.InputInt("Min level", ref min)) { set.MinLevel = Clamp(min); SaveBuild(); }
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80);
-        if (ImGui.InputInt("Max level", ref max)) { set.MaxLevel = Clamp(max); SaveProgress(); }
+        if (ImGui.InputInt("Max level", ref max)) { set.MaxLevel = Clamp(max); SaveBuild(); }
 
         ImGui.Separator();
 
@@ -105,7 +112,7 @@ public partial class ExileCampaigns
             var copy = CloneSet(set);
             _build.Sets.Add(copy);
             _selectedSetId = copy.Id;
-            SaveProgress();
+            SaveBuild();
             ShowToast($"Duplicated {set.Name}", ToastLevel.Success);
         }
         ImGui.SameLine();
@@ -113,7 +120,7 @@ public partial class ExileCampaigns
         {
             _build.Sets.Remove(set);
             _selectedSetId = null;
-            SaveProgress();
+            SaveBuild();
         }
 
         ImGui.Separator();
@@ -360,7 +367,7 @@ public partial class ExileCampaigns
         _pendingPick = null;
         _pendingItem = default;
         _pendingLinkId = null;
-        SaveProgress();
+        SaveBuild();
         ShowToast($"Added {f.Name} @ Lvl {_dialogLevel}", ToastLevel.Success);
     }
 
@@ -404,12 +411,12 @@ public partial class ExileCampaigns
             ImGui.TableNextColumn();
             int lvl = e.TargetLevel;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputInt("##lvl", ref lvl, 0)) { e.TargetLevel = Clamp(lvl); SaveProgress(); }
+            if (ImGui.InputInt("##lvl", ref lvl, 0)) { e.TargetLevel = Clamp(lvl); SaveBuild(); }
 
             ImGui.TableNextColumn();
             var note = e.Note;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputText("##note", ref note, 128)) { e.Note = note; SaveProgress(); }
+            if (ImGui.InputText("##note", ref note, 128)) { e.Note = note; SaveBuild(); }
 
             ImGui.TableNextColumn();
             if (ImGui.SmallButton("X")) remove = e;
@@ -424,7 +431,7 @@ public partial class ExileCampaigns
             // clear any support's link back to it so a deleted skill doesn't leave a dangling LinkedToId
             foreach (var e in set.Entries) if (e.LinkedToId == remove.Id) e.LinkedToId = null;
             set.Entries.Remove(remove);
-            SaveProgress();
+            SaveBuild();
         }
     }
 }

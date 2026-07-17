@@ -240,6 +240,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
         if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
         if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
+        DetectBuildUsed();
 
         try
         {
