@@ -127,6 +127,7 @@ public partial class ExileCampaigns
                 HotkeyRow("Next step", Settings.NextStepKey, "Manually advance (pauses auto-advance until the next zone change)");
                 HotkeyRow("Previous step", Settings.PrevStepKey, "Manually go back one step");
                 HotkeyRow("Toggle overlay", Settings.ToggleKey, "Show/hide the whole overlay");
+                HotkeyRow("Add hovered item to build", Settings.AddBuildItemKey, "Adds the item under the cursor to the selected build set");
                 ImGui.EndTable();
             }
             ImGui.EndTabItem();

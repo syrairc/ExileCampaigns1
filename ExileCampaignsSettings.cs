@@ -359,6 +359,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Toggle overlay", "Show/hide the whole overlay")]
     public HotkeyNodeV2 ToggleKey { get; set; } = new HotkeyNodeV2(Keys.None);
 
+    [Menu("Add hovered item to build", "Adds the item under the cursor to the selected build set")]
+    public HotkeyNodeV2 AddBuildItemKey { get; set; } = new HotkeyNodeV2(Keys.None);
+
     // ---- Dev ----
     [Menu("Log quest flags (dev)", "Harvesting tool: record each quest flag as it flips true, tagged with " +
         "the area + route step it happened on, to 'quest-flag-harvest.jsonl' in the config folder. Used to " +

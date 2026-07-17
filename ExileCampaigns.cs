@@ -79,12 +79,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     {
         Name = "Exile Campaigns";   // menu display name, independent of the plugin folder
 
-        foreach (var key in new[] { Settings.NextStepKey, Settings.PrevStepKey, Settings.ToggleKey, Settings.SyncKey })
+        foreach (var key in new[] { Settings.NextStepKey, Settings.PrevStepKey, Settings.ToggleKey, Settings.SyncKey, Settings.AddBuildItemKey })
             Input.RegisterKey(key.Value);
         Settings.NextStepKey.OnValueChanged += () => Input.RegisterKey(Settings.NextStepKey.Value);
         Settings.PrevStepKey.OnValueChanged += () => Input.RegisterKey(Settings.PrevStepKey.Value);
         Settings.ToggleKey.OnValueChanged += () => Input.RegisterKey(Settings.ToggleKey.Value);
         Settings.SyncKey.OnValueChanged += () => Input.RegisterKey(Settings.SyncKey.Value);
+        Settings.AddBuildItemKey.OnValueChanged += () => Input.RegisterKey(Settings.AddBuildItemKey.Value);
         Input.RegisterKey(Settings.Diagnostics.ExportKey.Value);
         Settings.Diagnostics.ExportKey.OnValueChanged += () => Input.RegisterKey(Settings.Diagnostics.ExportKey.Value);
 
@@ -238,6 +239,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.NextStepKey.PressedOnce()) _route.Next();
         if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
         if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
+        if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
 
         try
         {
@@ -346,6 +348,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             DrawOverlay("char", BuildCharStatsLines(Settings.CharStats), Settings.CharStats);
 
         DrawRouteEditor();
+        DrawBuildDialog();
         DrawTriageOverlay();
     }
 
