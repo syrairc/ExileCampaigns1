@@ -338,6 +338,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         DrawDevOverlay();
         DrawMinimapIcons();
         DrawBanner();
+        DrawBuildIndicators();
 
         if (Settings.Steps.Enable)
         {

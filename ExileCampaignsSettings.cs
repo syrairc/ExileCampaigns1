@@ -155,6 +155,36 @@ public class OverlayStyle
     [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
 }
 
+// corner markers on inventory items and outlines on quest rewards that are part of the build.
+[Submenu]
+public class BuildIndicatorStyle
+{
+    [Menu("Enabled")] public ToggleNode Enable { get; set; } = new ToggleNode(true);
+
+    [Menu("Highlight quest rewards", "Outline quest reward offers that are in your build")]
+    public ToggleNode HighlightQuestRewards { get; set; } = new ToggleNode(true);
+
+    [Menu("Mark inventory items", "Corner marker on inventory items that are in your build")]
+    public ToggleNode MarkInventory { get; set; } = new ToggleNode(true);
+
+    [Menu("Equipped color", "Already worn or socketed")]
+    public ColorNode UsedColor { get; set; } = new ColorNode(new Color(120, 120, 120, 200));
+
+    [Menu("Usable now color")]
+    public ColorNode EquippableColor { get; set; } = new ColorNode(new Color(120, 210, 120, 255));
+
+    [Menu("Soon color")]
+    public ColorNode SoonColor { get; set; } = new ColorNode(new Color(230, 200, 70, 255));
+
+    [Menu("Later color")]
+    public ColorNode LaterColor { get; set; } = new ColorNode(new Color(120, 160, 230, 255));
+
+    [Menu("Soon window", "Levels away from the target level that still count as soon")]
+    public RangeNode<int> SoonWindow { get; set; } = new RangeNode<int>(3, 1, 20);
+
+    [Menu("Marker size")] public RangeNode<float> Size { get; set; } = new RangeNode<float>(12f, 4f, 30f);
+}
+
 // steps overlay: OverlayStyle plus prev/current/future window controls and a current-step colour.
 // standalone (not inheriting) so the [Menu] reflection sees every field on one type.
 [Submenu]
@@ -310,6 +340,9 @@ public class ExileCampaignsSettings : ISettings
         PosY = new RangeNode<int>(700, 0, 2160),
         Padding = new RangeNode<int>(20, 0, 40),
     };
+
+    [Menu("Build indicators", "Inventory corner markers and quest-reward highlighting for build items")]
+    public BuildIndicatorStyle BuildIndicators { get; set; } = new BuildIndicatorStyle();
 
     [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
     public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);

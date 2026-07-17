@@ -87,6 +87,18 @@ public partial class ExileCampaigns
             SliderInt("Icon size##mmi", mi.IconSize, "Icon size in pixels");
             SliderInt("Lookahead steps##mmi", mi.Lookahead, "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only");
             Toggle("Pulse current step##mmi", mi.PulseCurrent, "Animate the icons for the current objective so they stand out");
+
+            ImGui.SeparatorText("Build indicators");
+            var bi = Settings.BuildIndicators;
+            Toggle("Enabled##bi", bi.Enable);
+            Toggle("Highlight quest rewards##bi", bi.HighlightQuestRewards, "Outline quest reward offers that are in your build");
+            Toggle("Mark inventory items##bi", bi.MarkInventory, "Corner marker on inventory items that are in your build");
+            ColorEdit("Equipped color##bi", bi.UsedColor, "Already worn or socketed");
+            ColorEdit("Usable now color##bi", bi.EquippableColor);
+            ColorEdit("Soon color##bi", bi.SoonColor);
+            ColorEdit("Later color##bi", bi.LaterColor);
+            SliderInt("Soon window##bi", bi.SoonWindow, "Levels away from the target level that still count as soon");
+            SliderFloat("Marker size##bi", bi.Size);
             ImGui.EndTabItem();
         }
 
