@@ -21,7 +21,6 @@ public sealed class BuildEntry
     public int RequiredLevel { get; set; }
     public string Note { get; set; } = "";
     public bool Used { get; set; }            // sticky once detected
-    public DateTime CapturedAt { get; set; }
 }
 
 // one level bracket's whole loadout. gear carried across brackets is duplicated per set on purpose.

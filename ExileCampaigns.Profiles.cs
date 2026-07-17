@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Numerics;
+using ExileCampaigns.Build;
 using ImGuiNET;
 
 namespace ExileCampaigns;
@@ -52,6 +53,8 @@ public partial class ExileCampaigns
             _charName = "";
             _route.SetCurrent(0);
             _lastSavedStep = _route.Current;
+            _build = new BuildPlan();
+            _buildIndex.Rebuild(_build);
         }
     }
 

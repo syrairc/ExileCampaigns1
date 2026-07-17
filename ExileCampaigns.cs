@@ -325,6 +325,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         DrawToasts();       // transient messages, shown regardless of overlay toggle
         DrawLeagueStartPrompt();   // new-profile dialog, shown even when the overlay is toggled off
+        DrawBuildDialog();  // add-by-name popup lives in settings, needs to draw even when overlay is off
 
         if (!_visible)
             return;
@@ -354,7 +355,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             DrawOverlay("build", BuildPanelLines(Settings.BuildPanel), Settings.BuildPanel);
 
         DrawRouteEditor();
-        DrawBuildDialog();
         DrawTriageOverlay();
     }
 

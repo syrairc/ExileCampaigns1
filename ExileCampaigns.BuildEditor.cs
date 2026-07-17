@@ -146,8 +146,8 @@ public partial class ExileCampaigns
         ImGui.SetNextItemWidth(320);
         var sel = _pickerSelection;
         if (ImGuiHelpers.SearchCombobox("##ec_picker", ref _pickerInput, ref sel, _catalog.Items,
-                (item, filter) => ImGuiHelpers.WhitespaceSeparatedContains(item.Label, filter),
-                item => item.Label))
+                (item, filter) => ImGuiHelpers.WhitespaceSeparatedContains(item!.Label, filter),
+                item => item!.Label))
             _pickerSelection = sel;
 
         ImGui.SameLine();
@@ -189,7 +189,6 @@ public partial class ExileCampaigns
                 RequiredLevel = e.RequiredLevel,
                 Note = e.Note,
                 Used = false,                 // a fresh bracket is not equipped yet
-                CapturedAt = e.CapturedAt,
             };
             idMap[e.Id] = clone.Id;
             copy.Entries.Add(clone);
@@ -362,7 +361,6 @@ public partial class ExileCampaigns
             TargetLevel = _dialogLevel,
             RequiredLevel = f.ReqLevel,
             Note = _dialogNote.Trim(),
-            CapturedAt = DateTime.Now,
         });
         _pendingPick = null;
         _pendingItem = default;

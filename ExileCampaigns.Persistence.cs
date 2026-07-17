@@ -51,12 +51,12 @@ public partial class ExileCampaigns
 
     private void LoadProgress()
     {
+        _build = new BuildPlan();      // never inherit the outgoing char's plan
+        _buildIndex.Rebuild(_build);
         try
         {
             if (!File.Exists(ProgressPath))
             {
-                _build = new BuildPlan();
-                _buildIndex.Rebuild(_build);
                 _route.SetCurrent(0);     // no saved progress -> start at the top
                 _lastSavedStep = _route.Current;
                 return;
@@ -127,7 +127,13 @@ public partial class ExileCampaigns
         {
             Directory.CreateDirectory(ProfilesDir);
             var path = Path.Combine(ProfilesDir, SanitizeProfile(name) + ".json");
-            File.WriteAllText(path, new JObject { ["character"] = name, ["area"] = "", ["step"] = 0 }.ToString());
+            // merge into the existing doc, don't replace it - a fresh object would wipe the build key
+            var o = File.Exists(path) ? JObject.Parse(File.ReadAllText(path)) : new JObject();
+            o["character"] = name;
+            o["area"] = "";
+            o["step"] = 0;
+            o["stepId"] = "";
+            File.WriteAllText(path, o.ToString());
         }
         catch (Exception ex) { LogError($"ExileCampaigns -> reset progress failed: {ex.Message}"); }
     }

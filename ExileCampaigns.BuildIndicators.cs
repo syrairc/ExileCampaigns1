@@ -42,37 +42,41 @@ public partial class ExileCampaigns
 
     private void DrawInventoryMarkers()
     {
-        var panel = GameController?.IngameState?.IngameUi?.InventoryPanel;
-        if (panel is not { IsVisible: true }) return;
-
-        var items = panel[InventoryIndex.PlayerInventory]?.VisibleInventoryItems;
-        if (items == null) return;
-
-        var dl = ImGui.GetForegroundDrawList();
-        float sz = Settings.BuildIndicators.Size.Value;
-        uint outline = U32(new Color(10, 10, 12, 220));   // SharpDX.Color is RGBA
-
-        foreach (var item in items)
+        try
         {
-            var e = item?.Item;
-            if (e == null || e.Address == 0 || !e.IsValid) continue;
+            var panel = GameController?.IngameState?.IngameUi?.InventoryPanel;
+            if (panel is not { IsVisible: true }) return;
 
-            var snap = ReadItemSnapshot(e);
-            if (!snap.Valid) continue;
-            var entry = Best(MatchBuild(snap));
-            if (entry == null) continue;
+            var items = panel[InventoryIndex.PlayerInventory]?.VisibleInventoryItems;
+            if (items == null) return;
 
-            var rect = item!.GetClientRectCache;
-            float right = rect.X + rect.Width;
-            float top = rect.Y;
+            var dl = ImGui.GetForegroundDrawList();
+            float sz = Settings.BuildIndicators.Size.Value;
+            uint outline = U32(new Color(10, 10, 12, 220));   // SharpDX.Color is RGBA
 
-            // top-right corner triangle
-            var p1 = new Vector2(right - sz, top);
-            var p2 = new Vector2(right, top);
-            var p3 = new Vector2(right, top + sz);
-            dl.AddTriangleFilled(p1, p2, p3, U32(IndicatorColor(entry)));
-            dl.AddTriangle(p1, p2, p3, outline, 1.5f);
+            foreach (var item in items)
+            {
+                var e = item?.Item;
+                if (e == null || e.Address == 0 || !e.IsValid) continue;
+
+                var snap = ReadItemSnapshot(e);
+                if (!snap.Valid) continue;
+                var entry = Best(MatchBuild(snap));
+                if (entry == null) continue;
+
+                var rect = item!.GetClientRectCache;
+                float right = rect.X + rect.Width;
+                float top = rect.Y;
+
+                // top-right corner triangle
+                var p1 = new Vector2(right - sz, top);
+                var p2 = new Vector2(right, top);
+                var p3 = new Vector2(right, top + sz);
+                dl.AddTriangleFilled(p1, p2, p3, U32(IndicatorColor(entry)));
+                dl.AddTriangle(p1, p2, p3, outline, 1.5f);
+            }
         }
+        catch { /* inventory mid-teardown */ }
     }
 
     // the reward window hands us (entity, element) pairs, so no dat lookup is needed. rewards that are not
