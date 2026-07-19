@@ -307,7 +307,7 @@ public partial class ExileCampaigns
         // it. the map zooms, so a fixed pixel offset drifts. the nearest visible neighbour's on-screen
         // distance tracks the zoom exactly, so express the offset + radius as fractions of it.
         var anchor = new Vector2(rect.X, rect.Y);
-        float d = NearestNodeDistance(kids, target.Value.slot, anchor);
+        float d = MedianNodeSpacing(kids);   // map-wide, so every waypoint's ring is sized the same
         var wo = Settings.WaypointOverlay;
         var center = anchor + new Vector2(wo.OffsetX * d, wo.OffsetY * d);
         float radius = (wo.Scale + 0.06f * p) * d;   // base fits the icon, pulse breathes outward
@@ -327,23 +327,38 @@ public partial class ExileCampaigns
                    col, 4f, ImDrawFlags.None, 3f);
     }
 
-    // smallest on-screen distance from this node's anchor to any other visible node's anchor. it tracks the
-    // map zoom, so the ring geometry can be sized relative to it. falls back to a default when the node's alone.
-    private static float NearestNodeDistance(System.Collections.Generic.IList<Element> kids, int selfSlot, Vector2 anchor)
+    // median nearest-neighbour distance across all visible nodes: one map-wide scale for the highlight, so
+    // ring size + offset are identical for every waypoint (per-node nearest varies too much). tracks the
+    // panel's on-screen scale. falls back to a default when there aren't enough nodes.
+    private static float MedianNodeSpacing(System.Collections.Generic.IList<Element> kids)
     {
-        float best = float.MaxValue;
+        var pts = new System.Collections.Generic.List<Vector2>();
         for (int i = 0; i < kids.Count; i++)
         {
-            if (i == selfSlot) continue;
             var o = kids[i];
             if (o == null || !o.IsVisible) continue;
             RectangleF r;
             try { r = o.GetClientRectCache; } catch { continue; }
             if (r.X <= 0 && r.Y <= 0) continue;
-            float dist = Vector2.Distance(anchor, new Vector2(r.X, r.Y));
-            if (dist > 1f && dist < best) best = dist;
+            pts.Add(new Vector2(r.X, r.Y));
         }
-        return best < float.MaxValue ? best : 40f;
+        if (pts.Count < 2) return 40f;
+
+        var nn = new System.Collections.Generic.List<float>(pts.Count);
+        for (int i = 0; i < pts.Count; i++)
+        {
+            float best = float.MaxValue;
+            for (int j = 0; j < pts.Count; j++)
+            {
+                if (i == j) continue;
+                float dd = Vector2.Distance(pts[i], pts[j]);
+                if (dd > 1f && dd < best) best = dd;
+            }
+            if (best < float.MaxValue) nn.Add(best);
+        }
+        if (nn.Count == 0) return 40f;
+        nn.Sort();
+        return nn[nn.Count / 2];
     }
 
     // the world map's Part-tab container (3 tabs), stable path. reused by the viewed-part check.
