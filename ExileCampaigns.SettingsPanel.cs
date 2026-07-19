@@ -45,6 +45,11 @@ public partial class ExileCampaigns
             SliderInt("XP rate window (min)", Settings.XpRateWindowMinutes, "Average xp/hour + time-to-level over the last N minutes");
             ImGui.SeparatorText("Build Planner Overlay");
             DrawOverlayStyle(Settings.BuildPanel, "buildpanel");
+            ImGui.SeparatorText("Waypoint overlay");
+            var wo = Settings.WaypointOverlay;
+            DragFloat("Center X offset##wo", wo.OffsetX, 0.002f, "Ring centre X as a fraction of node spacing (drag slow or ctrl+click to type)");
+            DragFloat("Center Y offset##wo", wo.OffsetY, 0.002f, "Ring centre Y as a fraction of node spacing");
+            DragFloat("Ring scale##wo", wo.Scale, 0.002f, "Ring radius as a fraction of node spacing");
             ImGui.EndTabItem();
         }
 
@@ -241,6 +246,14 @@ public partial class ExileCampaigns
     {
         float v = n.Value;
         if (ImGui.SliderFloat(label, ref v, n.Min, n.Max, "%.1f")) n.Value = v;
+        Tip(tip);
+    }
+
+    // fine drag for values that need small steps (drag slow, or ctrl+click to type). 3 decimals.
+    private static void DragFloat(string label, RangeNode<float> n, float speed, string? tip = null)
+    {
+        float v = n.Value;
+        if (ImGui.DragFloat(label, ref v, speed, n.Min, n.Max, "%.3f")) n.Value = v;
         Tip(tip);
     }
 

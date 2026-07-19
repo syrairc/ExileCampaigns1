@@ -235,4 +235,125 @@ public partial class ExileCampaigns
         }
     }
 
+    // the current step's "Waypoint to X" destination as (act, slot), or null when this isn't a waypoint
+    // step / the target area or its slot can't be resolved.
+    private (int act, int slot)? CurrentWaypointTarget()
+    {
+        try
+        {
+            var model = _route.CurrentStep?.Model;
+            if (model == null) return null;
+            Guide.Objective? obj = null;
+            foreach (var o in model.Objectives)
+                if (o.Type == Guide.ObjectiveType.EnterArea && o.AreaTarget != null) { obj = o; break; }
+            if (obj == null) return null;
+
+            var area = GameController.Files.WorldAreas?.GetAreaByAreaId(obj.AreaTarget!.Value);
+            if (area == null) return null;
+            int slot = Guide.WaypointSlots.ResolveSlot(area.Act, area.Name ?? "");
+            return slot < 0 ? null : (area.Act, slot);
+        }
+        catch { return null; }
+    }
+
+    // 0..1 pulse for the highlight (alpha + radius). wall-clock driven, no per-frame state.
+    private static float WpPulse()
+    {
+        double t = (Math.Sin(DateTime.Now.TimeOfDay.TotalSeconds * 3.0) + 1.0) / 2.0;
+        return (float)t;
+    }
+
+    // user-facing: on a "Waypoint to X" step with the world map open, highlight the destination node,
+    // or glow the correct Part/Act tab first when that tab isn't the one shown.
+    private void DrawWaypointDestination()
+    {
+        if (!Settings.ShowWaypointHighlight) return;
+        var target = CurrentWaypointTarget();
+        if (target == null) return;
+
+        var holder = WaypointNodeHolder();
+        if (holder == null) return;   // map closed
+
+        int targetPart = target.Value.act <= 5 ? 0 : 1;   // 0 = Part 1 (acts 1-5), 1 = Part 2 (acts 6-10)
+        int viewedPart = SelectedChildIndex(PartsContainer());
+        int viewedAct = ViewedActFromPanel(holder);
+
+        var dl = ImGui.GetForegroundDrawList();
+        float p = WpPulse();
+        uint col = U32(new Color(255, 200, 60, (int)(120 + 135 * p)));   // gold, pulsing alpha
+
+        var wm = GameController.IngameState.IngameUi.WorldMap;
+        if (viewedPart != targetPart)
+        {
+            GlowTab(dl, wm?.GetPartButton(targetPart + 1), col, p);   // GetPartButton is 1-based (verify live)
+            return;
+        }
+        if (viewedAct != target.Value.act)
+        {
+            GlowTab(dl, wm?.GetActButton(target.Value.act), col, p);
+            return;
+        }
+
+        // right act shown -> ring the node
+        var kids = holder.Children;
+        if (kids == null || target.Value.slot >= kids.Count) return;
+        var node = kids[target.Value.slot];
+        if (node == null || !node.IsVisible) return;
+        RectangleF rect;
+        try { rect = node.GetClientRectCache; } catch { return; }
+        if (rect.X <= 0 && rect.Y <= 0) return;
+
+        // the waypoint art has no size, so rect x/y is its top-left anchor and the centre sits down-right of
+        // it. the map zooms, so a fixed pixel offset drifts. the nearest visible neighbour's on-screen
+        // distance tracks the zoom exactly, so express the offset + radius as fractions of it.
+        var anchor = new Vector2(rect.X, rect.Y);
+        float d = NearestNodeDistance(kids, target.Value.slot, anchor);
+        var wo = Settings.WaypointOverlay;
+        var center = anchor + new Vector2(wo.OffsetX * d, wo.OffsetY * d);
+        float radius = (wo.Scale + 0.06f * p) * d;   // base fits the icon, pulse breathes outward
+        dl.AddCircle(center, radius, col, 32, 2.5f);
+    }
+
+    // glow a tab button rect (Part/Act) when it isn't the one selected.
+    private static void GlowTab(ImDrawListPtr dl, Element? btn, uint col, float p)
+    {
+        if (btn == null) return;
+        RectangleF r;
+        try { r = btn.GetClientRectCache; } catch { return; }
+        if (r.Width <= 1 || r.Height <= 1) return;
+        float pad = 2f + 3f * p;
+        dl.AddRect(new Vector2(r.X - pad, r.Y - pad),
+                   new Vector2(r.X + r.Width + pad, r.Y + r.Height + pad),
+                   col, 4f, ImDrawFlags.None, 3f);
+    }
+
+    // smallest on-screen distance from this node's anchor to any other visible node's anchor. it tracks the
+    // map zoom, so the ring geometry can be sized relative to it. falls back to a default when the node's alone.
+    private static float NearestNodeDistance(System.Collections.Generic.IList<Element> kids, int selfSlot, Vector2 anchor)
+    {
+        float best = float.MaxValue;
+        for (int i = 0; i < kids.Count; i++)
+        {
+            if (i == selfSlot) continue;
+            var o = kids[i];
+            if (o == null || !o.IsVisible) continue;
+            RectangleF r;
+            try { r = o.GetClientRectCache; } catch { continue; }
+            if (r.X <= 0 && r.Y <= 0) continue;
+            float dist = Vector2.Distance(anchor, new Vector2(r.X, r.Y));
+            if (dist > 1f && dist < best) best = dist;
+        }
+        return best < float.MaxValue ? best : 40f;
+    }
+
+    // the world map's Part-tab container (3 tabs), stable path. reused by the viewed-part check.
+    private Element? PartsContainer()
+    {
+        try
+        {
+            return GameController.IngameState.IngameUi.WorldMap?
+                .GetChildAtIndex(2)?.GetChildAtIndex(0)?.GetChildAtIndex(1);
+        }
+        catch { return null; }
+    }
 }

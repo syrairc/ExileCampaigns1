@@ -314,6 +314,21 @@ public class DiagnosticsSettings
     public ButtonNode ExportNow { get; set; } = new ButtonNode();
 }
 
+// waypoint destination ring placement. offsets + scale are fractions of the on-screen node spacing, so
+// tuning holds across resolutions. the node art has no size, so the ring is offset from its top-left anchor.
+[Submenu]
+public class WaypointOverlaySettings
+{
+    [Menu("Center X offset", "Ring centre X, as a fraction of the waypoint node spacing")]
+    public RangeNode<float> OffsetX { get; set; } = new RangeNode<float>(0.472f, -1.5f, 2f);
+
+    [Menu("Center Y offset", "Ring centre Y, as a fraction of the waypoint node spacing")]
+    public RangeNode<float> OffsetY { get; set; } = new RangeNode<float>(0.492f, -1.5f, 2f);
+
+    [Menu("Ring scale", "Ring radius, as a fraction of the waypoint node spacing")]
+    public RangeNode<float> Scale { get; set; } = new RangeNode<float>(0.40f, 0.05f, 2f);
+}
+
 public class ExileCampaignsSettings : ISettings
 {
     public ToggleNode Enable { get; set; } = new ToggleNode(true);
@@ -368,6 +383,8 @@ public class ExileCampaignsSettings : ISettings
 
     [Menu("Highlight waypoint destination", "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map")]
     public ToggleNode ShowWaypointHighlight { get; set; } = new ToggleNode(true);
+
+    public WaypointOverlaySettings WaypointOverlay { get; set; } = new WaypointOverlaySettings();
 
     // ---- Path rendering (Radar-backed) ----
     [Menu("Path to next step", "Render a guided path to the current step's objective on the ground / minimap")]
