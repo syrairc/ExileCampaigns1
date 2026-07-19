@@ -337,6 +337,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         DrawStepPath();
         DrawInteractIndicators();
         DrawDevOverlay();
+        DrawWaypointNodeIds();
         DrawMinimapIcons();
         DrawBanner();
         DrawBuildIndicators();
