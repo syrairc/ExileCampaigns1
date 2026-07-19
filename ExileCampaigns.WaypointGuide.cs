@@ -312,6 +312,21 @@ public partial class ExileCampaigns
         var center = anchor + new Vector2(wo.OffsetX * d, wo.OffsetY * d);
         float radius = (wo.Scale + 0.06f * p) * d;   // base fits the icon, pulse breathes outward
         dl.AddCircle(center, radius, col, 32, 2.5f);
+
+        // step text to the right of the ring (vertically centred) so it's clear why it's flashing.
+        var label = _route.CurrentStep?.Model?.Text;
+        if (!string.IsNullOrEmpty(label))
+        {
+            var font = ImGui.GetFont();
+            float baseSize = ImGui.GetFontSize();
+            if (baseSize <= 0) baseSize = 16f;
+            float ts = Math.Clamp(d * 0.5f, 11f, 40f);
+            var tsz = ImGui.CalcTextSize(label) * (ts / baseSize);
+            float rEdge = (wo.Scale + 0.06f) * d;   // outer edge at full pulse, so the text doesn't jiggle
+            var tp = new Vector2(center.X + rEdge + 0.2f * d, center.Y - tsz.Y / 2f);
+            dl.AddRectFilled(tp - new Vector2(4, 2), tp + tsz + new Vector2(4, 2), U32(new Color(0, 0, 0, 180)));
+            dl.AddText(font, ts, tp, col, label);
+        }
     }
 
     // glow a tab button rect (Part/Act) when it isn't the one selected.
