@@ -366,6 +366,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Show league-start steps", "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them")]
     public ToggleNode ShowLeagueStart { get; set; } = new ToggleNode(true);
 
+    [Menu("Highlight waypoint destination", "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map")]
+    public ToggleNode ShowWaypointHighlight { get; set; } = new ToggleNode(true);
+
     // ---- Path rendering (Radar-backed) ----
     [Menu("Path to next step", "Render a guided path to the current step's objective on the ground / minimap")]
     public PathRenderSettings Path { get; set; } = new PathRenderSettings();

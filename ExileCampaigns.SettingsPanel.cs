@@ -29,6 +29,8 @@ public partial class ExileCampaigns
             Toggle("Show optional steps", Settings.ShowOptional, "Include steps marked (Opt) from the route");
             Toggle("Show league-start steps", Settings.ShowLeagueStart,
                 "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them");
+            Toggle("Highlight waypoint destination", Settings.ShowWaypointHighlight,
+                "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map");
             ImGui.EndTabItem();
         }
 
