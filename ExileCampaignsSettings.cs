@@ -314,19 +314,20 @@ public class DiagnosticsSettings
     public ButtonNode ExportNow { get; set; } = new ButtonNode();
 }
 
-// waypoint destination ring placement. offsets + scale are fractions of the on-screen node spacing, so
-// tuning holds across resolutions. the node art has no size, so the ring is offset from its top-left anchor.
+// waypoint destination ring placement. offsets + scale are fractions of the map area's on-screen height,
+// so tuning holds across resolutions AND campaign progress. the node art has no size, so the ring is
+// offset from its top-left anchor.
 [Submenu]
 public class WaypointOverlaySettings
 {
-    [Menu("Center X offset", "Ring centre X, as a fraction of the waypoint node spacing")]
-    public RangeNode<float> OffsetX { get; set; } = new RangeNode<float>(0.380f, -1.5f, 2f);
+    [Menu("Center X offset", "Ring centre X, as a fraction of the map panel height")]
+    public RangeNode<float> OffsetX { get; set; } = new RangeNode<float>(0.042f, -0.15f, 0.15f);
 
-    [Menu("Center Y offset", "Ring centre Y, as a fraction of the waypoint node spacing")]
-    public RangeNode<float> OffsetY { get; set; } = new RangeNode<float>(0.380f, -1.5f, 2f);
+    [Menu("Center Y offset", "Ring centre Y, as a fraction of the map panel height")]
+    public RangeNode<float> OffsetY { get; set; } = new RangeNode<float>(0.042f, -0.15f, 0.15f);
 
-    [Menu("Ring scale", "Ring radius, as a fraction of the waypoint node spacing")]
-    public RangeNode<float> Scale { get; set; } = new RangeNode<float>(0.40f, 0.05f, 2f);
+    [Menu("Ring scale", "Ring radius, as a fraction of the map panel height")]
+    public RangeNode<float> Scale { get; set; } = new RangeNode<float>(0.038f, 0.005f, 0.15f);
 }
 
 public class ExileCampaignsSettings : ISettings

@@ -307,10 +307,16 @@ public partial class ExileCampaigns
         // it. the map zooms, so a fixed pixel offset drifts. the nearest visible neighbour's on-screen
         // distance tracks the zoom exactly, so express the offset + radius as fractions of it.
         var anchor = new Vector2(rect.X, rect.Y);
-        float d = MedianNodeSpacing(kids);   // map-wide, so every waypoint's ring is sized the same
+        // scale off the map area's on-screen height, not node spacing: the panel is fixed by resolution and
+        // does not shift as more waypoints unlock, so the ring stays put over the whole campaign.
+        float scale;
+        try { scale = holder.GetClientRectCache.Height; } catch { scale = 500f; }
+        if (scale < 1f) scale = 500f;
+
         var wo = Settings.WaypointOverlay;
-        var center = anchor + new Vector2(wo.OffsetX * d, wo.OffsetY * d);
-        float radius = (wo.Scale + 0.06f * p) * d;   // base fits the icon, pulse breathes outward
+        var center = anchor + new Vector2(wo.OffsetX * scale, wo.OffsetY * scale);
+        float baseR = wo.Scale * scale;
+        float radius = baseR * (1f + 0.15f * p);   // breathe outward
         dl.AddCircle(center, radius, col, 32, 2.5f);
 
         // step text to the right of the ring (vertically centred) so it's clear why it's flashing.
@@ -320,10 +326,9 @@ public partial class ExileCampaigns
             var font = ImGui.GetFont();
             float baseSize = ImGui.GetFontSize();
             if (baseSize <= 0) baseSize = 16f;
-            float ts = Math.Clamp(d * 0.5f, 11f, 40f);
+            float ts = Math.Clamp(baseR * 0.85f, 11f, 44f);
             var tsz = ImGui.CalcTextSize(label) * (ts / baseSize);
-            float rEdge = (wo.Scale + 0.06f) * d;   // outer edge at full pulse, so the text doesn't jiggle
-            var tp = new Vector2(center.X + rEdge + 0.2f * d, center.Y - tsz.Y / 2f);
+            var tp = new Vector2(center.X + baseR * 1.15f + baseR * 0.4f, center.Y - tsz.Y / 2f);
             dl.AddRectFilled(tp - new Vector2(4, 2), tp + tsz + new Vector2(4, 2), U32(new Color(0, 0, 0, 180)));
             dl.AddText(font, ts, tp, col, label);
         }
@@ -340,40 +345,6 @@ public partial class ExileCampaigns
         dl.AddRect(new Vector2(r.X - pad, r.Y - pad),
                    new Vector2(r.X + r.Width + pad, r.Y + r.Height + pad),
                    col, 4f, ImDrawFlags.None, 3f);
-    }
-
-    // median nearest-neighbour distance across all visible nodes: one map-wide scale for the highlight, so
-    // ring size + offset are identical for every waypoint (per-node nearest varies too much). tracks the
-    // panel's on-screen scale. falls back to a default when there aren't enough nodes.
-    private static float MedianNodeSpacing(System.Collections.Generic.IList<Element> kids)
-    {
-        var pts = new System.Collections.Generic.List<Vector2>();
-        for (int i = 0; i < kids.Count; i++)
-        {
-            var o = kids[i];
-            if (o == null || !o.IsVisible) continue;
-            RectangleF r;
-            try { r = o.GetClientRectCache; } catch { continue; }
-            if (r.X <= 0 && r.Y <= 0) continue;
-            pts.Add(new Vector2(r.X, r.Y));
-        }
-        if (pts.Count < 2) return 40f;
-
-        var nn = new System.Collections.Generic.List<float>(pts.Count);
-        for (int i = 0; i < pts.Count; i++)
-        {
-            float best = float.MaxValue;
-            for (int j = 0; j < pts.Count; j++)
-            {
-                if (i == j) continue;
-                float dd = Vector2.Distance(pts[i], pts[j]);
-                if (dd > 1f && dd < best) best = dd;
-            }
-            if (best < float.MaxValue) nn.Add(best);
-        }
-        if (nn.Count == 0) return 40f;
-        nn.Sort();
-        return nn[nn.Count / 2];
     }
 
     // the world map's Part-tab container (3 tabs), stable path. reused by the viewed-part check.

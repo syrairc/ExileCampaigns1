@@ -47,9 +47,9 @@ public partial class ExileCampaigns
             DrawOverlayStyle(Settings.BuildPanel, "buildpanel");
             ImGui.SeparatorText("Waypoint overlay");
             var wo = Settings.WaypointOverlay;
-            DragFloat("Center X offset##wo", wo.OffsetX, 0.002f, "Ring centre X as a fraction of node spacing (drag slow or ctrl+click to type)");
-            DragFloat("Center Y offset##wo", wo.OffsetY, 0.002f, "Ring centre Y as a fraction of node spacing");
-            DragFloat("Ring scale##wo", wo.Scale, 0.002f, "Ring radius as a fraction of node spacing");
+            DragFloat("Center X offset##wo", wo.OffsetX, 0.0005f, "Ring centre X as a fraction of the map panel height (drag slow or ctrl+click to type)");
+            DragFloat("Center Y offset##wo", wo.OffsetY, 0.0005f, "Ring centre Y as a fraction of the map panel height");
+            DragFloat("Ring scale##wo", wo.Scale, 0.0005f, "Ring radius as a fraction of the map panel height");
             ImGui.EndTabItem();
         }
 
