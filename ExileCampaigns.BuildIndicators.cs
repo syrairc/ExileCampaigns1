@@ -59,6 +59,17 @@ public partial class ExileCampaigns
                 DrawWindowItemTooltip(vendor);
             }
         }
+
+        // stash: one path for gems tab + normal tabs, both render items as InventoryItem leaves under StashElement
+        if (Settings.BuildIndicators.HighlightStashItems)
+        {
+            var stash = GameController?.IngameState?.IngameUi?.StashElement;
+            if (stash is { IsVisible: true })
+            {
+                DrawWindowItemHighlights(stash);
+                DrawWindowItemTooltip(stash);
+            }
+        }
     }
 
     private void DrawInventoryMarkers()

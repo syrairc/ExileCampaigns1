@@ -167,6 +167,9 @@ public class BuildIndicatorStyle
     [Menu("Highlight vendor items", "Outline vendor/merchant items that are in your build")]
     public ToggleNode HighlightVendorItems { get; set; } = new ToggleNode(true);
 
+    [Menu("Highlight stash items", "Outline stash items that are in your build (gems tab + normal tabs)")]
+    public ToggleNode HighlightStashItems { get; set; } = new ToggleNode(true);
+
     [Menu("Mark inventory items", "Corner marker on inventory items that are in your build")]
     public ToggleNode MarkInventory { get; set; } = new ToggleNode(true);
 

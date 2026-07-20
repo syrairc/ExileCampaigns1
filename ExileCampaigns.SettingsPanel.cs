@@ -100,6 +100,7 @@ public partial class ExileCampaigns
             Toggle("Enabled##bi", bi.Enable);
             Toggle("Highlight quest rewards##bi", bi.HighlightQuestRewards, "Outline quest reward offers that are in your build");
             Toggle("Highlight vendor items##bi", bi.HighlightVendorItems, "Outline vendor/merchant items that are in your build");
+            Toggle("Highlight stash items##bi", bi.HighlightStashItems, "Outline stash items that are in your build (gems tab + normal tabs)");
             Toggle("Mark inventory items##bi", bi.MarkInventory, "Corner marker on inventory items that are in your build");
             ColorEdit("Equipped color##bi", bi.UsedColor, "Already worn or socketed");
             ColorEdit("Usable now color##bi", bi.EquippableColor);
