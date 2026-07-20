@@ -164,6 +164,9 @@ public class BuildIndicatorStyle
     [Menu("Highlight quest rewards", "Outline quest reward offers that are in your build")]
     public ToggleNode HighlightQuestRewards { get; set; } = new ToggleNode(true);
 
+    [Menu("Highlight vendor items", "Outline vendor/merchant items that are in your build")]
+    public ToggleNode HighlightVendorItems { get; set; } = new ToggleNode(true);
+
     [Menu("Mark inventory items", "Corner marker on inventory items that are in your build")]
     public ToggleNode MarkInventory { get; set; } = new ToggleNode(true);
 

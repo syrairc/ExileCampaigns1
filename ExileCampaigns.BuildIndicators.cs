@@ -49,6 +49,16 @@ public partial class ExileCampaigns
                 DrawWindowItemTooltip(rewards);
             }
         }
+
+        if (Settings.BuildIndicators.HighlightVendorItems)
+        {
+            var vendor = GameController?.IngameState?.IngameUi?.PurchaseWindow;
+            if (vendor is { IsVisible: true })
+            {
+                DrawWindowItemHighlights(vendor);
+                DrawWindowItemTooltip(vendor);
+            }
+        }
     }
 
     private void DrawInventoryMarkers()
