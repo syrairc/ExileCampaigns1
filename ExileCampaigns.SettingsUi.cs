@@ -1,9 +1,15 @@
 using System;
-using System.Numerics;
 using ExileCore.Shared.Nodes;
 using ImGuiNET;
 using SharpDX;
+using System.IO;
+using System.Linq;
+using ExileCampaigns.Build;
+using System.Collections.Generic;
 using Vector4 = System.Numerics.Vector4;
+using Vector2 = System.Numerics.Vector2;
+using Vector3 = System.Numerics.Vector3;
+using RectangleF = SharpDX.RectangleF;
 
 namespace ExileCampaigns;
 
@@ -268,13 +274,6 @@ public partial class ExileCampaigns
         Tip(tip);
     }
 
-    private static void Text(string label, TextNode n, string? tip = null)
-    {
-        string v = n.Value ?? "";
-        if (ImGui.InputText(label, ref v, 256)) n.Value = v;
-        Tip(tip);
-    }
-
     // min text width for a picker button, so every button face is the same width regardless of
     // the bound key. DrawPickerButton has no size arg and auto-fits its label, so we right-pad the
     // visible text with spaces until it reaches this width. wider than any single keybind string.
@@ -339,4 +338,308 @@ public partial class ExileCampaigns
 
     // clamp a 0..1 channel back to a 0..255 byte
     private static int Byte(float f) => Math.Clamp((int)Math.Round(f * 255f), 0, 255);
+}
+
+// manual profile UI at top of settings: auto-switch toggle + list/load/create/delete per-character profiles under ConfigDirectory\profiles
+public partial class ExileCampaigns
+{
+    private string _newProfileName = "";
+    private int _selectedProfileIdx = -1;
+    private string? _confirmResetProfile;   // name pending reset confirmation (two-step button)
+
+    // display names = filenames (sans .json). PoE ids have no illegal chars so they survive SanitizeProfile, display == switch key
+    private string[] ListProfiles()
+    {
+        try
+        {
+            if (!Directory.Exists(ProfilesDir)) return Array.Empty<string>();
+            return Directory.GetFiles(ProfilesDir, "*.json")
+                .Select(Path.GetFileNameWithoutExtension)
+                .Where(n => !string.IsNullOrEmpty(n))
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToArray()!;
+        }
+        catch { return Array.Empty<string>(); }
+    }
+
+    // create + activate, writing immediately so it shows in the list at step 0. filesafe up front so display id matches the file
+    private void CreateProfileManually(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+        name = SanitizeProfile(name);
+        SwitchProfile(name);   // banks old profile, loads/zeroes this one
+        SaveProgress();        // force-write so the file exists before the first step change
+    }
+
+    private void DeleteProfile(string name)
+    {
+        try
+        {
+            var path = Path.Combine(ProfilesDir, SanitizeProfile(name) + ".json");
+            if (File.Exists(path)) File.Delete(path);
+        }
+        catch (Exception ex) { LogError($"ExileCampaigns -> delete profile failed: {ex.Message}"); }
+
+        // deleted the active profile: drop to no-profile state. auto-switch re-creates it next tick if enabled + char loaded
+        if (name == _charName)
+        {
+            _charName = "";
+            _route.SetCurrent(0);
+            _lastSavedStep = _route.Current;
+            _build = new BuildPlan();
+            _buildIndex.Rebuild(_build);
+        }
+    }
+
+    // drawn at top of DrawSettings, above the reflected node list
+    private void DrawProfileSettings()
+    {
+        ImGui.TextColored(new Vector4(0.92f, 0.80f, 0.43f, 1f), "Profiles");
+        ImGui.TextDisabled($"Active: {(string.IsNullOrEmpty(_charName) ? "(none)" : _charName)}");
+
+        bool auto = Settings.AutoSwitchProfile.Value;
+        if (ImGui.Checkbox("Auto-switch profile by character", ref auto))
+            Settings.AutoSwitchProfile.Value = auto;
+        if (ImGui.IsItemHovered())
+            ImGui.SetTooltip("On: the profile follows the logged-in character (<Name> - <Class> - <League>).\n" +
+                             "Off: pin a profile manually below; the game character is ignored.");
+
+        var profiles = ListProfiles();
+        if (profiles.Length > 0)
+        {
+            // default selection to the active profile when nothing's picked yet
+            if (_selectedProfileIdx < 0 || _selectedProfileIdx >= profiles.Length)
+                _selectedProfileIdx = Math.Max(0, Array.IndexOf(profiles, _charName));
+
+            ImGui.SetNextItemWidth(340);
+            int sel = _selectedProfileIdx;
+            if (ImGui.Combo("##ec_profiles", ref sel, profiles, profiles.Length))
+                _selectedProfileIdx = sel;
+
+            // loading while auto-switch is on would revert next tick, so disable it then
+            ImGui.SameLine();
+            ImGui.BeginDisabled(auto);
+            if (ImGui.Button("Load") && sel >= 0 && sel < profiles.Length)
+                SwitchProfile(profiles[sel]);
+            ImGui.EndDisabled();
+
+            ImGui.SameLine();
+            if (ImGui.Button("Reset progress") && sel >= 0 && sel < profiles.Length)
+                _confirmResetProfile = profiles[sel];
+
+            ImGui.SameLine();
+            if (ImGui.Button("Delete") && sel >= 0 && sel < profiles.Length)
+            {
+                DeleteProfile(profiles[sel]);
+                if (_confirmResetProfile == profiles[sel]) _confirmResetProfile = null;
+                _selectedProfileIdx = -1;
+            }
+
+            // reset step 2: explicit confirm before wiping progress
+            if (_confirmResetProfile != null)
+            {
+                ImGui.TextColored(new Vector4(1f, 0.5f, 0.4f, 1f),
+                    $"Reset '{_confirmResetProfile}' back to step 1? This can't be undone.");
+                if (ImGui.Button("Yes, reset progress"))
+                {
+                    ResetProfileProgress(_confirmResetProfile);
+                    _confirmResetProfile = null;
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Cancel")) _confirmResetProfile = null;
+            }
+        }
+        else
+        {
+            ImGui.TextDisabled("(no saved profiles yet)");
+            _confirmResetProfile = null;
+        }
+
+        ImGui.SetNextItemWidth(340);
+        ImGui.InputTextWithHint("##ec_newprofile", "New profile name", ref _newProfileName, 64);
+        ImGui.SameLine();
+        if (ImGui.Button("Create") && !string.IsNullOrWhiteSpace(_newProfileName))
+        {
+            CreateProfileManually(_newProfileName);
+            _newProfileName = "";
+            _selectedProfileIdx = -1;
+        }
+
+        // show the filesafe name we'd actually save when it differs from what was typed
+        if (!string.IsNullOrWhiteSpace(_newProfileName))
+        {
+            var safe = SanitizeProfile(_newProfileName);
+            if (safe != _newProfileName.Trim())
+                ImGui.TextColored(new Vector4(0.95f, 0.75f, 0.35f, 1f), $"Will be saved as: {safe}");
+        }
+
+        ImGui.Separator();
+    }
+}
+
+// one-shot dialog offered the first time a profile is created (manual Create or auto-switch on a new
+// character). lets the user flip the global Show-league-start setting without digging through settings.
+public partial class ExileCampaigns
+{
+    private bool _leagueStartPromptPending;   // set in SwitchProfile on a brand-new profile; cleared on answer
+
+    private void DrawLeagueStartPrompt()
+    {
+        const string popupId = "League Start mode?##ec_ls";
+
+        if (_leagueStartPromptPending && !ImGui.IsPopupOpen(popupId))
+            ImGui.OpenPopup(popupId);
+
+        // centre on the viewport the first time it appears
+        var ds = ImGui.GetIO().DisplaySize;
+        ImGui.SetNextWindowPos(new Vector2(ds.X * 0.5f, ds.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
+
+        // fixed width, height auto-fits content (0 = auto axis) so the box isn't oversized
+        ImGui.SetNextWindowSize(new Vector2(380f, 0f), ImGuiCond.Appearing);
+
+        if (!ImGui.BeginPopupModal(popupId))
+            return;
+
+        ImGui.TextWrapped("Enable League Start mode for this run?");
+        ImGui.Spacing();
+        ImGui.PushTextWrapPos(360f);
+        ImGui.TextWrapped("It adds the league-start chores to the route - Trials of Ascendancy and Crafting " +
+                          "Recipe pickups. On a later re-run you can turn them off under Show league-start steps.");
+        ImGui.PopTextWrapPos();
+        ImGui.Spacing();
+
+        if (ImGui.Button("Enable", new Vector2(120f, 0f)))
+        {
+            Settings.ShowLeagueStart.Value = true;
+            _leagueStartPromptPending = false;
+            ImGui.CloseCurrentPopup();
+        }
+        ImGui.SameLine();
+        if (ImGui.Button("Skip", new Vector2(120f, 0f)))
+        {
+            Settings.ShowLeagueStart.Value = false;
+            _leagueStartPromptPending = false;
+            ImGui.CloseCurrentPopup();
+        }
+
+        ImGui.EndPopup();
+    }
+}
+
+// reusable toast notifications: short transient messages stacked at a fixed anchor, each fading out near
+// the end of its life. call ShowToast(...) from anywhere; DrawToasts() runs every frame in Render.
+public partial class ExileCampaigns
+{
+    internal enum ToastLevel { Info, Success, Warning, Error }
+
+    private sealed class Toast
+    {
+        public string Text = "";
+        public ToastLevel Level;
+        public DateTime ShownAt;
+        public double Duration;
+    }
+
+    private readonly List<Toast> _toasts = new();
+    private const int MaxToasts = 5;
+    private const float ToastAccentW = 4f;   // coloured bar down the left edge
+
+    private void ShowToast(string text, ToastLevel level = ToastLevel.Info, double? seconds = null)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+        var dur = seconds ?? Settings.Toasts.DurationSeconds.Value;
+        _toasts.Add(new Toast { Text = text, Level = level, ShownAt = DateTime.Now, Duration = dur });
+        if (_toasts.Count > MaxToasts) _toasts.RemoveRange(0, _toasts.Count - MaxToasts);
+    }
+
+    private static Color ToastAccent(ToastLevel l) => l switch
+    {
+        ToastLevel.Success => new Color(120, 210, 120, 255),
+        ToastLevel.Warning => new Color(230, 180, 90, 255),
+        ToastLevel.Error => new Color(230, 110, 100, 255),
+        _ => new Color(150, 190, 240, 255),
+    };
+
+    private void DrawToasts()
+    {
+        var t = Settings.Toasts;
+        if (!t.Enable) return;
+
+        var now = DateTime.Now;
+        _toasts.RemoveAll(x => (now - x.ShownAt).TotalSeconds >= x.Duration);
+        bool preview = t.Preview.Value;
+        if (_toasts.Count == 0 && !preview) return;
+
+        var dl = ImGui.GetForegroundDrawList();
+        var font = ImGui.GetFont();
+        var baseSize = ImGui.GetFontSize();
+        if (baseSize <= 0) baseSize = 16f;
+        float size = t.TextSize.Value;
+        float scale = size / baseSize;
+        float pad = t.Padding.Value;
+        float lineH = (float)Math.Ceiling(size) + 4f;
+        const float gap = 6f;
+
+        // measure a box (wrapping to MaxWidth) -> (size, rows).
+        (Vector2 size, List<string> rows) MeasureBox(string text)
+        {
+            var ascii = Ascii(text);
+            float maxTextW = t.MaxWidth.Value > 0 ? Math.Max(10f, t.MaxWidth.Value - pad * 2 - ToastAccentW) : float.MaxValue;
+            var rows = t.MaxWidth.Value > 0 && ImGui.CalcTextSize(ascii).X * scale > maxTextW
+                ? WrapText(ascii, maxTextW, scale)
+                : new List<string> { ascii };
+            float contentW = 0f;
+            foreach (var r in rows) contentW = Math.Max(contentW, ImGui.CalcTextSize(r).X * scale);
+            return (new Vector2(contentW + pad * 2 + ToastAccentW, rows.Count * lineH + pad * 2), rows);
+        }
+
+        float anchorX = t.PosX.Value;   // horizontal centre of the stack
+        float y = t.PosY.Value;          // top of the stack, grows downward
+
+        // center-anchored move/resize during preview (only when unlocked), via the shared helper. the sample
+        // box doubles as the drag handle; moving it updates PosX/PosY/MaxWidth for the real toasts too.
+        if (preview && !Settings.LockOverlays.Value)
+        {
+            var (ssize, _) = MeasureBox("Sample toast (preview)");
+            var min = new Vector2(t.PosX.Value - ssize.X / 2f, t.PosY.Value);
+            var (hovered, onEdge, active) = HandleCenterInteract("toasts", ref min, ssize, t.PosX, t.PosY, t.MaxWidth);
+            if (hovered || active) DrawClickBlocker("toasts", min, ssize);
+            DrawDragHint(min, min + ssize, active, hovered, onEdge, _resizeId == "toasts");
+            anchorX = t.PosX.Value;   // follow a move this frame
+            y = t.PosY.Value;
+        }
+
+        // one box per toast; returns the y for the next one below it.
+        float DrawBox(string text, ToastLevel level, float alpha, float top)
+        {
+            var (boxSize, rows) = MeasureBox(text);
+            var min = new Vector2(anchorX - boxSize.X / 2f, top);
+            var max = min + boxSize;
+
+            if (OverlapsSidePanel(min, max)) return max.Y + gap;   // skip under a side panel, keep the stack flowing
+
+            var bg = Fade(t.BackgroundColor.Value, alpha);
+            if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
+            dl.AddRectFilled(min, new Vector2(min.X + ToastAccentW, max.Y), U32(Fade(ToastAccent(level), alpha)));
+            if (t.BorderThickness.Value > 0)
+                dl.AddRect(min, max, U32(Fade(t.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, t.BorderThickness.Value);
+
+            uint textCol = U32(Fade(t.TextColor.Value, alpha));
+            var p = new Vector2(min.X + ToastAccentW + pad, min.Y + pad);
+            foreach (var r in rows) { dl.AddText(font, size, p, textCol, r); p.Y += lineH; }
+
+            return max.Y + gap;
+        }
+
+        foreach (var toast in _toasts)
+        {
+            const double fade = 0.5;
+            var remaining = toast.Duration - (now - toast.ShownAt).TotalSeconds;
+            float alpha = remaining < fade ? (float)Math.Clamp(remaining / fade, 0, 1) : 1f;
+            y = DrawBox(toast.Text, toast.Level, alpha, y);
+        }
+
+        if (preview && _toasts.Count == 0)
+            DrawBox("Sample toast (preview)", ToastLevel.Info, 1f, y);
+    }
 }

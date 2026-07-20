@@ -43,7 +43,7 @@ internal readonly struct PanelLine
     }
 }
 
-// campaign-leveling overlay for PoE2. reads act/zone/level/quest from live memory (no screen-reading)
+// campaign-leveling overlay for PoE1. reads act/zone/level/quest from live memory (no screen-reading)
 // and drives a routing guide. this file is plugin entry + lifecycle; features live under Guide/ and Tracking/.
 public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 {
@@ -187,18 +187,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         _areaId = (area.Area?.Id ?? "").ToLowerInvariant();
         _isTown = area.IsTown;
         _isHideout = area.IsHideout;
-        RecordRecentAreaTransition(_areaId, _zoneName);
-    }
-
-    // keep recent entered areas (newest last, cap 15) for the editor's click-to-assign
-    // completeOnEnterArea list. skip blanks and consecutive repeats.
-    private void RecordRecentAreaTransition(string areaId, string name)
-    {
-        if (string.IsNullOrEmpty(areaId)) return;
-        if (_recentAreaTransitions.Count > 0 && _recentAreaTransitions[^1].AreaId == areaId) return;
-        _recentAreaTransitions.Add((areaId, name ?? ""));
-        if (_recentAreaTransitions.Count > 15)
-            _recentAreaTransitions.RemoveRange(0, _recentAreaTransitions.Count - 15);
     }
 
     private DateTime _lastAdvanceEval = DateTime.MinValue;
