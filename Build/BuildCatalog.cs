@@ -65,13 +65,15 @@ public sealed class BuildCatalog
         }
         catch (Exception ex) { logError($"build catalog: base items failed: {ex.Message}"); }
 
-        // gems
+        // gems. SkillGems has several rows per gem base (alt granted-effects), so dedupe by base name
         try
         {
+            var seenGems = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var dat in gc.Files.SkillGems.EntriesList)
             {
                 var bit = dat?.ItemType;
                 if (bit == null || string.IsNullOrEmpty(bit.BaseName)) continue;
+                if (!seenGems.Add(bit.BaseName)) continue;
                 items.Add(new CatalogItem
                 {
                     Name = bit.BaseName,
@@ -88,7 +90,7 @@ public sealed class BuildCatalog
         // uniques: names cannot be enumerated from memory, so they ship as data
         try
         {
-            var path = Path.Combine(dataDir, "poe1", "uniques.json");
+            var path = Path.Combine(dataDir, "Data", "poe1", "uniques.json");
             if (File.Exists(path))
             {
                 foreach (var tok in JArray.Parse(File.ReadAllText(path)))

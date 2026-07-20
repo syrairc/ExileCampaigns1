@@ -20,6 +20,7 @@ public sealed class BuildEntry
     public int TargetLevel { get; set; } = 1;
     public int RequiredLevel { get; set; }
     public string Note { get; set; } = "";
+    public bool Optional { get; set; }        // pob socket-group flagged optional
     public bool Used { get; set; }            // sticky once detected
 }
 

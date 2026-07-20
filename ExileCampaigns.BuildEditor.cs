@@ -50,6 +50,8 @@ public partial class ExileCampaigns
         }
         ImGui.Separator();
 
+        DrawImportSection();
+
         DrawSetList();
         ImGui.SameLine();
         DrawSetDetail();
@@ -138,17 +140,31 @@ public partial class ExileCampaigns
     private CatalogItem? _pickerSelection;
 
     // add-by-name. the catalog is built on first use: BaseItemTypes is thousands of rows and the game
-    // files are not ready at plugin init anyway.
+    // files are not ready at plugin init anyway. self-contained filter + combo: ExileCore's SearchCombobox
+    // rebuilds dictionaries over the whole ~2000-item catalog every frame and hangs, so we don't use it.
     private void DrawPicker(BuildSet set)
     {
         _catalog ??= BuildCatalog.Load(GameController, DirectoryFullName, m => LogError($"ExileCampaigns -> {m}"));
+        if (_catalog.Items.Count == 0) { ImGui.TextDisabled("item catalog unavailable"); return; }
 
-        ImGui.SetNextItemWidth(320);
-        var sel = _pickerSelection;
-        if (ImGuiHelpers.SearchCombobox("##ec_picker", ref _pickerInput, ref sel, _catalog.Items,
-                (item, filter) => ImGuiHelpers.WhitespaceSeparatedContains(item!.Label, filter),
-                item => item!.Label))
-            _pickerSelection = sel;
+        ImGui.SetNextItemWidth(300);
+        if (ImGui.BeginCombo("##ec_picker", _pickerSelection?.Label ?? "<pick an item>"))
+        {
+            // filter lives inside the popup: type to narrow, focus grabbed on open
+            if (ImGui.IsWindowAppearing()) ImGui.SetKeyboardFocusHere();
+            ImGui.SetNextItemWidth(290);
+            ImGui.InputText("##ec_pickerfilter", ref _pickerInput, 64);
+
+            var matches = _catalog.Items.Where(it => PickerMatch(it.Label, _pickerInput)).Take(50).ToList();
+            for (int i = 0; i < matches.Count; i++)
+            {
+                ImGui.PushID(i);
+                if (ImGui.Selectable(matches[i].Label, ReferenceEquals(matches[i], _pickerSelection)))
+                    _pickerSelection = matches[i];
+                ImGui.PopID();
+            }
+            ImGui.EndCombo();
+        }
 
         ImGui.SameLine();
         if (ImGui.Button("Add by name") && _pickerSelection != null)
@@ -160,6 +176,15 @@ public partial class ExileCampaigns
             _pendingLinkId = null;
             _openBuildPopup = true;
         }
+    }
+
+    // all whitespace-separated tokens must appear in the label (case-insensitive)
+    private static bool PickerMatch(string label, string filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter)) return true;
+        foreach (var tok in filter.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            if (label.IndexOf(tok, StringComparison.OrdinalIgnoreCase) < 0) return false;
+        return true;
     }
 
     private static int Clamp(int level) => level < 1 ? 1 : level > 100 ? 100 : level;
@@ -188,6 +213,7 @@ public partial class ExileCampaigns
                 TargetLevel = e.TargetLevel,
                 RequiredLevel = e.RequiredLevel,
                 Note = e.Note,
+                Optional = e.Optional,
                 Used = false,                 // a fresh bracket is not equipped yet
             };
             idMap[e.Id] = clone.Id;
@@ -379,7 +405,7 @@ public partial class ExileCampaigns
             return;
         }
 
-        if (!ImGui.BeginTable("##ec_entries", 5,
+        if (!ImGui.BeginTable("##ec_entries", 7,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
                 new Vector2(0, 220)))
             return;
@@ -389,6 +415,8 @@ public partial class ExileCampaigns
         ImGui.TableSetupColumn("Kind", ImGuiTableColumnFlags.WidthFixed, 90);
         ImGui.TableSetupColumn("Level", ImGuiTableColumnFlags.WidthFixed, 70);
         ImGui.TableSetupColumn("Note", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("Have", ImGuiTableColumnFlags.WidthFixed, 40);
+        ImGui.TableSetupColumn("Opt", ImGuiTableColumnFlags.WidthFixed, 34);
         ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 30);
         ImGui.TableHeadersRow();
 
@@ -400,7 +428,7 @@ public partial class ExileCampaigns
 
             ImGui.TableNextColumn();
             var linkedTo = _build.FindEntry(e.LinkedToId);
-            var label = linkedTo != null ? $"{e.Name} (+ {linkedTo.Name})" : e.Name;
+            var label = linkedTo != null ? $"{e.Name}  [{linkedTo.Name}]" : e.Name;
             if (e.Used) ImGui.TextDisabled(label); else ImGui.Text(label);
 
             ImGui.TableNextColumn();
@@ -415,6 +443,17 @@ public partial class ExileCampaigns
             var note = e.Note;
             ImGui.SetNextItemWidth(-1);
             if (ImGui.InputText("##note", ref note, 128)) { e.Note = note; SaveBuild(); }
+
+            ImGui.TableNextColumn();
+            bool have = e.Used;
+            // manual "I've got this" - hides it from the overlay. detector still re-marks anything
+            // actually worn, so unchecking a truly-equipped item won't stick.
+            if (ImGui.Checkbox("##have", ref have)) { e.Used = have; SaveBuild(); }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("mark as equipped / owned");
+
+            ImGui.TableNextColumn();
+            bool opt = e.Optional;
+            if (ImGui.Checkbox("##opt", ref opt)) { e.Optional = opt; SaveBuild(); }
 
             ImGui.TableNextColumn();
             if (ImGui.SmallButton("X")) remove = e;

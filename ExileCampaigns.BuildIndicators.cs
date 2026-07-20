@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using SharpDX;
 using Vector2 = System.Numerics.Vector2;
 using ExileCampaigns.Build;
+using ExileCore.PoEMemory;
+using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.Shared.Enums;
 using ImGuiNET;
 
@@ -37,7 +39,11 @@ public partial class ExileCampaigns
     {
         if (!Settings.BuildIndicators.Enable || _build.Sets.Count == 0) return;
         if (Settings.BuildIndicators.MarkInventory) DrawInventoryMarkers();
-        if (Settings.BuildIndicators.HighlightQuestRewards) DrawQuestRewardHighlights();
+        if (Settings.BuildIndicators.HighlightQuestRewards)
+        {
+            DrawQuestRewardHighlights();
+            DrawQuestRewardTooltip();
+        }
     }
 
     private void DrawInventoryMarkers()
@@ -79,8 +85,9 @@ public partial class ExileCampaigns
         catch { /* inventory mid-teardown */ }
     }
 
-    // the reward window hands us (entity, element) pairs, so no dat lookup is needed. rewards that are not
-    // in the build are left alone, not dimmed: you still want to read them.
+    // GetPossibleRewards() hands back junk entities (address 7) in this ExileAPI build, so walk the window
+    // subtree for InventoryItem leaves and read their .Entity instead. rewards not in the build are left
+    // alone, not dimmed: you still want to read them.
     private void DrawQuestRewardHighlights()
     {
         try
@@ -88,15 +95,10 @@ public partial class ExileCampaigns
             var window = GameController?.IngameState?.IngameUi?.QuestRewardWindow;
             if (window is not { IsVisible: true }) return;
 
-            var rewards = window.GetPossibleRewards();
-            if (rewards == null) return;
-
             var dl = ImGui.GetForegroundDrawList();
-            foreach (var (entity, element) in rewards)
+            foreach (var element in RewardItemElements(window))
             {
-                if (element == null || element.Address == 0) continue;
-
-                var snap = ReadItemSnapshot(entity);
+                var snap = ReadItemSnapshot(element.Entity);
                 if (!snap.Valid) continue;
                 var entry = Best(MatchBuild(snap));
                 if (entry == null) continue;
@@ -108,5 +110,56 @@ public partial class ExileCampaigns
             }
         }
         catch { /* reward window mid-teardown */ }
+    }
+
+    // reward icons sit several levels deep as InventoryItem elements; Element.Entity only reads a real item
+    // on those. iterative walk, no dat lookup needed.
+    private static IEnumerable<Element> RewardItemElements(Element root)
+    {
+        var stack = new Stack<Element>();
+        stack.Push(root);
+        while (stack.Count > 0)
+        {
+            var el = stack.Pop();
+            if (el == null || el.Address == 0) continue;
+            if (el.Type == ElementType.InventoryItem) { yield return el; continue; }
+            var kids = el.Children;
+            if (kids == null) continue;
+            foreach (var k in kids) stack.Push(k);
+        }
+    }
+
+    // hovering a highlighted reward shows which set(s) plan it and at what level. UIHover gives the exact
+    // gem under the cursor, so no rect hit-testing. one line per set: "usable Lv5  -  Leveling (1-20)".
+    private void DrawQuestRewardTooltip()
+    {
+        try
+        {
+            var window = GameController?.IngameState?.IngameUi?.QuestRewardWindow;
+            if (window is not { IsVisible: true }) return;
+
+            var uiHover = GameController?.Game?.IngameState?.UIHover;
+            if (uiHover == null || uiHover.Address == 0) return;
+            var hovered = uiHover.AsObject<NormalInventoryItem>();
+            if (hovered == null || hovered.Address == 0) return;
+
+            var snap = ReadItemSnapshot(hovered.Item);
+            if (!snap.Valid) return;
+            var matches = MatchBuild(snap);
+            if (matches.Count == 0) return;   // not in the build, so not highlighted either
+
+            ImGui.BeginTooltip();
+            ImGui.TextUnformatted(Ascii(snap.Name));
+            var seen = new HashSet<string>();
+            foreach (var m in matches)
+            {
+                if (!seen.Add(m.Set.Id)) continue;   // supports feed several skills; collapse to one line per set
+                int req = m.Entry.RequiredLevel > 0 ? m.Entry.RequiredLevel : snap.RequiredLevel;
+                string flag = m.Entry.Used ? "  [have]" : m.Entry.Optional ? "  [optional]" : "";
+                ImGui.TextUnformatted(Ascii($"usable Lv{req}  -  {m.Set.Name} ({m.Set.MinLevel}-{m.Set.MaxLevel}){flag}"));
+            }
+            ImGui.EndTooltip();
+        }
+        catch { /* hover/reward window mid-teardown */ }
     }
 }

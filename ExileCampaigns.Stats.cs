@@ -98,15 +98,22 @@ public partial class ExileCampaigns
         if (!string.IsNullOrEmpty(_zoneName))
             lines.Add(new PanelLine(_areaLevel > 0 ? $"{_zoneName} - Lvl {_areaLevel}" : _zoneName, s.TextColor.Value));
 
-        // level vs area: warn when under-leveled, else a dim on-level note.
+        // level vs area: inside the XP safe zone it's a dim on-level note; outside, show the
+        // real XP-gain multiplier coloured by how hard the penalty bites.
         if (_areaLevel > 0 && _playerLevel > 0)
         {
-            if (_playerLevel < _areaLevel)
-                lines.Add(new PanelLine($"under-leveled (area +{_areaLevel - _playerLevel})", s.OptionalColor.Value));
-            else
+            int effDiff = EffectiveXpDiff(_playerLevel, _areaLevel);
+            if (effDiff == 0)
             {
                 var tc = s.TextColor.Value;
-                lines.Add(new PanelLine("on level", new Color(tc.R, tc.G, tc.B, (byte)170)));
+                lines.Add(new PanelLine("XP Penalty: 0%", new Color(tc.R, tc.G, tc.B, (byte)170)));
+            }
+            else
+            {
+                double mult = XpMultiplier(_playerLevel, effDiff);
+                var col = mult >= 0.90 ? XpMild : mult >= 0.50 ? XpWarn : XpBad;
+                string dir = _areaLevel > _playerLevel ? "Underleveled" : "Overleveled";
+                lines.Add(new PanelLine($"XP Penalty: {(1 - mult) * 100:0}% ({dir})", col));
             }
         }
 
@@ -142,6 +149,28 @@ public partial class ExileCampaigns
         }
 
         return lines;
+    }
+
+    // XP penalty severity colours (semantic, not themed).
+    // ponytail: hardcoded; promote to OverlayStyle ColorNodes if anyone wants to retheme them.
+    private static readonly Color XpMild = new Color(120, 200, 120, 255);
+    private static readonly Color XpWarn = new Color(220, 200, 90, 255);
+    private static readonly Color XpBad  = new Color(220, 110, 90, 255);
+
+    // XP safe zone + penalty, per poewiki "Experience". Campaign range only (player <95, area <70),
+    // so the 95+ penalty and the >70 monster-level adjustment are intentionally left out.
+    private static int SafeZone(int playerLevel) => 3 + playerLevel / 16;
+
+    // levels of |player-area| gap beyond the safe zone; 0 means full XP.
+    private static int EffectiveXpDiff(int playerLevel, int areaLevel) =>
+        Math.Max(Math.Abs(playerLevel - areaLevel) - SafeZone(playerLevel), 0);
+
+    // fraction of raw monster XP earned; 1.0 inside the safe zone, floored at 1%.
+    private static double XpMultiplier(int playerLevel, int effDiff)
+    {
+        if (effDiff <= 0) return 1.0;
+        double b = playerLevel + 5;
+        return Math.Max(Math.Pow(b / (b + Math.Pow(effDiff, 2.5)), 1.5), 0.01);
     }
 
     private static string Fmt(double seconds)

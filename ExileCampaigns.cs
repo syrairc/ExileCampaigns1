@@ -28,9 +28,10 @@ internal readonly struct PanelLine
     public readonly bool IsSeparator;   // area divider: Text is the bare area name, drawn centred in a dashed rule
     public readonly string? Num;
     public readonly string? Right;   // optional right-aligned text on the same row (e.g. area name on header)
+    public readonly Action? OnCtrlClick;   // ctrl-click the row to fire this (build panel: mark entry as have)
 
     public PanelLine(string text, Color color, bool isHeader = false, string? num = null,
-        string? right = null, bool isSeparator = false)
+        string? right = null, bool isSeparator = false, Action? onCtrlClick = null)
     {
         Text = text;
         Color = color;
@@ -38,6 +39,7 @@ internal readonly struct PanelLine
         IsSeparator = isSeparator;
         Num = num;
         Right = right;
+        OnCtrlClick = onCtrlClick;
     }
 }
 
@@ -202,22 +204,35 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     private DateTime _lastAdvanceEval = DateTime.MinValue;
 
     // set when the user manually moves the cursor backward. holds off auto-advance so a deliberate
-    // back-step onto already-completed content sticks; cleared on the next real zone change.
+    // back-step onto already-completed content sticks; cleared on the next real zone change, OR when the held
+    // step becomes freshly complete while you're on it (a quest flag flips) - see AdvanceHold.
     private bool _holdAutoAdvanceUntilZone;
+    private string? _heldStepId;        // step the hold was seeded against (re-seeds when it changes)
+    private bool _heldSeedComplete;     // was that step already complete when the hold began
 
     // single advance gate: the current step's objectives, evaluated against live state. replaces
     // AutoAdvanceFromQuestFlags + MaybeAdvanceOnInteraction + MaybeAdvanceOnObjectiveComplete.
     private void EvaluateAdvance()
     {
         if (!Settings.AutoAdvance) return;
-        if (_holdAutoAdvanceUntilZone) return;
         if ((DateTime.UtcNow - _lastAdvanceEval).TotalSeconds < 0.4) return;
         _lastAdvanceEval = DateTime.UtcNow;
 
         var model = _route.CurrentStep?.Model;
         if (model == null) return;
         UpdateProgressTracker(model);
-        if (Guide.AdvanceEngine.IsStepComplete(model, new WorldState(this)))
+
+        var complete = Guide.AdvanceEngine.IsStepComplete(model, new WorldState(this));
+        // the hold gates advance after a manual backtrack, but lets a fresh completion edge (quest flag flip)
+        // through so real progress still advances. all the branch logic lives in the pure AdvanceHold helper.
+        var d = Guide.AdvanceHold.Evaluate(
+            new Guide.AdvanceHold.State(_holdAutoAdvanceUntilZone, _heldStepId, _heldSeedComplete),
+            model.Id, complete);
+        _holdAutoAdvanceUntilZone = d.Next.Held;
+        _heldStepId = d.Next.SeedStepId;
+        _heldSeedComplete = d.Next.SeedComplete;
+
+        if (d.Advance)
         {
             _route.Next();
             if (Settings.Banner.Enable && _route.CurrentStep != null)
@@ -500,28 +515,28 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         // flatten lines into rows, wrapping over-wide text. continuation rows start under the text column.
         const int sepMinDashes = 3;   // shortest dash run each side of an area-divider label
-        var rows = new List<(string? num, string text, uint col, bool header, string? right, bool sep)>();
+        var rows = new List<(string? num, string text, uint col, bool header, string? right, bool sep, Action? click)>();
         foreach (var l in lines)
         {
             var t = Ascii(l.Text);
             var col = U32(l.Color);
             if (l.IsSeparator)
             {
-                rows.Add((null, t, col, false, null, true));   // text = bare area name, dashes added at draw
+                rows.Add((null, t, col, false, null, true, null));   // text = bare area name, dashes added at draw
                 continue;
             }
             if (l.IsHeader)
             {
-                rows.Add((null, t, col, true, l.Right != null ? Ascii(l.Right) : null, false));
+                rows.Add((null, t, col, true, l.Right != null ? Ascii(l.Right) : null, false, null));
                 continue;
             }
             if (maxWidth.Value > 0 && Measure(t).X > maxTextW)
             {
                 var wrapped = WrapText(t, maxTextW, scale);
                 for (int i = 0; i < wrapped.Count; i++)
-                    rows.Add((i == 0 ? l.Num : null, wrapped[i], col, false, null, false));
+                    rows.Add((i == 0 ? l.Num : null, wrapped[i], col, false, null, false, l.OnCtrlClick));
             }
-            else rows.Add((l.Num, t, col, false, null, false));
+            else rows.Add((l.Num, t, col, false, null, false, l.OnCtrlClick));
         }
 
         float lineH = (float)Math.Ceiling(textSize) + 2f;
@@ -549,13 +564,27 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var (hovered, onEdge) = HandleInteract(id, ref origin, panelSize, posX, posY, maxWidth);
         bool active = _dragId == id || _resizeId == id;
 
-        // while unlocked + hovered/active, put an invisible ImGui window under the panel so ImGui captures
-        // the mouse and drag/resize clicks don't pass through to the game.
-        if (!Settings.LockOverlays.Value && (hovered || active))
-            DrawClickBlocker(id, origin, panelSize);
-
         var min = origin;
         var max = origin + panelSize;
+
+        // ctrl-hover a clickable row (build panel supplies these) to arm a one-click mark. works locked too.
+        int hoverRow = -1;
+        {
+            // ExileAPI never feeds ImGui io.KeyCtrl, so read the modifier off the framework input instead
+            bool ctrl = Input.GetKeyState(System.Windows.Forms.Keys.LControlKey)
+                     || Input.GetKeyState(System.Windows.Forms.Keys.RControlKey);
+            var m = ImGui.GetMousePos();
+            if (ctrl && m.X >= min.X && m.X <= max.X)
+            {
+                int idx = (int)((m.Y - (origin.Y + pad)) / lineH);
+                if (idx >= 0 && idx < rows.Count && rows[idx].click != null) hoverRow = idx;
+            }
+        }
+
+        // while unlocked + hovered/active, put an invisible ImGui window under the panel so ImGui captures
+        // the mouse and drag/resize clicks don't pass through to the game. also arm it for a ctrl-click mark.
+        if ((!Settings.LockOverlays.Value && (hovered || active)) || hoverRow >= 0)
+            DrawClickBlocker(id, origin, panelSize);
 
         if (background.A > 0) dl.AddRectFilled(min, max, U32(background));
         if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, ImDrawFlags.None, borderThickness);
@@ -567,6 +596,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             // brighter grip on the right edge when it's the resize target.
             if (onEdge || _resizeId == id)
                 dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
+        }
+
+        // ctrl-armed row gets a highlight so the mark target is obvious before you click
+        if (hoverRow >= 0)
+        {
+            float ry = origin.Y + pad + hoverRow * lineH;
+            dl.AddRectFilled(new Vector2(min.X + 1, ry), new Vector2(max.X - 1, ry + lineH), U32(new Color(120, 220, 255, 55)));
         }
 
         var p = origin + new Vector2(pad, pad);
@@ -594,6 +630,10 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             }
             p.Y += lineH;
         }
+
+        // fire after drawing so the mutation (mark Used + save) lands cleanly, not mid-enumeration
+        if (hoverRow >= 0 && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            rows[hoverRow].click!.Invoke();
     }
 
     // invisible ImGui window sized to the panel. only job: be hovered so ImGui sets WantCaptureMouse

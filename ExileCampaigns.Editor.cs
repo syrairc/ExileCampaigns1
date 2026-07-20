@@ -67,8 +67,12 @@ public partial class ExileCampaigns
     private int _mmiMatchBy;
     private bool _mmiRegex;
     private bool _mmiLiving;
+    // flag-search picker: substring query + state filter (0 any / 1 set / 2 unset), over all live quest flags
+    private readonly byte[] _bufFlagSearch = new byte[128];
+    private int _flagSearchState;
 
     private static readonly string[] CompleteWhenLabels = { "All", "Any" };
+    private static readonly string[] FlagStateLabels = { "Any state", "Set", "Unset" };
     private static readonly string[] MatchByLabels = { "Name", "Path" };
     private static readonly string[] TargetKindLabels = { "Tile", "Entity", "Room" };
     private static readonly string[] PathModeLabels = { "Nearest", "All" };
@@ -529,6 +533,79 @@ public partial class ExileCampaigns
                 ? "Quest flags that flipped recently (newest first). Click Add to set this objective's advance flag."
                 : "Quest flags that flipped recently (newest first). Click Add to append as a progress flag.",
             "no flags harvested yet this session");
+
+        DrawFlagSearchPicker(step, idx, o, asQuestFlag);
+    }
+
+    // searchable picker over EVERY live quest flag (~2240) with its current state, plus a state filter.
+    // distinct from the recent-flags picker above (which only lists flags that flipped this session). Add
+    // has the same meaning: set the advance Flag for a QuestFlag objective, else append a progress flag.
+    private void DrawFlagSearchPicker(RouteStep step, int idx, Objective o, bool asQuestFlag)
+    {
+        ImGui.Indent(12f);
+        try
+        {
+            ImGui.PushStyleColor(ImGuiCol.Header, new Vector4(0.18f, 0.30f, 0.40f, 0.55f));
+            ImGui.PushStyleColor(ImGuiCol.HeaderHovered, new Vector4(0.26f, 0.42f, 0.55f, 0.80f));
+            ImGui.PushStyleColor(ImGuiCol.HeaderActive, new Vector4(0.30f, 0.48f, 0.62f, 0.90f));
+            ImGui.PushStyleColor(ImGuiCol.Text, new Vector4(0.68f, 0.84f, 1f, 1f));
+            bool open = ImGui.CollapsingHeader("Search flags");
+            ImGui.PopStyleColor(4);
+            if (ImGui.IsItemHovered()) ShowTooltip(asQuestFlag
+                ? "Search every live quest flag by name, filter by current state. Click Add to set this objective's advance flag."
+                : "Search every live quest flag by name, filter by current state. Click Add to append as a progress flag.");
+            if (!open) return;
+
+            ImGui.SetNextItemWidth(-160f);
+            InputHint("##flagsearch", "flag name substring", _bufFlagSearch);
+            ImGui.SameLine();
+            ImGui.SetNextItemWidth(150f);
+            ImGui.Combo("##flagstate", ref _flagSearchState, FlagStateLabels, FlagStateLabels.Length);
+
+            var flags = ReadQuestFlags();
+            if (flags == null || flags.Count == 0) { ImGui.TextDisabled("  (no flags in memory)"); return; }
+
+            var query = ReadBuffer(_bufFlagSearch);
+            // no query + no state filter = the whole 2240-flag dump, not useful. ask for a narrowing input first.
+            if (query.Length < 2 && _flagSearchState == 0)
+            {
+                ImGui.TextDisabled("  type 2+ chars or pick a state to search");
+                return;
+            }
+
+            const int cap = 200;
+            var matches = new List<(string Flag, bool State)>();
+            bool capped = false;
+            foreach (var kv in flags)
+            {
+                if (_flagSearchState == 1 && !kv.Value) continue;
+                if (_flagSearchState == 2 && kv.Value) continue;
+                var name = kv.Key.ToString();
+                if (query.Length > 0 && name.IndexOf(query, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (matches.Count >= cap) { capped = true; break; }
+                matches.Add((name, kv.Value));
+            }
+            matches.Sort((a, b) => string.Compare(a.Flag, b.Flag, StringComparison.OrdinalIgnoreCase));
+
+            ImGui.TextDisabled(capped ? $"  {cap}+ matches (refine search)" : $"  {matches.Count} matches");
+            ImGui.BeginChild("##flagsearch_list", new Vector2(-1f, 160f), ImGuiChildFlags.Border);
+            for (int i = 0; i < matches.Count; i++)
+            {
+                var (flag, state) = matches[i];
+                if (ImGui.Button($"Add##fs_{i}"))
+                {
+                    if (asQuestFlag) SetObjectiveFlag(step, idx, o, flag);
+                    else AddProgressFlag(step, idx, o, flag);
+                }
+                ImGui.SameLine();
+                ImGui.TextColored(state ? new Vector4(0.5f, 0.9f, 0.5f, 1f) : new Vector4(0.6f, 0.6f, 0.6f, 1f),
+                    state ? "on " : "off");
+                ImGui.SameLine();
+                ImGui.TextUnformatted(flag);
+            }
+            ImGui.EndChild();
+        }
+        finally { ImGui.Unindent(12f); }
     }
 
     // shared Paths / Indicators editor (both are lists of Target wrapped in GuidePath / Indicator).

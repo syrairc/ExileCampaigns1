@@ -20,6 +20,9 @@ public partial class ExileCampaigns
         var ds = ImGui.GetIO().DisplaySize;
         ImGui.SetNextWindowPos(new Vector2(ds.X * 0.5f, ds.Y * 0.5f), ImGuiCond.Appearing, new Vector2(0.5f, 0.5f));
 
+        // fixed width, height auto-fits content (0 = auto axis) so the box isn't oversized
+        ImGui.SetNextWindowSize(new Vector2(380f, 0f), ImGuiCond.Appearing);
+
         if (!ImGui.BeginPopupModal(popupId))
             return;
 
