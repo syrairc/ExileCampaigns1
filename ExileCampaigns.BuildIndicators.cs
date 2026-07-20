@@ -39,10 +39,15 @@ public partial class ExileCampaigns
     {
         if (!Settings.BuildIndicators.Enable || _build.Sets.Count == 0) return;
         if (Settings.BuildIndicators.MarkInventory) DrawInventoryMarkers();
+
         if (Settings.BuildIndicators.HighlightQuestRewards)
         {
-            DrawQuestRewardHighlights();
-            DrawQuestRewardTooltip();
+            var rewards = GameController?.IngameState?.IngameUi?.QuestRewardWindow;
+            if (rewards is { IsVisible: true })
+            {
+                DrawWindowItemHighlights(rewards);
+                DrawWindowItemTooltip(rewards);
+            }
         }
     }
 
@@ -85,18 +90,15 @@ public partial class ExileCampaigns
         catch { /* inventory mid-teardown */ }
     }
 
-    // GetPossibleRewards() hands back junk entities (address 7) in this ExileAPI build, so walk the window
-    // subtree for InventoryItem leaves and read their .Entity instead. rewards not in the build are left
-    // alone, not dimmed: you still want to read them.
-    private void DrawQuestRewardHighlights()
+    // outline in-build InventoryItem leaves under a window (quest reward, vendor, later stash). walk the
+    // subtree for InventoryItem leaves and read their .Entity: GetPossibleRewards() hands back junk entities
+    // (address 7) in this ExileAPI build. items not in the build are left alone, not dimmed: still readable.
+    private void DrawWindowItemHighlights(Element window)
     {
         try
         {
-            var window = GameController?.IngameState?.IngameUi?.QuestRewardWindow;
-            if (window is not { IsVisible: true }) return;
-
             var dl = ImGui.GetForegroundDrawList();
-            foreach (var element in RewardItemElements(window))
+            foreach (var element in WindowItemElements(window))
             {
                 var snap = ReadItemSnapshot(element.Entity);
                 if (!snap.Valid) continue;
@@ -109,12 +111,12 @@ public partial class ExileCampaigns
                 dl.AddRect(min, max, U32(IndicatorColor(entry)), 0f, ImDrawFlags.None, 3f);
             }
         }
-        catch { /* reward window mid-teardown */ }
+        catch { /* window mid-teardown */ }
     }
 
-    // reward icons sit several levels deep as InventoryItem elements; Element.Entity only reads a real item
-    // on those. iterative walk, no dat lookup needed.
-    private static IEnumerable<Element> RewardItemElements(Element root)
+    // reward/vendor/stash icons sit several levels deep as InventoryItem elements; Element.Entity only reads
+    // a real item on those. iterative walk, no dat lookup needed.
+    private static IEnumerable<Element> WindowItemElements(Element root)
     {
         var stack = new Stack<Element>();
         stack.Push(root);
@@ -129,13 +131,12 @@ public partial class ExileCampaigns
         }
     }
 
-    // hovering a highlighted reward shows which set(s) plan it and at what level. UIHover gives the exact
-    // gem under the cursor, so no rect hit-testing. one line per set: "usable Lv5  -  Leveling (1-20)".
-    private void DrawQuestRewardTooltip()
+    // hovering a highlighted item shows which set(s) plan it and at what level. UIHover gives the exact item
+    // under the cursor, so no rect hit-testing. one line per set: "usable Lv5  -  Leveling (1-20)".
+    private void DrawWindowItemTooltip(Element window)
     {
         try
         {
-            var window = GameController?.IngameState?.IngameUi?.QuestRewardWindow;
             if (window is not { IsVisible: true }) return;
 
             var uiHover = GameController?.Game?.IngameState?.UIHover;
@@ -160,6 +161,6 @@ public partial class ExileCampaigns
             }
             ImGui.EndTooltip();
         }
-        catch { /* hover/reward window mid-teardown */ }
+        catch { /* hover/window mid-teardown */ }
     }
 }
