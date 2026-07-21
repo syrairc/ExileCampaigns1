@@ -1406,16 +1406,16 @@ public partial class ExileCampaigns
     private static readonly Color BuildFuture = new Color(135, 146, 168, 255);   // #8792A8 unlocks later
     private static readonly Color BuildHave   = new Color(107, 119, 147, 255);   // #6B7793 equipped/dim
 
-    // redesigned 4a: supports grouped under their parent skill (regardless of level order), the parent skill
-    // always shown even when equipped. Num carries availability (now / have / L{level}); ctrl-click marks have.
+    // redesigned 4a: supports grouped under their parent skill (regardless of level order). the parent skill
+    // shows even when equipped AS LONG AS the group still has something to equip; a whole group that's fully
+    // had drops out. Num carries availability (now / have / L{level}); ctrl-click marks have.
     private List<PanelLine> BuildPanelLines(OverlayStyle s)
     {
         var set = ActiveSet();
-        var setIdx = set == null ? 0 : _build.Sets.IndexOf(set) + 1;
         var header = set == null ? "Build" : $"Build - {set.Name}";
         var lines = new List<PanelLine>
         {
-            new PanelLine(header, s.HeaderColor.Value, isHeader: true, right: setIdx > 0 ? $"{{{setIdx}}}" : null),
+            new PanelLine(header, s.HeaderColor.Value, isHeader: true),
         };
 
         if (_build.Sets.Count == 0)
@@ -1448,22 +1448,27 @@ public partial class ExileCampaigns
         var items = set.Entries.Where(e => e.Kind == BuildItemKind.Equipment).ToList();
 
         // each skill in declared order, then the supports that link to it (a support feeding several skills
-        // repeats under each). orphan supports (no resolvable parent) list once at the end so they aren't lost.
+        // repeats under each). a group whose skill and every support are already had is skipped entirely.
+        int shown = 0;
         foreach (var skill in skills)
         {
+            var groupSupports = supports.Where(su => su.LinkedToId == skill.Id).ToList();
+            if (skill.Used && groupSupports.All(su => su.Used)) continue;
             lines.Add(Row(skill, support: false));
-            foreach (var sup in supports.Where(su => su.LinkedToId == skill.Id))
+            foreach (var sup in groupSupports)
                 lines.Add(Row(sup, support: true));
+            shown++;
         }
-        foreach (var sup in supports.Where(su => _build.FindEntry(su.LinkedToId) == null))
-            lines.Add(Row(sup, support: true));
-
-        // gear (armour/weapons/uniques) after the gem groups, same availability rules.
-        foreach (var it in items)
-            lines.Add(Row(it, support: false));
+        // orphan supports + gear: standalone rows, hidden once had (no group to give a had one context).
+        foreach (var sup in supports.Where(su => _build.FindEntry(su.LinkedToId) == null && !su.Used))
+        { lines.Add(Row(sup, support: true)); shown++; }
+        foreach (var it in items.Where(it => !it.Used))
+        { lines.Add(Row(it, support: false)); shown++; }
 
         if (set.Entries.Count == 0)
             lines.Add(new PanelLine("  (set is empty)", s.OptionalColor.Value));
+        else if (shown == 0)
+            lines.Add(new PanelLine("  (all equipped)", s.OptionalColor.Value));
 
         return lines;
     }
