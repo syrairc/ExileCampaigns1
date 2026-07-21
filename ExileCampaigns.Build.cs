@@ -1393,25 +1393,6 @@ public partial class ExileCampaigns
     // pinned set wins (authoring aid, for editing a bracket you haven't reached yet), else the level set.
     private BuildSet? ActiveSet() => _build.FindSet(_build.ActiveSetOverrideId) ?? LevelSet();
 
-    // dim a bucket colour so support gems read as sub-items of their skill, not peers
-    private static Color Dim(Color c) => new Color(c.R, c.G, c.B, (byte)170);
-
-    // optional keeps its own colour; supports get the dimmed bucket; actives full bright
-    private Color RowColor(BuildEntry e, Color bucket, OverlayStyle s) =>
-        e.Optional ? s.OptionalColor.Value : e.LinkedToId != null ? Dim(bucket) : bucket;
-
-    // "Added Lightning Damage  [Kinetic Blast]" - the [skill] tag tells duplicate support names apart.
-    // indent pushes supports in under their skill in the now/next list.
-    private string EntryLabel(BuildEntry e, bool indent = false)
-    {
-        var linked = _build.FindEntry(e.LinkedToId);
-        var head = linked != null ? $"{(indent ? "   " : "")}{e.Name}  [{linked.Name}]"
-            : e.Kind == BuildItemKind.Gem ? $"{e.Name} (gem)" : e.Name;
-        if (e.Optional) head += " (optional)";
-        // note (pob socket-group label) is kept in the data + editor, just not shown in the overlay
-        return head;
-    }
-
     // ctrl-click an overlay row to mark it equipped/owned, same one-way flag the editor checkbox sets.
     private void MarkEntryHave(BuildEntry e)
     {
@@ -1420,11 +1401,22 @@ public partial class ExileCampaigns
         ShowToast($"Marked {e.Name} as have", ToastLevel.Success);
     }
 
+    // availability row colours (redesigned 4a, semantic - hardcoded like the other signal colours).
+    private static readonly Color BuildNow    = new Color(120, 210, 120, 255);   // usable now
+    private static readonly Color BuildFuture = new Color(135, 146, 168, 255);   // #8792A8 unlocks later
+    private static readonly Color BuildHave   = new Color(107, 119, 147, 255);   // #6B7793 equipped/dim
+
+    // redesigned 4a: supports grouped under their parent skill (regardless of level order), the parent skill
+    // always shown even when equipped. Num carries availability (now / have / L{level}); ctrl-click marks have.
     private List<PanelLine> BuildPanelLines(OverlayStyle s)
     {
         var set = ActiveSet();
+        var setIdx = set == null ? 0 : _build.Sets.IndexOf(set) + 1;
         var header = set == null ? "Build" : $"Build - {set.Name}";
-        var lines = new List<PanelLine> { new PanelLine(header, s.HeaderColor.Value, isHeader: true) };
+        var lines = new List<PanelLine>
+        {
+            new PanelLine(header, s.HeaderColor.Value, isHeader: true, right: setIdx > 0 ? $"{{{setIdx}}}" : null),
+        };
 
         if (_build.Sets.Count == 0)
         {
@@ -1437,32 +1429,41 @@ public partial class ExileCampaigns
             return lines;
         }
 
-        // SharpDX.Color is RGBA, not ARGB. see Global Constraints.
-        var green = new Color(120, 210, 120, 255);
-        var yellow = new Color(230, 200, 70, 255);
-        int nextLevel = _playerLevel + 1;
-
-        var pending = set.Entries.Where(e => !e.Used).OrderBy(e => e.TargetLevel).ToList();
-        var now = pending.Where(e => e.TargetLevel <= _playerLevel).ToList();
-        var next = pending.Where(e => e.TargetLevel == nextLevel).ToList();
-
-        // prefix goes in the Num column, not baked into the text: keeps wrapped continuation rows aligned
-        // under the label instead of falling back to the left edge.
-        foreach (var e in now)
-            lines.Add(new PanelLine(EntryLabel(e, indent: true), RowColor(e, green, s), num: "now",
-                onCtrlClick: () => MarkEntryHave(e)));
-        foreach (var e in next)
-            lines.Add(new PanelLine(EntryLabel(e, indent: true), RowColor(e, yellow, s), num: $"Lvl {e.TargetLevel}",
-                onCtrlClick: () => MarkEntryHave(e)));
-
-        // nothing actionable: hint the soonest upcoming so the panel still earns its space
-        if (now.Count == 0 && next.Count == 0)
+        // one row for a gem/item: availability in Num, colour by state, "+ " + indent for supports.
+        PanelLine Row(BuildEntry e, bool support)
         {
-            var upcoming = pending.FirstOrDefault(e => e.TargetLevel > _playerLevel);
-            lines.Add(upcoming != null
-                ? new PanelLine($"  next at Lvl {upcoming.TargetLevel}: {EntryLabel(upcoming)}", s.OptionalColor.Value)
-                : new PanelLine("  (set complete)", s.OptionalColor.Value));
+            string num = e.Used ? "have" : e.TargetLevel <= _playerLevel ? "now" : $"L{e.TargetLevel}";
+            string name = (support ? "+ " : "") + e.Name;
+            if (e.Used) name += "  (equipped)";
+            if (e.Optional) name += "  (optional)";
+            var col = e.Optional ? s.OptionalColor.Value
+                : e.Used ? BuildHave
+                : e.TargetLevel <= _playerLevel ? BuildNow
+                : BuildFuture;
+            return new PanelLine(name, col, num: num, indent: support ? 1 : 0, onCtrlClick: () => MarkEntryHave(e));
         }
+
+        var skills = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && !e.IsSupport).ToList();
+        var supports = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && e.IsSupport).ToList();
+        var items = set.Entries.Where(e => e.Kind == BuildItemKind.Equipment).ToList();
+
+        // each skill in declared order, then the supports that link to it (a support feeding several skills
+        // repeats under each). orphan supports (no resolvable parent) list once at the end so they aren't lost.
+        foreach (var skill in skills)
+        {
+            lines.Add(Row(skill, support: false));
+            foreach (var sup in supports.Where(su => su.LinkedToId == skill.Id))
+                lines.Add(Row(sup, support: true));
+        }
+        foreach (var sup in supports.Where(su => _build.FindEntry(su.LinkedToId) == null))
+            lines.Add(Row(sup, support: true));
+
+        // gear (armour/weapons/uniques) after the gem groups, same availability rules.
+        foreach (var it in items)
+            lines.Add(Row(it, support: false));
+
+        if (set.Entries.Count == 0)
+            lines.Add(new PanelLine("  (set is empty)", s.OptionalColor.Value));
 
         return lines;
     }

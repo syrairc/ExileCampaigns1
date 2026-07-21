@@ -782,90 +782,108 @@ public partial class ExileCampaigns
         _actStart = DateTime.Now;
     }
 
-    // Statistics overlay: run timer + act split, level, XP%, current area, level gap, route progress, xp/hour.
-    private List<PanelLine> BuildCharStatsLines(OverlayStyle s)
+    // XP/stats overlay (redesigned 2a): run/act timers, level + XP bar, rate, ETA, and the XP-penalty
+    // safe-zone axis. each block is user-toggleable; rows are dropped (not blanked) when their data isn't
+    // ready or their toggle is off, so the panel stays as short as its content.
+    private List<PanelLine> BuildCharStatsLines(CharStatsOverlayStyle s)
     {
         var lines = new List<PanelLine>();
+        var tc = s.TextColor.Value;
+        var muted = new Color(tc.R, tc.G, tc.B, (byte)170);
 
-        var total = (DateTime.Now - _runStart).TotalSeconds;
-        var actCur = _actSeconds.GetValueOrDefault(_timerAct < 0 ? _act : _timerAct)
-                     + (DateTime.Now - _actStart).TotalSeconds;
-        lines.Add(new PanelLine($"timer {Fmt(total)}   -   act {_act}: {Fmt(actCur)}", s.HeaderColor.Value));
+        // 1. header: RUN total (left) / ACT current-act split (right)
+        if (s.ShowTimers.Value)
+        {
+            var total = (DateTime.Now - _runStart).TotalSeconds;
+            var actCur = _actSeconds.GetValueOrDefault(_timerAct < 0 ? _act : _timerAct)
+                         + (DateTime.Now - _actStart).TotalSeconds;
+            lines.Add(new PanelLine($"RUN {Fmt(total)}", s.HeaderColor.Value, isHeader: true,
+                right: $"ACT {_act} - {Fmt(actCur)}"));
+        }
 
-        lines.Add(new PanelLine($"Lvl {_playerLevel}", s.TextColor.Value));
+        lines.Add(new PanelLine("XP", muted, isSeparator: true));
 
-        // XP progress to next level (needs the curve and a valid level below max).
-        if (_xpCurve.Length >= 100 && _playerLevel is >= 1 and < 100 && _playerXp > 0)
+        // 3. level + XP% into level (needs the curve and a valid level below max).
+        bool haveCurve = _xpCurve.Length >= 100 && _playerLevel is >= 1 and < 100 && _playerXp > 0;
+        long into = 0, need = 0;
+        if (haveCurve)
         {
             long cur = _xpCurve[_playerLevel - 1], next = _xpCurve[_playerLevel];
-            long into = _playerXp - cur, need = next - cur;
-            if (need > 0 && into >= 0)
-                lines.Add(new PanelLine($"XP {100.0 * into / need:0.0}%  ->  Lvl {_playerLevel + 1}  ({need - into:N0} to go)",
-                    s.TextColor.Value));
+            into = _playerXp - cur; need = next - cur;
         }
+        bool haveXp = haveCurve && need > 0 && into >= 0;
+        string lvlText = _playerLevel is >= 1 and < 100 ? $"LVL {_playerLevel} -> {_playerLevel + 1}" : $"LVL {_playerLevel}";
+        lines.Add(new PanelLine(lvlText, tc, right: haveXp ? $"{100.0 * into / need:0.0}%" : null));
 
-        // current area (where you stand) + its level.
-        if (!string.IsNullOrEmpty(_zoneName))
-            lines.Add(new PanelLine(_areaLevel > 0 ? $"{_zoneName} - Lvl {_areaLevel}" : _zoneName, s.TextColor.Value));
+        // 4. XP bar
+        if (s.ShowXpBar.Value && haveXp)
+            lines.Add(PanelLine.Bar((float)(into / (double)need), 12f, BarTrack, AccentResting, AccentBright));
 
-        // level vs area: inside the XP safe zone it's a dim on-level note; outside, show the
-        // real XP-gain multiplier coloured by how hard the penalty bites.
-        if (_areaLevel > 0 && _playerLevel > 0)
-        {
-            int effDiff = EffectiveXpDiff(_playerLevel, _areaLevel);
-            if (effDiff == 0)
-            {
-                var tc = s.TextColor.Value;
-                lines.Add(new PanelLine("XP Penalty: 0%", new Color(tc.R, tc.G, tc.B, (byte)170)));
-            }
-            else
-            {
-                double mult = XpMultiplier(_playerLevel, effDiff);
-                var col = mult >= 0.90 ? XpMild : mult >= 0.50 ? XpWarn : XpBad;
-                string dir = _areaLevel > _playerLevel ? "Underleveled" : "Overleveled";
-                lines.Add(new PanelLine($"XP Penalty: {(1 - mult) * 100:0}% ({dir})", col));
-            }
-        }
-
-        // route progress: act-relative step and overall percent.
-        var cs = _route.CurrentStep;
-        if (cs != null && _route.Steps.Count > 0)
-        {
-            int actTotal = _route.StepsInAct(cs.Act);
-            int overall = (int)Math.Round(100.0 * (_route.Current + 1) / _route.Steps.Count);
-            lines.Add(new PanelLine($"Act {cs.Act} - step {cs.StepInAct}/{actTotal}  ({overall}%)", s.TextColor.Value));
-        }
-
-        // xp/hour averaged over the trailing window, plus an ETA to the next level from that rate.
-        // window needs >=30s of samples before the rate is meaningful.
+        // windowed xp/hour (needs >=30s of samples).
+        double rate = 0; bool haveRate = false;
         if (_xpSamples.Count >= 2)
         {
             var first = _xpSamples[0];
             var last = _xpSamples[^1];
             double spanSec = (last.t - first.t).TotalSeconds;
-            if (spanSec >= 30)
-            {
-                double rate = (last.xp - first.xp) / (spanSec / 3600.0);
-                lines.Add(new PanelLine($"{rate:N0} xp/h", s.TextColor.Value));
+            if (spanSec >= 30) { rate = (last.xp - first.xp) / (spanSec / 3600.0); haveRate = rate > 0; }
+        }
 
-                // time to level: remaining xp in the current level / windowed rate.
-                if (rate > 0 && _xpCurve.Length >= 100 && _playerLevel is >= 1 and < 100)
-                {
-                    long remaining = _xpCurve[_playerLevel] - _playerXp;
-                    if (remaining > 0)
-                        lines.Add(new PanelLine($"~{Fmt(remaining / rate * 3600.0)} to Lvl {_playerLevel + 1}", s.TextColor.Value));
-                }
+        // 5. XP to go (left) + rate (right). when to-go is off but rate is on, rate gets its own row.
+        string? rateRight = s.ShowXpRate.Value && haveRate ? FmtRate(rate) : null;
+        if (s.ShowXpToGo.Value && haveXp)
+            lines.Add(new PanelLine($"{need - into:N0} to go", muted, right: rateRight));
+        else if (rateRight != null)
+            lines.Add(new PanelLine("Rate", muted, right: rateRight));
+
+        // 6. ETA to next level = remaining xp / windowed rate.
+        if (s.ShowEta.Value && haveRate && haveXp)
+            lines.Add(new PanelLine("ETA next lvl", muted, right: Fmt((need - into) / rate * 3600.0)));
+
+        // 7. XP penalty: 0 = Bar (label + safe-zone axis + ticks), 1 = Text (label only), 2 = Off.
+        int mode = s.PenaltyMode.Value;
+        if (mode != 2 && _areaLevel > 0 && _playerLevel > 0)
+        {
+            int effDiff = EffectiveXpDiff(_playerLevel, _areaLevel);
+            var (grade, gradeCol) = PenaltyGrade(_playerLevel, _areaLevel, effDiff);
+            lines.Add(new PanelLine("XP Penalty", gradeCol, right: grade));
+            if (mode == 0)
+            {
+                lines.Add(PanelLine.Axis(_playerLevel, _areaLevel, 14f));
+                // area level + the safe-zone level range (full XP inside charLevel +/- safe).
+                int safe = SafeZone(_playerLevel);
+                int lo = Math.Max(1, _playerLevel - safe);
+                int hi = _playerLevel + safe;
+                lines.Add(new PanelLine($"Area Lvl {_areaLevel}", muted, right: $"Safe {lo}-{hi}"));
             }
         }
 
         return lines;
     }
 
-    // XP penalty severity colours (semantic, not themed).
-    // ponytail: hardcoded; promote to OverlayStyle ColorNodes if anyone wants to retheme them.
-    private static readonly Color XpMild = new Color(120, 200, 120, 255);
-    private static readonly Color XpWarn = new Color(220, 200, 90, 255);
-    private static readonly Color XpBad  = new Color(220, 110, 90, 255);
+    // penalty status text + colour, per the design handoff (green safe -> red at heavy penalty).
+    private static (string text, Color color) PenaltyGrade(int charLevel, int areaLevel, int effDiff)
+    {
+        if (effDiff <= 0) return ("0%  safe", PenaltySafe);
+        double mult = XpMultiplier(charLevel, effDiff);
+        int pen = (int)Math.Round((1 - mult) * 100);
+        string dir = areaLevel > charLevel ? "underleveled" : "overleveled";
+        return ($"{pen}%  {dir}", LerpColor(PenaltySafe, PenaltyBad, Math.Clamp(pen / 60f, 0f, 1f)));
+    }
+
+    private static readonly Color PenaltySafe = new Color(111, 207, 122, 255);   // #6FCF7A
+    private static readonly Color PenaltyBad  = new Color(224, 103, 103, 255);   // #E06767
+
+    private static Color LerpColor(Color a, Color b, float t)
+    {
+        t = Math.Clamp(t, 0f, 1f);
+        return new Color((byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t),
+            (byte)(a.B + (b.B - a.B) * t), (byte)(a.A + (b.A - a.A) * t));
+    }
+
+    // xp/hour for the detail row: 248k/h style.
+    private static string FmtRate(double xph) =>
+        xph >= 1_000_000 ? $"{xph / 1_000_000:0.0}M/h" : xph >= 1000 ? $"{xph / 1000:0}k/h" : $"{xph:0}/h";
 
     // XP safe zone + penalty, per poewiki "Experience". Campaign range only (player <95, area <70),
     // so the 95+ penalty and the >70 monster-level adjustment are intentionally left out.

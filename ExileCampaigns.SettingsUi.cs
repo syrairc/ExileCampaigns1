@@ -47,7 +47,7 @@ public partial class ExileCampaigns
             ImGui.SeparatorText("Route guide (steps)");
             DrawStepsStyle(Settings.Steps);
             ImGui.SeparatorText("Statistics Overlay");
-            DrawOverlayStyle(Settings.CharStats, "charstats");
+            DrawCharStatsStyle(Settings.CharStats);
             SliderInt("XP rate window (min)", Settings.XpRateWindowMinutes, "Average xp/hour + time-to-level over the last N minutes");
             ImGui.SeparatorText("Build Planner Overlay");
             DrawOverlayStyle(Settings.BuildPanel, "buildpanel");
@@ -226,6 +226,30 @@ public partial class ExileCampaigns
         SliderInt("Padding##" + id, s.Padding);
         SliderInt("Steps shown behind##" + id, s.StepsBehind, "How many completed steps to show above the current one");
         SliderInt("Steps shown ahead##" + id, s.StepsAhead, "How many upcoming steps to show below the current one");
+        Toggle("Show campaign progress bar##" + id, s.ShowCampaignBar, "Segmented 10-act bar + overall percent above the steps");
+        Toggle("Show act progress bar##" + id, s.ShowActBar, "Per-act progress bar + percent above the steps");
+    }
+
+    private static readonly string[] PenaltyModes = { "Bar", "Text", "Off" };
+
+    // the XP/stats panel: OverlayStyle controls plus the redesigned 2a row toggles + penalty-display mode.
+    private static void DrawCharStatsStyle(CharStatsOverlayStyle s)
+    {
+        const string id = "charstats";
+        Toggle("Enabled##" + id, s.Enable);
+        ColorEdit("Text color##" + id, s.TextColor);
+        ColorEdit("Header color##" + id, s.HeaderColor);
+        ColorEdit("Background color##" + id, s.BackgroundColor, "Alpha controls opacity; alpha 0 = no panel background");
+        ColorEdit("Border color##" + id, s.BorderColor);
+        SliderFloat("Text size##" + id, s.TextSize, "Font height in pixels");
+        SliderInt("Border thickness##" + id, s.BorderThickness, "0 = no border");
+        SliderInt("Padding##" + id, s.Padding);
+        Toggle("Show run/act timers##" + id, s.ShowTimers);
+        Toggle("Show XP bar##" + id, s.ShowXpBar);
+        Toggle("Show XP/h##" + id, s.ShowXpRate);
+        Toggle("Show XP to level##" + id, s.ShowXpToGo);
+        Toggle("Show ETA to level##" + id, s.ShowEta);
+        Combo("XP penalty display##" + id, s.PenaltyMode, PenaltyModes, "Bar = safe-zone axis + ticks; Text = just the % line; Off = hidden");
     }
 
     // -- per-node control helpers --
@@ -247,6 +271,14 @@ public partial class ExileCampaigns
     {
         int v = n.Value;
         if (ImGui.SliderInt(label, ref v, n.Min, n.Max)) n.Value = v;
+        Tip(tip);
+    }
+
+    // dropdown bound to an int RangeNode (value = selected index into items).
+    private static void Combo(string label, RangeNode<int> n, string[] items, string? tip = null)
+    {
+        int idx = Math.Clamp(n.Value, 0, items.Length - 1);
+        if (ImGui.Combo(label, ref idx, items, items.Length)) n.Value = idx;
         Tip(tip);
     }
 
@@ -598,7 +630,7 @@ public partial class ExileCampaigns
 
         // center-anchored move/resize during preview (only when unlocked), via the shared helper. the sample
         // box doubles as the drag handle; moving it updates PosX/PosY/MaxWidth for the real toasts too.
-        if (preview && !Settings.LockOverlays.Value)
+        if (preview && OverlaysMovable)
         {
             var (ssize, _) = MeasureBox("Sample toast (preview)");
             var min = new Vector2(t.PosX.Value - ssize.X / 2f, t.PosY.Value);

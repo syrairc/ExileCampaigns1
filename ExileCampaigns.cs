@@ -17,22 +17,43 @@ using ImGuiNET;
 
 namespace ExileCampaigns;
 
-// one rendered line in an overlay panel. Num (when set) draws in a fixed-width left column so the text
-// column stays put as step numbers grow (9 -> 10). IsHeader lines (act/stage labels) skip the number
-// column and render flush-left.
+internal enum PanelRowKind { Text, Bar, Segmented, Axis, Pinned }
+
+// one rendered row in an overlay panel. most rows are Text; the redesigned panels add drawn rows (bars,
+// the XP-penalty axis, a highlighted "pinned" objective) built through the static factories below.
+// Num (when set) draws in a fixed-width left column so the text column stays put as step numbers grow
+// (9 -> 10). IsHeader lines (act/stage labels) skip the number column and render flush-left. Indent shifts
+// the text column one step per level (support gems under their skill).
 internal readonly struct PanelLine
 {
+    public readonly PanelRowKind Kind;
     public readonly string Text;
     public readonly Color Color;
     public readonly bool IsHeader;
     public readonly bool IsSeparator;   // area divider: Text is the bare area name, drawn centred in a dashed rule
     public readonly string? Num;
     public readonly string? Right;   // optional right-aligned text on the same row (e.g. area name on header)
-    public readonly Action? OnCtrlClick;   // ctrl-click the row to fire this (build panel: mark entry as have)
+    public readonly Action? OnCtrlClick;   // ctrl-click the row to fire this (build: mark have; route: re-pin)
+    public readonly int Indent;
+
+    // bar / segmented / axis payload
+    public readonly float Fill01;
+    public readonly float BarHeight;
+    public readonly Color TrackColor;
+    public readonly Color FillA;
+    public readonly Color FillB;
+    public readonly float[]? Cells;   // segmented: per-cell fill 0..1
+    public readonly int CharLevel;    // axis
+    public readonly int AreaLevel;    // axis
+
+    // pinned payload
+    public readonly string? SubText;
+    public readonly Color Accent;
 
     public PanelLine(string text, Color color, bool isHeader = false, string? num = null,
-        string? right = null, bool isSeparator = false, Action? onCtrlClick = null)
+        string? right = null, bool isSeparator = false, Action? onCtrlClick = null, int indent = 0)
     {
+        Kind = PanelRowKind.Text;
         Text = text;
         Color = color;
         IsHeader = isHeader;
@@ -40,7 +61,41 @@ internal readonly struct PanelLine
         Num = num;
         Right = right;
         OnCtrlClick = onCtrlClick;
+        Indent = indent;
+        Fill01 = 0f; BarHeight = 0f; TrackColor = default; FillA = default; FillB = default;
+        Cells = null; CharLevel = 0; AreaLevel = 0; SubText = null; Accent = default;
     }
+
+    // full ctor for the drawn kinds; the factories below are the public surface.
+    private PanelLine(PanelRowKind kind, string text, Color color, string? num, int indent, float fill,
+        float height, Color track, Color fillA, Color fillB, float[]? cells, int charLevel, int areaLevel,
+        string? subText, Color accent, Action? onCtrlClick)
+    {
+        Kind = kind; Text = text; Color = color; IsHeader = false; IsSeparator = false;
+        Num = num; Right = null; OnCtrlClick = onCtrlClick; Indent = indent;
+        Fill01 = fill; BarHeight = height; TrackColor = track; FillA = fillA; FillB = fillB;
+        Cells = cells; CharLevel = charLevel; AreaLevel = areaLevel; SubText = subText; Accent = accent;
+    }
+
+    // full-width track + gradient fill (flat when fillA==fillB). XP bar, per-act bar.
+    public static PanelLine Bar(float fill01, float height, Color track, Color fillA, Color fillB) =>
+        new(PanelRowKind.Bar, "", default, null, 0, Math.Clamp(fill01, 0f, 1f), height, track, fillA, fillB,
+            null, 0, 0, null, default, null);
+
+    // N cells with 2px gaps, one fill each. the 10-act campaign bar.
+    public static PanelLine Segmented(float[] cells, float height, Color track, Color fill) =>
+        new(PanelRowKind.Segmented, "", default, null, 0, 0f, height, track, fill, fill, cells, 0, 0, null,
+            default, null);
+
+    // XP-penalty safe-zone axis. draws its own flanks/safe-band/marker from the two levels.
+    public static PanelLine Axis(int charLevel, int areaLevel, float height) =>
+        new(PanelRowKind.Axis, "", default, null, 0, 0f, height, default, default, default, null, charLevel,
+            areaLevel, null, default, null);
+
+    // highlighted current-objective row: bg box + left accent bar + a dim sub-line beneath.
+    public static PanelLine Pinned(string? num, string text, Color color, string? subText, Color accent) =>
+        new(PanelRowKind.Pinned, text, color, num, 0, 0f, 0f, default, default, default, null, 0, 0, subText,
+            accent, null);
 }
 
 // campaign-leveling overlay for PoE1. reads act/zone/level/quest from live memory (no screen-reading)
@@ -354,7 +409,11 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         }
 
         if (Settings.CharStats.Enable)
-            DrawOverlay("char", BuildCharStatsLines(Settings.CharStats), Settings.CharStats);
+        {
+            var cs = Settings.CharStats;
+            DrawOverlay("char", BuildCharStatsLines(cs), cs.PosX, cs.PosY, cs.TextSize.Value, cs.MaxWidth,
+                cs.Padding.Value, cs.BackgroundColor.Value, cs.BorderColor.Value, cs.BorderThickness.Value);
+        }
 
         if (Settings.BuildPanel.Enable)
             DrawOverlay("build", BuildPanelLines(Settings.BuildPanel), Settings.BuildPanel);
@@ -405,17 +464,44 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         string? lastArea = null;
         bool firstHeader = true;
 
+        // segmented campaign bar + per-act bar, emitted once under the first act header (redesigned 3b).
+        // fill maths per the design handoff: acts 1..10, current act partial, later acts empty.
+        void EmitProgressBars()
+        {
+            int act = current!.Act;
+            int total = _route.StepsInAct(act);
+            float actFrac = total > 0 ? Math.Clamp(current.StepInAct / (float)total, 0f, 1f) : 0f;
+
+            if (s.ShowCampaignBar.Value)
+            {
+                const int totalActs = 10;
+                var cells = new float[totalActs];
+                for (int i = 0; i < totalActs; i++)
+                    cells[i] = i < act - 1 ? 1f : i == act - 1 ? actFrac : 0f;
+                float campaignPct = ((act - 1) + actFrac) / totalActs * 100f;
+                lines.Add(new PanelLine("CAMPAIGN", dim, right: $"{campaignPct:0}%"));
+                lines.Add(PanelLine.Segmented(cells, 6f, BarTrack, AccentBright));
+            }
+            if (s.ShowActBar.Value)
+            {
+                lines.Add(new PanelLine($"Act {act}  {current.StepInAct}/{total}", dim, right: $"{actFrac * 100f:0}%"));
+                lines.Add(PanelLine.Bar(actFrac, 11f, BarTrack, AccentResting, AccentBright));
+            }
+        }
+
         // emit an act header when the window starts or crosses into a new act, an area divider when the
-        // zone changes, then the step itself.
+        // zone changes, then the step itself. the current step draws as a highlighted pinned row.
         void AddRow(FlatStep st, Color col, bool isCurrent)
         {
             if (st.Act != lastAct)
             {
+                bool wasFirst = firstHeader;
                 lines.Add(new PanelLine(StageLabel(st.Act), s.HeaderColor.Value, isHeader: true,
-                    right: firstHeader ? areaName : null));
+                    right: wasFirst ? areaName : null));
                 firstHeader = false;
                 lastAct = st.Act;
                 lastArea = null;   // re-print the divider for the first area under the new act
+                if (wasFirst) EmitProgressBars();
             }
             // every windowed row is a real step (headers are skipped), so Model carries its zone.
             var area = st.Model?.AreaName;
@@ -425,8 +511,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
                 lines.Add(new PanelLine(area!, sepColor, isSeparator: true));
                 lastArea = areaKey;
             }
-            var text = (isCurrent ? "> " : "") + st.DisplayText;
-            lines.Add(new PanelLine(text, col, num: st.StepInAct.ToString()));
+            if (isCurrent)
+            {
+                var zone = st.Model?.AreaName ?? areaName;
+                lines.Add(PanelLine.Pinned(st.StepInAct.ToString(), "> " + st.DisplayText, col, zone, col));
+            }
+            else lines.Add(new PanelLine(st.DisplayText, col, num: st.StepInAct.ToString(),
+                onCtrlClick: RePinAction(st)));
         }
 
         // league-start steps win the colour over optional; both yield to the current-step highlight.
@@ -444,6 +535,15 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             AddRow(st, RowColor(st, s.TextColor.Value), false);
 
         return lines;
+    }
+
+    // ctrl-click a listed step to make it the current objective. reuses MoveProgressToStep so a backward
+    // re-pin holds until real progress. null when the step isn't a real (non-header) step.
+    private Action? RePinAction(FlatStep st)
+    {
+        if (st.Model == null) return null;
+        var id = st.Model.Id;
+        return () => MoveProgressToStep(id);
     }
 
     // overload that pulls placement/style straight from an OverlayStyle.
@@ -473,9 +573,28 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         DrawOverlay(id, lines, s.PosX, s.PosY, s.TextSize.Value, s.MaxWidth, s.Padding.Value,
             s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value);
 
+    // redesigned-panel signal colours (from the design handoff; hardcoded like the XP severity colours).
+    private static readonly Color BarTrack       = new Color(20, 26, 41, 255);    // #141A29
+    private static readonly Color BarTrackBorder = new Color(43, 53, 80, 255);    // #2B3550
+    private static readonly Color AccentBright   = new Color(77, 166, 255, 255);  // #4DA6FF
+    private static readonly Color AccentResting  = new Color(41, 97, 179, 255);   // #2961B3
+    private static readonly Color PinnedBg       = new Color(66, 150, 250, 31);   // rgba(66,150,250,0.12)
+    private static readonly Color AxisSafeBand   = new Color(111, 207, 122, 51);  // rgba(111,207,122,0.20)
+    private static readonly Color AxisSafeEdge   = new Color(111, 207, 122, 255); // #6FCF7A
+    private static readonly Color AxisMarker     = new Color(0, 204, 255, 255);   // #00CCFF
+    private static readonly Color AxisFlankRed   = new Color(224, 103, 103, 140); // rgba(224,103,103,0.55)
+    private static readonly Color AxisFlankAmber = new Color(224, 177, 90, 82);   // rgba(224,177,90,0.32)
+    private static readonly Color AxisFlankGrey  = new Color(60, 72, 96, 56);     // rgba(60,72,96,0.22)
+    private static readonly Color RowMuted       = new Color(115, 128, 153, 255); // #738099 (pinned sub-line)
+
+    // Alt held anywhere: lets you grab a locked overlay to reposition it (an override, not a lock replacement).
+    private static bool AltHeld =>
+        Input.GetKeyState(System.Windows.Forms.Keys.LMenu) || Input.GetKeyState(System.Windows.Forms.Keys.RMenu);
+    private bool OverlaysMovable => !Settings.LockOverlays.Value || AltHeld;
+
     // draw a panel of lines via the ImGui foreground draw list. unlike Graphics.DrawText this honours a
-    // per-call font size (textSize), so each overlay gets its own scale/border/fill. when unlocked, drag the
-    // body to move or the right edge to set wrap width; results write back to posX/posY/maxWidth (auto-persist).
+    // per-call font size (textSize), so each overlay gets its own scale/border/fill. unlock overlays (or hold
+    // Alt) to drag the body to move or the right edge to set wrap width; writes back to posX/posY/maxWidth.
     // hides when its rect would overlap an open side panel (see OverlapsSidePanel).
     private void DrawOverlay(string id, IReadOnlyList<PanelLine> lines, RangeNode<int> posX, RangeNode<int> posY,
         float textSize, RangeNode<int> maxWidth, int padding, Color background, Color borderColor, int borderThickness)
@@ -488,8 +607,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (baseSize <= 0) baseSize = 16f;
         float scale = textSize / baseSize;
         float pad = padding;
+        float lineH = (float)Math.Ceiling(textSize) + 2f;
+        float indentW = textSize * 1.25f;   // one support-gem indent step (~20px at 16px font)
+        const int sepMinDashes = 3;         // shortest dash run each side of an area-divider label
 
         Vector2 Measure(string t) => ImGui.CalcTextSize(t) * scale;
+        string SepLabel(string name) => " " + name + " ";
+        float dashW = Measure("-").X;
 
         // fixed-width number column so the text column never shifts as step numbers grow.
         float numCol = 0f;
@@ -499,50 +623,64 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         float gap = hasNum ? textSize * 0.4f : 0f;
         float textX = numCol + gap;
 
-        float maxTextW = maxWidth.Value > 0 ? Math.Max(10f, maxWidth.Value - pad * 2 - textX) : float.MaxValue;
-
-        // flatten lines into rows, wrapping over-wide text. continuation rows start under the text column.
-        const int sepMinDashes = 3;   // shortest dash run each side of an area-divider label
-        var rows = new List<(string? num, string text, uint col, bool header, string? right, bool sep, Action? click)>();
+        // flatten lines into draw rows, wrapping over-wide plain text. drawn kinds pass through untouched.
+        var rows = new List<PanelLine>();
         foreach (var l in lines)
         {
-            var t = Ascii(l.Text);
-            var col = U32(l.Color);
-            if (l.IsSeparator)
+            bool wrappable = l.Kind == PanelRowKind.Text && !l.IsHeader && !l.IsSeparator && l.Right == null;
+            float avail = maxWidth.Value > 0 ? Math.Max(10f, maxWidth.Value - pad * 2 - textX - l.Indent * indentW) : float.MaxValue;
+            if (wrappable && maxWidth.Value > 0 && Measure(Ascii(l.Text)).X > avail)
             {
-                rows.Add((null, t, col, false, null, true, null));   // text = bare area name, dashes added at draw
-                continue;
-            }
-            if (l.IsHeader)
-            {
-                rows.Add((null, t, col, true, l.Right != null ? Ascii(l.Right) : null, false, null));
-                continue;
-            }
-            if (maxWidth.Value > 0 && Measure(t).X > maxTextW)
-            {
-                var wrapped = WrapText(t, maxTextW, scale);
+                var wrapped = WrapText(Ascii(l.Text), avail, scale);
                 for (int i = 0; i < wrapped.Count; i++)
-                    rows.Add((i == 0 ? l.Num : null, wrapped[i], col, false, null, false, l.OnCtrlClick));
+                    rows.Add(new PanelLine(wrapped[i], l.Color, num: i == 0 ? l.Num : null,
+                        indent: l.Indent, onCtrlClick: l.OnCtrlClick));
             }
-            else rows.Add((l.Num, t, col, false, null, false, l.OnCtrlClick));
+            else rows.Add(l);
         }
 
-        float lineH = (float)Math.Ceiling(textSize) + 2f;
-
-        // a divider needs room for its label plus the minimum dashes; everything else as before.
-        string SepLabel(string name) => " " + name + " ";
-        float dashW = Measure("-").X;
-
+        // panel inner width. when MaxWidth is set the panel is fixed to it (long rows wrap into it);
+        // otherwise it auto-sizes to the widest text row. bars/axis span whatever width results.
         float contentW = 0f;
+        bool hasDrawn = false;
         foreach (var r in rows)
         {
-            float w = r.sep ? Measure(SepLabel(r.text)).X + 2 * sepMinDashes * dashW
-                    : r.header ? Measure(r.text).X : textX + Measure(r.text).X;
-            if (r.right != null) w += textSize + Measure(r.right).X;   // header + right-aligned area name
+            float w = r.Kind switch
+            {
+                PanelRowKind.Bar or PanelRowKind.Segmented or PanelRowKind.Axis => 0f,
+                PanelRowKind.Pinned => textX + Math.Max(Measure(Ascii(r.Text)).X, Measure(Ascii(r.SubText ?? "")).X),
+                _ when r.IsSeparator => Measure(SepLabel(Ascii(r.Text))).X + 2 * sepMinDashes * dashW,
+                _ when r.IsHeader => Measure(Ascii(r.Text)).X,
+                _ => textX + r.Indent * indentW + Measure(Ascii(r.Text)).X,
+            };
+            if (r.Right != null && (r.IsHeader || r.Kind == PanelRowKind.Text))
+                w += textSize + Measure(Ascii(r.Right)).X;
+            if (r.Kind is PanelRowKind.Bar or PanelRowKind.Segmented or PanelRowKind.Axis) hasDrawn = true;
             contentW = Math.Max(contentW, w);
         }
+        if (maxWidth.Value > 0) contentW = Math.Max(10f, maxWidth.Value - pad * 2);   // user-set fixed width
+        else if (hasDrawn) contentW = Math.Max(contentW, textSize * 12f);             // usable bar width on short panels
 
-        var panelSize = new Vector2(contentW + pad * 2, rows.Count * lineH + pad * 2);
+        // pinned title wraps into the fixed width (the current step can be long); one line when auto-sized.
+        List<string> PinnedTitle(string text)
+        {
+            var t = Ascii(text);
+            float w = contentW - textX;
+            return maxWidth.Value > 0 && w > 10f && Measure(t).X > w ? WrapText(t, w, scale) : new List<string> { t };
+        }
+
+        // per-row height (drawn kinds are taller than one text line).
+        float RowH(in PanelLine r) => r.Kind switch
+        {
+            PanelRowKind.Bar or PanelRowKind.Segmented => r.BarHeight + 6f,
+            PanelRowKind.Axis => r.BarHeight + 10f,
+            PanelRowKind.Pinned => (PinnedTitle(r.Text).Count + 1) * lineH + 8f,
+            _ => lineH,
+        };
+
+        float totalH = pad * 2;
+        foreach (var r in rows) totalH += RowH(r);
+        var panelSize = new Vector2(contentW + pad * 2, totalH);
         var origin = new Vector2(posX.Value, posY.Value);
 
         // hide where this overlay would sit under an open side panel.
@@ -555,7 +693,14 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var min = origin;
         var max = origin + panelSize;
 
-        // ctrl-hover a clickable row (build panel supplies these) to arm a one-click mark. works locked too.
+        // cumulative row tops, for hit-testing and drawing at variable heights.
+        var rowTop = new float[rows.Count];
+        {
+            float acc = origin.Y + pad;
+            for (int i = 0; i < rows.Count; i++) { rowTop[i] = acc; acc += RowH(rows[i]); }
+        }
+
+        // ctrl-hover a clickable row (build "have", route re-pin) to arm a one-click action. works locked too.
         int hoverRow = -1;
         {
             // ExileAPI never feeds ImGui io.KeyCtrl, so read the modifier off the framework input instead
@@ -563,65 +708,171 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
                      || Input.GetKeyState(System.Windows.Forms.Keys.RControlKey);
             var m = ImGui.GetMousePos();
             if (ctrl && m.X >= min.X && m.X <= max.X)
-            {
-                int idx = (int)((m.Y - (origin.Y + pad)) / lineH);
-                if (idx >= 0 && idx < rows.Count && rows[idx].click != null) hoverRow = idx;
-            }
+                for (int i = 0; i < rows.Count; i++)
+                    if (rows[i].OnCtrlClick != null && m.Y >= rowTop[i] && m.Y < rowTop[i] + RowH(rows[i]))
+                    { hoverRow = i; break; }
         }
 
-        // while unlocked + hovered/active, put an invisible ImGui window under the panel so ImGui captures
-        // the mouse and drag/resize clicks don't pass through to the game. also arm it for a ctrl-click mark.
-        if ((!Settings.LockOverlays.Value && (hovered || active)) || hoverRow >= 0)
+        // while movable + hovered/active, put an invisible ImGui window under the panel so ImGui captures
+        // the mouse and drag/resize clicks don't pass through to the game. also arm it for a ctrl-click.
+        if ((OverlaysMovable && (hovered || active)) || hoverRow >= 0)
             DrawClickBlocker(id, origin, panelSize);
 
         if (background.A > 0) dl.AddRectFilled(min, max, U32(background));
         if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, ImDrawFlags.None, borderThickness);
-        // Drag/resize affordance: while unlocked, outline the panel and mark the right resize edge.
-        if (!Settings.LockOverlays.Value)
+        // drag/resize affordance. unlocked: outline every panel (faint, bright on hover). locked but Alt held:
+        // only the panel you're actually over, so Alt (common in-game) doesn't light up the whole screen.
+        if (OverlaysMovable && (!Settings.LockOverlays.Value || hovered || active))
         {
             var hint = (active || hovered) ? new Color(120, 220, 255, 220) : new Color(120, 220, 255, 120);
             dl.AddRect(min, max, U32(hint), 0f, ImDrawFlags.None, 1.5f);
-            // brighter grip on the right edge when it's the resize target.
             if (onEdge || _resizeId == id)
                 dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
         }
 
-        // ctrl-armed row gets a highlight so the mark target is obvious before you click
+        // ctrl-armed row gets a highlight so the target is obvious before you click
         if (hoverRow >= 0)
         {
-            float ry = origin.Y + pad + hoverRow * lineH;
-            dl.AddRectFilled(new Vector2(min.X + 1, ry), new Vector2(max.X - 1, ry + lineH), U32(new Color(120, 220, 255, 55)));
+            float ry = rowTop[hoverRow];
+            dl.AddRectFilled(new Vector2(min.X + 1, ry), new Vector2(max.X - 1, ry + RowH(rows[hoverRow])),
+                U32(new Color(120, 220, 255, 55)));
         }
 
-        var p = origin + new Vector2(pad, pad);
-        foreach (var r in rows)
+        float innerL = origin.X + pad;
+        float innerR = max.X - pad;
+        for (int i = 0; i < rows.Count; i++)
         {
-            if (r.sep)
+            var r = rows[i];
+            float y = rowTop[i];
+            switch (r.Kind)
             {
-                // grow the dash runs to fill the panel, label centred: ---- Area Name ----
-                var label = SepLabel(r.text);
-                int n = sepMinDashes;
-                if (dashW > 0) n = Math.Max(sepMinDashes, (int)((contentW - Measure(label).X) / 2f / dashW));
-                var run = new string('-', n);
-                dl.AddText(font, textSize, p, r.col, run + label + run);
-                p.Y += lineH;
-                continue;
+                case PanelRowKind.Bar: DrawBarRow(dl, r, innerL, innerR, y, RowH(r)); break;
+                case PanelRowKind.Segmented: DrawSegmentedRow(dl, r, innerL, innerR, y, RowH(r)); break;
+                case PanelRowKind.Axis: DrawAxisRow(dl, r, innerL, innerR, y, RowH(r)); break;
+                case PanelRowKind.Pinned: DrawPinnedRow(dl, font, textSize, r, min, max, innerL, textX, y, lineH, RowH(r), PinnedTitle(r.Text)); break;
+                default: DrawTextRow(dl, font, textSize, r, Measure, SepLabel, dashW, sepMinDashes, contentW,
+                    innerL, y, textX, indentW); break;
             }
-            if (r.num != null)
-                dl.AddText(font, textSize, p, r.col, r.num);
-            float tx = r.header ? 0f : textX;
-            dl.AddText(font, textSize, p + new Vector2(tx, 0), r.col, r.text);
-            if (r.right != null)
-            {
-                float rx = contentW - Measure(r.right).X;   // align to panel's inner-right edge
-                dl.AddText(font, textSize, new Vector2(p.X + rx, p.Y), r.col, r.right);
-            }
-            p.Y += lineH;
         }
 
-        // fire after drawing so the mutation (mark Used + save) lands cleanly, not mid-enumeration
+        // fire after drawing so the mutation lands cleanly, not mid-enumeration
         if (hoverRow >= 0 && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-            rows[hoverRow].click!.Invoke();
+            rows[hoverRow].OnCtrlClick!.Invoke();
+    }
+
+    // one plain text / header / separator row.
+    private void DrawTextRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+        Func<string, Vector2> measure, Func<string, string> sepLabel, float dashW, int sepMinDashes,
+        float contentW, float innerL, float y, float textX, float indentW)
+    {
+        var col = U32(r.Color);
+        var p = new Vector2(innerL, y);
+        if (r.IsSeparator)
+        {
+            var label = sepLabel(Ascii(r.Text));
+            int n = sepMinDashes;
+            if (dashW > 0) n = Math.Max(sepMinDashes, (int)((contentW - measure(label).X) / 2f / dashW));
+            var run = new string('-', n);
+            dl.AddText(font, textSize, p, col, run + label + run);
+            return;
+        }
+        if (r.Num != null) dl.AddText(font, textSize, p, col, r.Num);
+        float tx = r.IsHeader ? 0f : textX + r.Indent * indentW;
+        if (!string.IsNullOrEmpty(r.Text))
+            dl.AddText(font, textSize, p + new Vector2(tx, 0), col, Ascii(r.Text));
+        if (r.Right != null)
+        {
+            float rx = contentW - measure(Ascii(r.Right)).X;   // align to the panel's inner-right edge
+            dl.AddText(font, textSize, new Vector2(innerL + rx, y), col, Ascii(r.Right));
+        }
+    }
+
+    // highlighted current-objective row: bg box + 2px left accent bar + (wrapped) title + dim zone sub-line.
+    private void DrawPinnedRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+        Vector2 min, Vector2 max, float innerL, float textX, float y, float lineH, float rowH, List<string> titleLines)
+    {
+        var boxMin = new Vector2(min.X + 1, y);
+        var boxMax = new Vector2(max.X - 1, y + rowH);
+        dl.AddRectFilled(boxMin, boxMax, U32(PinnedBg));
+        dl.AddRectFilled(boxMin, new Vector2(boxMin.X + 2f, boxMax.Y), U32(r.Accent));
+        var col = U32(r.Color);
+        var p = new Vector2(innerL, y + 3f);
+        if (r.Num != null) dl.AddText(font, textSize, p, col, r.Num);
+        float ty = p.Y;
+        foreach (var tl in titleLines) { dl.AddText(font, textSize, new Vector2(innerL + textX, ty), col, tl); ty += lineH; }
+        if (r.SubText != null)
+            dl.AddText(font, textSize, new Vector2(innerL + textX, ty), U32(RowMuted), Ascii(r.SubText));
+    }
+
+    // full-width track + gradient fill (flat when fillA==fillB).
+    private void DrawBarRow(ImDrawListPtr dl, in PanelLine r, float innerL, float innerR, float y, float rowH)
+    {
+        float top = y + (rowH - r.BarHeight) / 2f;
+        var a = new Vector2(innerL, top);
+        var b = new Vector2(innerR, top + r.BarHeight);
+        dl.AddRectFilled(a, b, U32(r.TrackColor));
+        float fillW = (innerR - innerL) * r.Fill01;
+        if (fillW > 0.5f)
+        {
+            var fb = new Vector2(innerL + fillW, b.Y);
+            if (r.FillA == r.FillB) dl.AddRectFilled(a, fb, U32(r.FillA));
+            else dl.AddRectFilledMultiColor(a, fb, U32(r.FillA), U32(r.FillB), U32(r.FillB), U32(r.FillA));
+        }
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+    }
+
+    // N equal cells with 2px gaps, one fill each (the 10-act campaign bar).
+    private void DrawSegmentedRow(ImDrawListPtr dl, in PanelLine r, float innerL, float innerR, float y, float rowH)
+    {
+        var cells = r.Cells;
+        if (cells == null || cells.Length == 0) return;
+        int n = cells.Length;
+        const float cellGap = 2f;
+        float top = y + (rowH - r.BarHeight) / 2f;
+        float cellW = (innerR - innerL - cellGap * (n - 1)) / n;
+        if (cellW <= 0) return;
+        for (int i = 0; i < n; i++)
+        {
+            float cx = innerL + i * (cellW + cellGap);
+            var a = new Vector2(cx, top);
+            var b = new Vector2(cx + cellW, top + r.BarHeight);
+            dl.AddRectFilled(a, b, U32(r.TrackColor));
+            float f = Math.Clamp(cells[i], 0f, 1f);
+            if (f > 0.01f) dl.AddRectFilled(a, new Vector2(cx + cellW * f, b.Y), U32(r.FillA));
+        }
+    }
+
+    // XP-penalty safe-zone axis: severity flank bands, a green safe band with edge lines, cyan marker.
+    private void DrawAxisRow(ImDrawListPtr dl, in PanelLine r, float innerL, float innerR, float y, float rowH)
+    {
+        int cl = r.CharLevel, al = r.AreaLevel;
+        int safe = SafeZone(cl);
+        float half = Math.Max(safe + 5, 8);
+        float top = y + (rowH - r.BarHeight) / 2f;
+        float w = innerR - innerL;
+        var a = new Vector2(innerL, top);
+        var b = new Vector2(innerR, top + r.BarHeight);
+
+        void Band(float p0, float p1, Color c0, Color c1) =>
+            dl.AddRectFilledMultiColor(new Vector2(innerL + w * p0, a.Y), new Vector2(innerL + w * p1, b.Y),
+                U32(c0), U32(c1), U32(c1), U32(c0));
+        Band(0f, 0.26f, AxisFlankRed, AxisFlankAmber);
+        Band(0.26f, 0.5f, AxisFlankAmber, AxisFlankGrey);
+        Band(0.5f, 0.74f, AxisFlankGrey, AxisFlankAmber);
+        Band(0.74f, 1f, AxisFlankAmber, AxisFlankRed);
+
+        float safeLeft = 0.5f - safe / half * 0.5f;
+        float safeRight = 0.5f + safe / half * 0.5f;
+        var sa = new Vector2(innerL + w * safeLeft, a.Y);
+        var sb = new Vector2(innerL + w * safeRight, b.Y);
+        dl.AddRectFilled(sa, sb, U32(AxisSafeBand));
+        dl.AddLine(new Vector2(sa.X, a.Y), new Vector2(sa.X, b.Y), U32(AxisSafeEdge), 1f);
+        dl.AddLine(new Vector2(sb.X, a.Y), new Vector2(sb.X, b.Y), U32(AxisSafeEdge), 1f);
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+
+        float markerPct = Math.Clamp(0.5f + (al - cl) / half * 0.5f, 0.03f, 0.97f);
+        float mx = innerL + w * markerPct;
+        dl.AddLine(new Vector2(mx, a.Y - 3f), new Vector2(mx, b.Y + 3f), U32(AxisMarker), 2f);
     }
 
     // invisible ImGui window sized to the panel. only job: be hovered so ImGui sets WantCaptureMouse
@@ -645,7 +896,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     private (bool hovered, bool onEdge) HandleInteract(string id, ref Vector2 origin, Vector2 size,
         RangeNode<int> posX, RangeNode<int> posY, RangeNode<int> maxWidth)
     {
-        if (Settings.LockOverlays.Value)
+        // locked + no Alt: never movable. (a drag already in flight keeps going even if Alt is released.)
+        if (!OverlaysMovable && _dragId != id && _resizeId != id)
         {
             if (_dragId == id) _dragId = null;
             if (_resizeId == id) _resizeId = null;
@@ -693,7 +945,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     private (bool hovered, bool onEdge, bool active) HandleCenterInteract(string id, ref Vector2 min, Vector2 size,
         RangeNode<int> posX, RangeNode<int> posY, RangeNode<int> maxWidth)
     {
-        if (Settings.LockOverlays.Value)
+        if (!OverlaysMovable && _dragId != id && _resizeId != id)
         {
             if (_dragId == id) _dragId = null;
             if (_resizeId == id) _resizeId = null;
@@ -816,7 +1068,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         // center-anchored move/resize during preview (only when unlocked), via the shared helper.
         bool hovered = false, onEdge = false, active = false;
-        if (preview && !Settings.LockOverlays.Value)
+        if (preview && OverlaysMovable)
         {
             (hovered, onEdge, active) = HandleCenterInteract("banner", ref min, new Vector2(panelW, panelH),
                 b.PosX, b.PosY, b.MaxWidth);
@@ -831,7 +1083,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
         if (b.BorderThickness.Value > 0)
             dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, b.BorderThickness.Value);
-        if (preview && !Settings.LockOverlays.Value)
+        if (preview && OverlaysMovable)
             DrawDragHint(min, max, active, hovered, onEdge, _resizeId == "banner");
 
         uint textCol = U32(Fade(b.TextColor.Value, alpha));

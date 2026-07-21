@@ -155,6 +155,42 @@ public class OverlayStyle
     [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
 }
 
+// the XP/stats overlay: OverlayStyle fields (same names so old json loads) plus per-row visibility toggles
+// for the redesigned 2a panel. standalone, not inheriting, matching the StepsOverlayStyle pattern.
+[Submenu]
+public class CharStatsOverlayStyle
+{
+    [Menu("Enabled")]
+    public ToggleNode Enable { get; set; } = new ToggleNode(true);
+
+    [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
+    [Menu("Header color")] public ColorNode HeaderColor { get; set; } = new ColorNode(new Color(235, 200, 110, 255));
+    [Menu("Background color", "Alpha controls opacity; alpha 0 = no panel background")]
+    public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 140));
+    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(90, 90, 110, 180));
+
+    [Menu("Text size", "Font height in pixels")]
+    public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(16f, 8f, 48f);
+    [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(0, 0, 8);
+    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(20, 0, 40);
+
+    // -- what to show, one row/block each. all on by default (matches the old always-shown panel). --
+    [Menu("Show run/act timers")] public ToggleNode ShowTimers { get; set; } = new ToggleNode(true);
+    [Menu("Show XP bar")] public ToggleNode ShowXpBar { get; set; } = new ToggleNode(true);
+    [Menu("Show XP/h")] public ToggleNode ShowXpRate { get; set; } = new ToggleNode(true);
+    [Menu("Show XP to level")] public ToggleNode ShowXpToGo { get; set; } = new ToggleNode(true);
+    [Menu("Show ETA to level")] public ToggleNode ShowEta { get; set; } = new ToggleNode(true);
+
+    // XP penalty display: 0 = Bar (safe-zone axis + ticks + label), 1 = Text (just the line), 2 = Off.
+    [Menu("XP penalty display")]
+    public RangeNode<int> PenaltyMode { get; set; } = new RangeNode<int>(0, 0, 2);
+
+    // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(69, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(466, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
+}
+
 // corner markers on inventory items and outlines on quest rewards that are part of the build.
 [Submenu]
 public class BuildIndicatorStyle
@@ -222,6 +258,12 @@ public class StepsOverlayStyle
     public RangeNode<int> StepsBehind { get; set; } = new RangeNode<int>(2, 0, 12);
     [Menu("Steps shown ahead", "How many upcoming steps to show below the current one")]
     public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(7, 0, 12);
+
+    // -- progress bars above the step list (redesigned 3b panel), on by default --
+    [Menu("Show campaign progress bar", "Segmented 10-act bar + overall percent above the steps")]
+    public ToggleNode ShowCampaignBar { get; set; } = new ToggleNode(true);
+    [Menu("Show act progress bar", "Per-act progress bar + percent above the steps")]
+    public ToggleNode ShowActBar { get; set; } = new ToggleNode(true);
 
     // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
     [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(69, 0, 4000);
@@ -353,7 +395,7 @@ public class ExileCampaignsSettings : ISettings
     public StepsOverlayStyle Steps { get; set; } = new StepsOverlayStyle();
 
     [Menu("Statistics", "Run timer + per-act split, level, XP%, current area, level gap, route progress, xp/hour")]
-    public OverlayStyle CharStats { get; set; } = new OverlayStyle { PosX = new RangeNode<int>(69, 0, 4000), PosY = new RangeNode<int>(466, 0, 2160), Padding = new RangeNode<int>(20, 0, 40) };
+    public CharStatsOverlayStyle CharStats { get; set; } = new CharStatsOverlayStyle();
 
     [Menu("Build planner", "What to equip now and what unlocks next, from the active build set")]
     public OverlayStyle BuildPanel { get; set; } = new OverlayStyle
