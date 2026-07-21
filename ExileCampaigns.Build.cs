@@ -1339,7 +1339,7 @@ public partial class ExileCampaigns
         while (stack.Count > 0)
         {
             var el = stack.Pop();
-            if (el == null || el.Address == 0) continue;
+            if (el == null || el.Address == 0 || !el.IsVisibleLocal) continue; // skip hidden tabs' stale items
             if (el.Type == ElementType.InventoryItem) { yield return el; continue; }
             var kids = el.Children;
             if (kids == null) continue;
