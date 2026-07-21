@@ -29,7 +29,8 @@ public sealed class BuildEntry
     public int RequiredLevel { get; set; }
     public string Note { get; set; } = "";
     public bool Optional { get; set; }        // pob socket-group flagged optional
-    public bool Used { get; set; }            // sticky once detected
+    public bool Used { get; set; }            // "had": set by auto-detect OR a manual mark. sticky once set
+    public bool Equipped { get; set; }        // set ONLY by auto-detect (actually worn/socketed), not manual mark
 }
 
 // one level bracket's whole loadout. gear carried across brackets is duplicated per set on purpose.

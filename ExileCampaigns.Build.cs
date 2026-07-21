@@ -86,7 +86,7 @@ public partial class ExileCampaigns
 
         var claim = ClaimUnused(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Equipment);
         if (claim == null) return false;
-        claim.Used = true;
+        claim.Used = claim.Equipped = true;
         return true;
     }
 
@@ -119,7 +119,7 @@ public partial class ExileCampaigns
                 if (!snap.IsSupport)
                 {
                     var claim = ClaimUnused(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Gem && !e.IsSupport);
-                    if (claim != null) { claim.Used = true; changed = true; }
+                    if (claim != null) { claim.Used = claim.Equipped = true; changed = true; }
                     continue;
                 }
 
@@ -141,7 +141,7 @@ public partial class ExileCampaigns
                 // than this fallback.
                 support ??= ClaimUnused(matches, levelSet, e => e.Kind == BuildItemKind.Gem && e.IsSupport && _build.FindEntry(e.LinkedToId) == null);
 
-                if (support != null) { support.Used = true; changed = true; }
+                if (support != null) { support.Used = support.Equipped = true; changed = true; }
             }
         }
 
@@ -587,10 +587,10 @@ public partial class ExileCampaigns
 
             ImGui.TableNextColumn();
             bool have = e.Used;
-            // manual "I've got this" - hides it from the overlay. detector still re-marks anything
-            // actually worn, so unchecking a truly-equipped item won't stick.
-            if (ImGui.Checkbox("##have", ref have)) { e.Used = have; SaveBuild(); }
-            if (ImGui.IsItemHovered()) ImGui.SetTooltip("mark as equipped / owned");
+            // manual "I've got this" - hides it from the overlay, labelled "(have)" not "(equipped)".
+            // detector still re-marks anything actually worn, so unchecking a truly-equipped item won't stick.
+            if (ImGui.Checkbox("##have", ref have)) { e.Used = have; if (!have) e.Equipped = false; SaveBuild(); }
+            if (ImGui.IsItemHovered()) ImGui.SetTooltip("mark as owned (have)");
 
             ImGui.TableNextColumn();
             bool opt = e.Optional;
@@ -1434,7 +1434,8 @@ public partial class ExileCampaigns
         {
             string num = e.Used ? "have" : e.TargetLevel <= _playerLevel ? "now" : $"L{e.TargetLevel}";
             string name = (support ? "+ " : "") + e.Name;
-            if (e.Used) name += "  (equipped)";
+            if (e.Equipped) name += "  (equipped)";
+            else if (e.Used) name += "  (have)";
             if (e.Optional) name += "  (optional)";
             var col = e.Optional ? s.OptionalColor.Value
                 : e.Used ? BuildHave
