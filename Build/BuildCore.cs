@@ -251,7 +251,7 @@ public sealed class PobItemSet
 {
     public string Title { get; init; } = "";
     public int Id { get; init; }
-    public int[] Markers { get; init; } = Array.Empty<int>();
+    public string[] Markers { get; init; } = Array.Empty<string>();
     public List<PobSlot> Slots { get; init; } = new();
 }
 
@@ -267,7 +267,7 @@ public sealed class PobSkillSet
 {
     public string Title { get; init; } = "";
     public int Id { get; init; }
-    public int[] Markers { get; init; } = Array.Empty<int>();
+    public string[] Markers { get; init; } = Array.Empty<string>();
     public List<PobLinkGroup> Groups { get; init; } = new();
 }
 
@@ -470,14 +470,17 @@ public static class PobImport
     // "<< Damage Skills >>" style dividers identify a group but must not be attached as a skill's note
     public static bool IsDivider(string label) => Regex.IsMatch(label, @"^<{1,}.*>{1,}$");
 
-    // the {n} numbers in a title, e.g. "{4,5}" -> [4,5]
-    public static int[] StageMarkers(string title)
+    // tokens inside {…} in a title. PoB loadout links allow alphanumerics ("{early}", "{1,2}");
+    // campaign guides often use pure numbers. compared case-insensitively by PickSkillSet.
+    public static string[] StageMarkers(string title)
     {
-        var m = Regex.Match(title, @"\{([\d,\s]+)\}");
-        if (!m.Success) return Array.Empty<int>();
+        var m = Regex.Match(title, @"\{([\w,\s]+)\}");
+        if (!m.Success) return Array.Empty<string>();
         return m.Groups[1].Value.Split(',')
-            .Select(p => int.TryParse(p.Trim(), out var n) ? n : -1)
-            .Where(n => n >= 0).ToArray();
+            .Select(p => p.Trim())
+            .Where(p => p.Length > 0)
+            .Select(p => p.ToLowerInvariant())
+            .ToArray();
     }
 
     // title -> level bracket. Parsed=false means "no range found, caller should default to 1-100 and flag it".

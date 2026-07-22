@@ -881,20 +881,43 @@ public partial class ExileCampaigns
         return sets;
     }
 
+    // PoB "loadouts" are not a separate export node: creating one clones tree/item/skill/config sets that
+    // share a title (and optionally a {marker}). gear already follows each ItemSet; gems must follow the
+    // matching SkillSet. never paste ActiveSkillSetId onto every set — that is the active loadout only.
     private PobSkillSet? PickSkillSet(PobBuild b, PobItemSet iset, PairingMode mode)
     {
+        if (b.SkillSets.Count == 0) return null;
+        if (b.SkillSets.Count == 1) return b.SkillSets[0];   // one skill bank shared by every gear set
+
+        // stage markers {1} / {early,2} — campaign guides and PoB's special loadout links
         if (mode == PairingMode.MergeByMarker && iset.Markers.Length > 0)
         {
             var best = b.SkillSets
-                .Select(s => (set: s, overlap: s.Markers.Count(iset.Markers.Contains)))
+                .Select(s => (set: s, overlap: s.Markers.Count(m => iset.Markers.Contains(m))))
                 .Where(x => x.overlap > 0)
                 .OrderByDescending(x => x.overlap)
                 .Select(x => x.set)
                 .FirstOrDefault();
             if (best != null) return best;
         }
+
+        // loadout default: exact title match ("Level 1-12" item set <-> "Level 1-12" skill set)
+        var itemTitle = LoadoutTitle(iset.Title);
+        var byTitle = b.SkillSets.FirstOrDefault(s =>
+            string.Equals(LoadoutTitle(s.Title), itemTitle, StringComparison.OrdinalIgnoreCase));
+        if (byTitle != null) return byTitle;
+
+        // same numeric id when sets were created in lockstep (not guaranteed — titles can diverge ids)
+        var byId = b.SkillSets.FirstOrDefault(s => s.Id == iset.Id && iset.Id != 0);
+        if (byId != null) return byId;
+
+        // last resort only: active skill set is "currently selected in PoB", not a per-set default
         return b.SkillSets.FirstOrDefault(x => x.Id == b.ActiveSkillSetId) ?? b.SkillSets.FirstOrDefault();
     }
+
+    // PoB treats a blank title as "Default" when syncing loadouts
+    private static string LoadoutTitle(string title) =>
+        string.IsNullOrWhiteSpace(title) ? "Default" : title.Trim();
 
     private BuildSet BuildOneSet(PobBuild b, string name, int min, int max,
         PobItemSet? iset, PobSkillSet? sset, List<string> droppedGems)
