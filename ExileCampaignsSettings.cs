@@ -186,9 +186,9 @@ public class CharStatsOverlayStyle
     public RangeNode<int> PenaltyMode { get; set; } = new RangeNode<int>(0, 0, 2);
 
     // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
-    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(69, 0, 4000);
-    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(466, 0, 2160);
-    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(40, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(60, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(400, 0, 2000);
 }
 
 // corner markers on inventory items and outlines on quest rewards that are part of the build.
@@ -257,7 +257,7 @@ public class StepsOverlayStyle
     [Menu("Steps shown behind", "How many completed steps to show above the current one")]
     public RangeNode<int> StepsBehind { get; set; } = new RangeNode<int>(0, 0, 12);
     [Menu("Steps shown ahead", "How many upcoming steps to show below the current one")]
-    public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(7, 0, 12);
+    public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(3, 0, 12);
 
     // -- progress bars above the step list (redesigned 3b panel), on by default --
     [Menu("Show campaign progress bar", "Segmented 10-act bar + overall percent above the steps")]
@@ -266,9 +266,9 @@ public class StepsOverlayStyle
     public ToggleNode ShowActBar { get; set; } = new ToggleNode(true);
 
     // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
-    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(69, 0, 4000);
-    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(637, 0, 2160);
-    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(998, 0, 2000);
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(40, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(300, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(400, 0, 2000);
 }
 
 // transient top-centre banner shown when the tracker auto-advances on a zone change
@@ -406,8 +406,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Build planner", "What to equip now and what unlocks next, from the active build set")]
     public OverlayStyle BuildPanel { get; set; } = new OverlayStyle
     {
-        PosX = new RangeNode<int>(69, 0, 4000),
-        PosY = new RangeNode<int>(700, 0, 2160),
+        PosX = new RangeNode<int>(40, 0, 4000),
+        PosY = new RangeNode<int>(680, 0, 2160),
+        MaxWidth = new RangeNode<int>(400, 0, 2000),
         Padding = new RangeNode<int>(20, 0, 40),
     };
 
