@@ -1059,13 +1059,10 @@ public partial class ExileCampaigns
         }
         finally { ImGui.Unindent(12f); }
     }
-}
 
-// floating dev triage panel (Settings.Dev.ShowTriageButtons). quick-add steps/objectives seeded from live
-// state, plus fast-path controls: move/delete the current step, bind EnterArea/quest-flag advances, and
-// set paths from the zone's Radar targets.
-public partial class ExileCampaigns
-{
+    // floating dev triage panel (Settings.Dev.ShowTriageButtons). quick-add steps/objectives seeded from live
+    // state, plus fast-path controls: move/delete the current step, bind EnterArea/quest-flag advances, and
+    // set paths from the zone's Radar targets.
     private bool _triageDeleteConfirm;
     private string? _triageLastStepId;
     private string _triageRenameBuf = "";
@@ -1250,7 +1247,7 @@ public partial class ExileCampaigns
         var o = objs[objIdx];
         var newPath = new GuidePath(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy));
         var updated = replace
-            ? o with { Paths = new System.Collections.Generic.List<GuidePath> { newPath } }
+            ? o with { Paths = new List<GuidePath> { newPath } }
             : RouteEditing.AddPath(o, newPath);
         objs[objIdx] = updated;
         _routeStore.Update(step with { Objectives = objs });
@@ -1379,7 +1376,7 @@ public partial class ExileCampaigns
         var o = objs[objIdx];
         var newPath = new GuidePath(new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path));
         var updated = replace
-            ? o with { Paths = new System.Collections.Generic.List<GuidePath> { newPath } }
+            ? o with { Paths = new List<GuidePath> { newPath } }
             : RouteEditing.AddPath(o, newPath);
         objs[objIdx] = updated;
         _routeStore.Update(step with { Objectives = objs });

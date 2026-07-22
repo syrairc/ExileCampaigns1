@@ -205,14 +205,11 @@ public partial class ExileCampaigns
         try { Process.Start("explorer.exe", $"/select,\"{filePath}\""); }
         catch (Exception ex) { LogError($"ExileCampaigns -> open diagnostics folder failed: {ex.Message}"); }
     }
-}
 
-// Quest-flag harvester (dev tool). ServerData.QuestFlags: ~2240 booleans for the whole game (campaign
-// + legacy + tutorials/UI). Campaign flags read under names like "G1_2.../VisitedG1_2/WaterLevelLoweredSeen"
-// but per-step flag isn't guessable, so when LogQuestFlags is on we snapshot and log every newly-true flag
-// with its area+step. A play session then yields raw (flag -> step) pairs to curate into a static map.
-public partial class ExileCampaigns
-{
+    // Quest-flag harvester (dev tool). ServerData.QuestFlags: ~2240 booleans for the whole game (campaign
+    // + legacy + tutorials/UI). Campaign flags read under names like "G1_2.../VisitedG1_2/WaterLevelLoweredSeen"
+    // but per-step flag isn't guessable, so when LogQuestFlags is on we snapshot and log every newly-true flag
+    // with its area+step. A play session then yields raw (flag -> step) pairs to curate into a static map.
     private HashSet<string>? _flagSnapshot;   // names true as of last poll (null = not seeded yet)
     private DateTime _lastFlagPoll;
     private string FlagLogPath => Path.Combine(ConfigDirectory, "quest-flag-harvest.jsonl");
@@ -461,7 +458,7 @@ public partial class ExileCampaigns
         int pgx = 0, pgy = 0;
         try
         {
-            var pos = GameController?.Player?.GetComponent<ExileCore.PoEMemory.Components.Positioned>();
+            var pos = GameController?.Player?.GetComponent<Positioned>();
             if (pos != null) { pgx = pos.GridX; pgy = pos.GridY; }
         }
         catch { }
@@ -476,7 +473,7 @@ public partial class ExileCampaigns
                 if (e == null || !e.IsValid) continue;
                 var path = e.Path ?? "";
                 if (!path.Contains("AreaTransition") && !path.Contains("Waypoint")) continue;
-                var pos = e.GetComponent<ExileCore.PoEMemory.Components.Positioned>();
+                var pos = e.GetComponent<Positioned>();
                 rows.Add((path, e.RenderName ?? "", pos?.GridX ?? 0, pos?.GridY ?? 0));
             }
         }
@@ -516,7 +513,7 @@ public partial class ExileCampaigns
         int pgx = 0, pgy = 0;
         try
         {
-            var pos = GameController?.Player?.GetComponent<ExileCore.PoEMemory.Components.Positioned>();
+            var pos = GameController?.Player?.GetComponent<Positioned>();
             if (pos != null) { pgx = pos.GridX; pgy = pos.GridY; }
         }
         catch { }
@@ -697,7 +694,7 @@ public partial class ExileCampaigns
     // AreaTransitions you aren't standing next to -- the live entity pickers can't surface those
     // (out-of-range exits are IsValid=false / unnamed). feeds the editor's click-to-set target picker.
     // parsing (kind mapping, strip "*", flatten Alternatives, merge the global block) is the pure Guide helper.
-    internal List<Guide.RadarTargetsFile.Pick> RadarFileTargetsList()
+    internal List<RadarTargetsFile.Pick> RadarFileTargetsList()
     {
         try
         {
@@ -716,11 +713,8 @@ public partial class ExileCampaigns
         int at = leaf.IndexOf('@');
         return at >= 0 ? leaf.Substring(0, at) : leaf;
     }
-}
 
-// Run timer (total + per-act splits), level/XP, current area, level-vs-area gap, route progress, xp/hour.
-public partial class ExileCampaigns
-{
+    // Run timer (total + per-act splits), level/XP, current area, level-vs-area gap, route progress, xp/hour.
     private DateTime _runStart;
     private DateTime _actStart;
     private int _timerAct = -1;

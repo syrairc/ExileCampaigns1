@@ -21,11 +21,11 @@ public static class WaypointSlots
             "The Submerged Passage",  // 7
             "The Ledge",              // 8
             "The Climb",              // 9
-            "The Prison",             // 10
+            "The Lower Prison",       // 10  (game area for the act-1 prison waypoint)
             "Prisoner's Gate",        // 11
             "The Ship Graveyard",     // 12
             "The Ship Graveyard Cave",// 13
-            "Merveil's Caverns",      // 14
+            "The Cavern of Wrath",    // 14  (map label is "Merveil's Caverns")
         },
         [2] = new[]
         {
@@ -104,7 +104,7 @@ public static class WaypointSlots
             "The Mud Flats",          // 4
             "The Karui Fortress",     // 5
             "The Ridge",              // 6
-            "The Prison",             // 7
+            "The Lower Prison",       // 7  (game area for the act-6 prison waypoint)
             "Prisoner's Gate",        // 8
             "The Western Forest",     // 9
             "The Riverways",          // 10

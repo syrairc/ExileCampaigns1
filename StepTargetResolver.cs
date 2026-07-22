@@ -354,21 +354,21 @@ public sealed class StepTargetResolver
 
     // the LivingOnly gate for guidance Entity targets: entity is actually alive (Life present, CurrentHP > 0).
     // Entity.IsAlive is null-Life-safe (no Life -> false), so a corpse or a lifeless prop sharing the name fails.
-    private static bool IsLiving(ExileCore.PoEMemory.MemoryObjects.Entity e)
+    private static bool IsLiving(Entity e)
         => e.IsAlive;
 
-    private static bool HasGrid(ExileCore.PoEMemory.MemoryObjects.Entity e)
+    private static bool HasGrid(Entity e)
         => e.GetComponent<Positioned>() != null;
 
     // the path to identity-match an entity on. a ground item is a WorldItem shell whose own Path is generic;
     // its base-type identity (what the editor picker captured) lives on the held item entity. position still
     // comes from the shell via GridOf, so the arrow/path/icon lands on the drop.
-    private static string? MatchPath(ExileCore.PoEMemory.MemoryObjects.Entity e)
+    private static string? MatchPath(Entity e)
         => e.Type == EntityType.WorldItem
             ? (e.GetComponent<WorldItem>()?.ItemEntity?.Path ?? e.Path)
             : e.Path;
 
-    private static Vector2 GridOf(ExileCore.PoEMemory.MemoryObjects.Entity e)
+    private static Vector2 GridOf(Entity e)
     {
         var pos = e.GetComponent<Positioned>();
         return new Vector2(pos.GridX, pos.GridY);

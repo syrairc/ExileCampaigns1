@@ -224,15 +224,14 @@ public partial class ExileCampaigns
             return n;
         }
     }
-}
 
-// pulse detection for the two flagless advance triggers: waypoint activation and fresh login.
-public partial class ExileCampaigns
-{
-    // "Get Waypoint" steps (ActivateWaypoint objective) advance when PoE1 sets the WaypointUnlocked quest flag.
-    // edge-triggered: pulse only on a fresh false->true so a waypoint already unlocked doesn't complete the step.
+    // pulse detection for the two flagless advance triggers: waypoint activation and fresh login.
+    // "Get Waypoint" steps (ActivateWaypoint objective) advance on AchievementCheckWaypoints, which pulses
+    // false->true each time you activate a waypoint. (WaypointUnlocked was wrong - it's a near one-time flag,
+    // set on your first waypoint ever and then stuck true, so the edge only ever fired once per character.)
+    // edge-triggered so an already-set flag doesn't auto-complete the step.
     // _progress.WaypointPulsed clears on step change (new ProgressTracker), same as the login pulse.
-    private const string WaypointUnlockedFlag = "WaypointUnlocked";
+    private const string WaypointFlag = "AchievementCheckWaypoints";
     private bool _wpFlagWasSet;
     private bool _wpFirstPoll = true;
     private void UpdateWaypointPulse()
@@ -241,7 +240,7 @@ public partial class ExileCampaigns
         if (flags == null) return;
         bool nowSet = false;
         foreach (var kv in flags)
-            if (kv.Value && kv.Key.ToString() == WaypointUnlockedFlag) { nowSet = true; break; }
+            if (kv.Value && kv.Key.ToString() == WaypointFlag) { nowSet = true; break; }
         if (_wpFirstPoll) { _wpFirstPoll = false; _wpFlagWasSet = nowSet; return; }
         if (nowSet && !_wpFlagWasSet) _progress.WaypointPulsed = true;
         _wpFlagWasSet = nowSet;
@@ -264,11 +263,8 @@ public partial class ExileCampaigns
         if (t + 2f < _lastTimeInGame) _progress.LoggedInPulse = true;
         _lastTimeInGame = t;
     }
-}
 
-// ExileCampaigns/ExileCampaigns.Sync.cs
-public partial class ExileCampaigns
-{
+
     // manual sync: re-point the tracker at the character's real progress from live quest flags + area.
     private void SyncToCharacter()
     {

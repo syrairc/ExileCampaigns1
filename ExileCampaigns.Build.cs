@@ -5,16 +5,13 @@ using ExileCampaigns.Build;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Enums;
-using ExileCore;
 using ImGuiNET;
 using SharpDX;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Elements.InventoryElements;
 using ExileCore.PoEMemory.Elements;
 using Vector2 = System.Numerics.Vector2;
-using Vector3 = System.Numerics.Vector3;
 using Vector4 = System.Numerics.Vector4;
-using RectangleF = SharpDX.RectangleF;
 
 namespace ExileCampaigns;
 
@@ -147,11 +144,7 @@ public partial class ExileCampaigns
 
         return changed;
     }
-}
 
-// Build tab: level-bracketed sets on the left, that set's entries on the right.
-public partial class ExileCampaigns
-{
     private string? _selectedSetId;
 
     private BuildSet? SelectedSet =>
@@ -196,11 +189,25 @@ public partial class ExileCampaigns
         DrawSetList();
         ImGui.SameLine();
         DrawSetDetail();
+
+        ImGui.SeparatorText("Build indicators");
+        var bi = Settings.BuildIndicators;
+        Toggle("Enabled##bi", bi.Enable);
+        Toggle("Highlight quest rewards##bi", bi.HighlightQuestRewards, "Outline quest reward offers that are in your build");
+        Toggle("Highlight vendor items##bi", bi.HighlightVendorItems, "Outline vendor/merchant items that are in your build");
+        Toggle("Highlight stash items##bi", bi.HighlightStashItems, "Outline stash items that are in your build (gems tab + normal tabs)");
+        Toggle("Mark inventory items##bi", bi.MarkInventory, "Corner marker on inventory items that are in your build");
+        ColorEdit("Equipped color##bi", bi.UsedColor, "Already worn or socketed");
+        ColorEdit("Usable now color##bi", bi.EquippableColor);
+        ColorEdit("Soon color##bi", bi.SoonColor);
+        ColorEdit("Later color##bi", bi.LaterColor);
+        SliderInt("Soon window##bi", bi.SoonWindow, "Levels away from the target level that still count as soon");
+        SliderFloat("Marker size##bi", bi.Size);
     }
 
     private void DrawSetList()
     {
-        ImGui.BeginChild("##ec_setlist", new Vector2(220, 320), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_setlist", new Vector2(220, 520), ImGuiChildFlags.Border);
 
         if (ImGui.Button("Add set", new Vector2(-1, 0)))
         {
@@ -226,7 +233,7 @@ public partial class ExileCampaigns
     private void DrawSetDetail()
     {
         var set = SelectedSet;
-        ImGui.BeginChild("##ec_setdetail", new Vector2(0, 320), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_setdetail", new Vector2(0, 520), ImGuiChildFlags.Border);
 
         if (set == null)
         {
@@ -340,7 +347,7 @@ public partial class ExileCampaigns
             MaxLevel = src.MaxLevel,
         };
 
-        var idMap = new System.Collections.Generic.Dictionary<string, string>();
+        var idMap = new Dictionary<string, string>();
         foreach (var e in src.Entries)
         {
             var clone = new BuildEntry
@@ -548,7 +555,7 @@ public partial class ExileCampaigns
 
         if (!ImGui.BeginTable("##ec_entries", 7,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
-                new Vector2(0, 220)))
+                new Vector2(0, 420)))
             return;
 
         ImGui.TableSetupScrollFreeze(0, 1);
@@ -612,10 +619,7 @@ public partial class ExileCampaigns
             SaveBuild();
         }
     }
-}
 
-public partial class ExileCampaigns
-{
     private enum PairingMode { MergeByMarker, OnePerItemSet, SingleSet }
 
     // a socket group whose label names none of its own gems (a shopping list or stray note, not a real link).
@@ -1202,12 +1206,9 @@ public partial class ExileCampaigns
         _importError = "";
         _importReplace = false;
     }
-}
 
-// corner markers on inventory items in the build, and outlines on quest rewards in the build. both route
-// through BuildIndex, so a reward and an inventory item can never disagree about what is planned.
-public partial class ExileCampaigns
-{
+    // corner markers on inventory items in the build, and outlines on quest rewards in the build. both route
+    // through BuildIndex, so a reward and an inventory item can never disagree about what is planned.
     private Color IndicatorColor(BuildEntry e)
     {
         var s = Settings.BuildIndicators;
@@ -1379,12 +1380,9 @@ public partial class ExileCampaigns
         }
         catch { /* hover/window mid-teardown */ }
     }
-}
 
-// build overlay: from the active set, what you can equip now and what unlocks next. reads the build
-// directly, ignoring route steps. used entries drop off.
-public partial class ExileCampaigns
-{
+    // build overlay: from the active set, what you can equip now and what unlocks next. reads the build
+    // directly, ignoring route steps. used entries drop off.
     // first set whose range covers the character, no pin. overlaps are first-wins by design: validating
     // ranges would buy a modal error in exchange for nothing.
     private BuildSet? LevelSet() =>
@@ -1473,12 +1471,7 @@ public partial class ExileCampaigns
 
         return lines;
     }
-}
 
-// reads an item entity into a small comparable struct. every read is wrapped, so a stale or half-written
-// item just yields Valid=false rather than throwing into the render loop.
-public partial class ExileCampaigns
-{
     internal readonly struct ItemSnapshot
     {
         public readonly string Name;

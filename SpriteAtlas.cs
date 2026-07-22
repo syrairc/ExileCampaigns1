@@ -8,7 +8,7 @@ using RectangleF = SharpDX.RectangleF; // ExileCore DrawImage overload uses Shar
 
 namespace ExileCampaigns.Rendering;
 
-/// <summary>Index of each icon in Icons_Desaturated.png (row-major, 0-based).</summary>
+// index of each icon in Icons_Desaturated.png (row-major, 0-based)
 public enum SpriteIcon
 {
     // Row 0 : filled solid shapes
@@ -31,7 +31,7 @@ public enum SpriteIcon
     KiteOutline = 44, ShieldOutline = 45, HeartOutline = 46, RingThin = 47,
 }
 
-/// <summary>UV / source-rect helpers for the desaturated icon atlas.</summary>
+// uv / source-rect helpers for the desaturated icon atlas
 public static class SpriteAtlas
 {
     public const int AtlasWidth = 1024;
@@ -41,18 +41,18 @@ public static class SpriteAtlas
 
     public const string FileName = "Icons_Desaturated.png";
 
-    /// <summary>SpriteIcon for a stored name (case-insensitive). Unknown / empty -> Exclamation.</summary>
+    // SpriteIcon for a stored name (case-insensitive). unknown / empty -> Exclamation
     public static SpriteIcon Parse(string? key) =>
         System.Enum.TryParse<SpriteIcon>(key, true, out var v) ? v : SpriteIcon.Exclamation;
 
-    /// <summary>Top-left pixel of the icon's cell.</summary>
+    // top-left pixel of the icon's cell
     private static (int X, int Y) GetCell(SpriteIcon icon)
     {
         int i = (int)icon;
         return ((i % Columns) * CellSize, (i / Columns) * CellSize);
     }
 
-    /// <summary>Normalised UVs as (Uv0 top-left, Uv1 bottom-right) corner pair.</summary>
+    // normalised uvs as (Uv0 top-left, Uv1 bottom-right) corner pair
     public static (Vector2 Uv0, Vector2 Uv1) GetUVPair(SpriteIcon icon)
     {
         var (x, y) = GetCell(icon);
@@ -61,22 +61,22 @@ public static class SpriteAtlas
         return (uv0, uv1);
     }
 
-    /// <summary>V-flipped corner pair (swaps V) so an upward sprite renders pointing down.</summary>
+    // v-flipped corner pair (swaps V) so an upward sprite renders pointing down
     public static (Vector2 TopLeftUv, Vector2 BottomRightUv) GetUVPairFlippedV(SpriteIcon icon)
     {
         var (uv0, uv1) = GetUVPair(icon);
         return (new Vector2(uv0.X, uv1.Y), new Vector2(uv1.X, uv0.Y));
     }
 
-    /// <summary>Normalised UV rectangle (x, y, w, h) for the Graphics.DrawImage(..., RectangleF uv, ...) overload.</summary>
+    // normalised uv rectangle (x, y, w, h) for the Graphics.DrawImage(..., RectangleF uv, ...) overload
     public static RectangleF GetUVRect(SpriteIcon icon)
     {
         var (uv0, uv1) = GetUVPair(icon);
         return new RectangleF(uv0.X, uv0.Y, uv1.X - uv0.X, uv1.Y - uv0.Y);
     }
 
-    /// <summary>V-flipped UV rect (negative height) so an upward sprite renders pointing down.
-    /// DrawImage forwards uv to ImGui's AddImage, which flips when uv1.Y &lt; uv0.Y.</summary>
+    // v-flipped uv rect (negative height) so an upward sprite renders pointing down.
+    // DrawImage forwards uv to ImGui's AddImage, which flips when uv1.Y < uv0.Y
     public static RectangleF GetUVRectFlippedV(SpriteIcon icon)
     {
         var (uv0, uv1) = GetUVPair(icon);

@@ -103,7 +103,7 @@ internal readonly struct PanelLine
 public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 {
     private readonly RouteRepository _route = new();
-    private Guide.RouteStore? _routeStore;
+    private RouteStore? _routeStore;
 
     // the editor's selected step (RouteStep.Id), independent of the tracker's Current. set by the editor tree,
     // the triage quick-add, and the reports-tab deep-link; survives a store reload.
@@ -180,7 +180,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     private void LoadRoutes()
     {
         var doc = LoadRouteDocument();
-        _routeStore = new Guide.RouteStore(doc);
+        _routeStore = new RouteStore(doc);
         _route.LoadFromDocument(_routeStore.ToDocument());
 
         if (_route.Steps.Count == 0)
@@ -200,6 +200,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         int prevCurrent = _route.Current;
         _route.LoadFromDocument(_routeStore.ToDocument());
         _mmiCacheKey = null;
+        _lastStepForTarget = -1;   // editing the current step keeps its index, force the path to re-resolve
         if (_route.Steps.Count > 0)
             _route.SetCurrent(Math.Min(prevCurrent, _route.Steps.Count - 1));
         if (selectId != null && _route.Steps.Any(f => f.Model?.Id == selectId))
@@ -269,7 +270,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         // the hold gates advance after a manual backtrack, but lets a fresh completion edge (quest flag flip)
         // through so real progress still advances. all the branch logic lives in the pure AdvanceHold helper.
         var d = Guide.AdvanceHold.Evaluate(
-            new Guide.AdvanceHold.State(_holdAutoAdvanceUntilZone, _heldStepId, _heldSeedComplete),
+            new AdvanceHold.State(_holdAutoAdvanceUntilZone, _heldStepId, _heldSeedComplete),
             model.Id, complete);
         _holdAutoAdvanceUntilZone = d.Next.Held;
         _heldStepId = d.Next.SeedStepId;
@@ -298,6 +299,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
         if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
         if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
+
+        DrainPendingRouteFile();   // pick up a finished export/import file dialog (runs off the render thread)
 
         try
         {
@@ -943,9 +946,9 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     // toasts). move writes centre X / top Y; resize sets MaxWidth symmetric about the centre. mutates `min`
     // to follow a move so the caller can keep drawing this frame. returns (hovered, onEdge, active).
     private (bool hovered, bool onEdge, bool active) HandleCenterInteract(string id, ref Vector2 min, Vector2 size,
-        RangeNode<int> posX, RangeNode<int> posY, RangeNode<int> maxWidth)
+        RangeNode<int> posX, RangeNode<int> posY, RangeNode<int> maxWidth, bool forceMovable = false)
     {
-        if (!OverlaysMovable && _dragId != id && _resizeId != id)
+        if (!OverlaysMovable && !forceMovable && _dragId != id && _resizeId != id)
         {
             if (_dragId == id) _dragId = null;
             if (_resizeId == id) _resizeId = null;
@@ -1025,23 +1028,39 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     {
         if (!Settings.Banner.Enable) return;
         var b = Settings.Banner;
+        const string sample = "ACT 1  -  Sample next-step objective (banner preview)";
         bool preview = b.Preview.Value;
+        // the preview/unlock toggle conjures a placeholder to position; Alt only unlocks a banner already showing
+        bool showSample = preview || Settings.AlertsMovable.Value;
 
         float alpha = 1f;
-        string source;
+        string? source = null;
         if (preview)
         {
-            source = _bannerText ?? "ACT 1  -  Sample next-step objective (banner preview)";
+            source = _bannerText ?? sample;
         }
-        else
+        else if (b.Persistent.Value)
         {
-            if (_bannerText == null) return;
+            source = _route.CurrentStep?.DisplayText;
+        }
+        else if (_bannerText != null)
+        {
             var elapsed = (DateTime.Now - _bannerShownAt).TotalSeconds;
-            if (elapsed >= b.DurationSeconds.Value) { _bannerText = null; return; }
-            const double fade = 0.5;
-            var remaining = b.DurationSeconds.Value - elapsed;
-            if (remaining < fade) alpha = (float)Math.Clamp(remaining / fade, 0, 1);
-            source = _bannerText;
+            if (elapsed >= b.DurationSeconds.Value) _bannerText = null;   // expired
+            else
+            {
+                const double fade = 0.5;
+                var remaining = b.DurationSeconds.Value - elapsed;
+                if (remaining < fade) alpha = (float)Math.Clamp(remaining / fade, 0, 1);
+                source = _bannerText;
+            }
+        }
+
+        // nothing live to show: only conjure a sample when preview/unlock is on (Alt alone won't force it up)
+        if (source == null)
+        {
+            if (!showSample) return;
+            source = sample;
         }
 
         var dl = ImGui.GetForegroundDrawList();
@@ -1066,12 +1085,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         float panelH = rows.Count * lineH + pad * 2;
         var min = new Vector2(b.PosX.Value - panelW / 2f, b.PosY.Value);
 
-        // center-anchored move/resize during preview (only when unlocked), via the shared helper.
+        // center-anchored move/resize: in preview, or any time via the alerts-movable toggle / Alt-drag.
+        bool draggable = showSample || AltHeld;
         bool hovered = false, onEdge = false, active = false;
-        if (preview && OverlaysMovable)
+        if (draggable)
         {
             (hovered, onEdge, active) = HandleCenterInteract("banner", ref min, new Vector2(panelW, panelH),
-                b.PosX, b.PosY, b.MaxWidth);
+                b.PosX, b.PosY, b.MaxWidth, forceMovable: true);
             if (hovered || active) DrawClickBlocker("banner", min, new Vector2(panelW, panelH));
         }
 
@@ -1083,7 +1103,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
         if (b.BorderThickness.Value > 0)
             dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, b.BorderThickness.Value);
-        if (preview && OverlaysMovable)
+        if (draggable)
             DrawDragHint(min, max, active, hovered, onEdge, _resizeId == "banner");
 
         uint textCol = U32(Fade(b.TextColor.Value, alpha));
@@ -1125,8 +1145,5 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     public override void DrawSettings()
     {
         DrawSettingsTabs();   // custom tabbed panel; profiles live in the first tab now
-        ImGuiNET.ImGui.Separator();
-        ImGuiNET.ImGui.TextDisabled($"Profile: {(string.IsNullOrEmpty(_charName) ? "(no character loaded)" : _charName)}");
-        ImGuiNET.ImGui.TextDisabled($"Route: {_route.Status ?? "not loaded"} · step {_route.Current + 1}/{_route.Steps.Count}");
     }
 }

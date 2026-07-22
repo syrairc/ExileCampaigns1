@@ -28,15 +28,17 @@ public partial class ExileCampaigns
             ImGui.EndTabItem();
         }
 
-        if (ImGui.BeginTabItem("Guide"))
+        if (ImGui.BeginTabItem("Route"))
         {
             Toggle("Auto-advance", Settings.AutoAdvance,
                 "Advance the displayed step automatically when you enter the next zone");
             Toggle("Show optional steps", Settings.ShowOptional, "Include steps marked (Opt) from the route");
             Toggle("Show league-start steps", Settings.ShowLeagueStart,
                 "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them");
-            Toggle("Highlight waypoint destination", Settings.ShowWaypointHighlight,
-                "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map");
+
+            ImGui.Separator();
+            ImGui.TextColored(new Vector4(0.92f, 0.80f, 0.43f, 1f), "Route file");
+            DrawRouteFileControls();
             ImGui.EndTabItem();
         }
 
@@ -52,6 +54,8 @@ public partial class ExileCampaigns
             ImGui.SeparatorText("Build Planner Overlay");
             DrawOverlayStyle(Settings.BuildPanel, "buildpanel");
             ImGui.SeparatorText("Waypoint overlay");
+            Toggle("Enabled##wp", Settings.WaypointOverlay.Enable,
+                "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map");
             var wo = Settings.WaypointOverlay;
             DragFloat("Center X offset##wo", wo.OffsetX, 0.0005f, "Ring centre X as a fraction of the map panel height (drag slow or ctrl+click to type)");
             DragFloat("Center Y offset##wo", wo.OffsetY, 0.0005f, "Ring centre Y as a fraction of the map panel height");
@@ -65,7 +69,7 @@ public partial class ExileCampaigns
             ImGui.EndTabItem();
         }
 
-        if (ImGui.BeginTabItem("Path & Indicator"))
+        if (ImGui.BeginTabItem("Guidance"))
         {
             ImGui.SeparatorText("Path to next step");
             var p = Settings.Path;
@@ -100,29 +104,18 @@ public partial class ExileCampaigns
             SliderInt("Icon size##mmi", mi.IconSize, "Icon size in pixels");
             SliderInt("Lookahead steps##mmi", mi.Lookahead, "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only");
             Toggle("Pulse current step##mmi", mi.PulseCurrent, "Animate the icons for the current objective so they stand out");
-
-            ImGui.SeparatorText("Build indicators");
-            var bi = Settings.BuildIndicators;
-            Toggle("Enabled##bi", bi.Enable);
-            Toggle("Highlight quest rewards##bi", bi.HighlightQuestRewards, "Outline quest reward offers that are in your build");
-            Toggle("Highlight vendor items##bi", bi.HighlightVendorItems, "Outline vendor/merchant items that are in your build");
-            Toggle("Highlight stash items##bi", bi.HighlightStashItems, "Outline stash items that are in your build (gems tab + normal tabs)");
-            Toggle("Mark inventory items##bi", bi.MarkInventory, "Corner marker on inventory items that are in your build");
-            ColorEdit("Equipped color##bi", bi.UsedColor, "Already worn or socketed");
-            ColorEdit("Usable now color##bi", bi.EquippableColor);
-            ColorEdit("Soon color##bi", bi.SoonColor);
-            ColorEdit("Later color##bi", bi.LaterColor);
-            SliderInt("Soon window##bi", bi.SoonWindow, "Levels away from the target level that still count as soon");
-            SliderFloat("Marker size##bi", bi.Size);
             ImGui.EndTabItem();
         }
 
         if (ImGui.BeginTabItem("Alerts"))
         {
+            Toggle("Unlock banner + toast alert", Settings.AlertsMovable, "Drag the banner and toasts to reposition them even when overlays are locked (Alt-drag also works). Shows a sample to grab when none is live.");
+
             ImGui.SeparatorText("Auto-advance banner");
             var b = Settings.Banner;
             Toggle("Enabled##banner", b.Enable);
             Toggle("Preview##banner", b.Preview, "Keep the banner on screen with sample text so you can place it (needs overlays unlocked)");
+            Toggle("Persistent##banner", b.Persistent, "Keep the banner up until the next auto-advance instead of fading after the duration");
             ColorEdit("Text color##banner", b.TextColor);
             ColorEdit("Background color##banner", b.BackgroundColor, "Alpha controls opacity");
             ColorEdit("Border color##banner", b.BorderColor);
@@ -178,8 +171,6 @@ public partial class ExileCampaigns
             ImGui.SeparatorText("Route editor & routes");
             Toggle("Show route editor", Settings.Editor.Enable,
                 "Show the in-game route editor panel (overlays must be unlocked to drag)");
-            Button(Settings.SyncToCharacter, "Sync tracker to character",
-                "Jump the tracker to your character's real progress (quest flags + current area)");
             Button(Settings.ReloadRoutes, "Reload routes",
                 "Re-read route files from disk (bundled, or your override under the config folder)");
 
@@ -370,14 +361,12 @@ public partial class ExileCampaigns
 
     // clamp a 0..1 channel back to a 0..255 byte
     private static int Byte(float f) => Math.Clamp((int)Math.Round(f * 255f), 0, 255);
-}
 
-// manual profile UI at top of settings: auto-switch toggle + list/load/create/delete per-character profiles under ConfigDirectory\profiles
-public partial class ExileCampaigns
-{
+    // manual profile UI at top of settings: auto-switch toggle + list/load/create/delete per-character profiles under ConfigDirectory\profiles
     private string _newProfileName = "";
     private int _selectedProfileIdx = -1;
     private string? _confirmResetProfile;   // name pending reset confirmation (two-step button)
+    private string? _confirmCopyFrom;        // source profile pending copy-into-current confirmation
 
     // display names = filenames (sans .json). PoE ids have no illegal chars so they survive SanitizeProfile, display == switch key
     private string[] ListProfiles()
@@ -436,6 +425,9 @@ public partial class ExileCampaigns
             ImGui.SetTooltip("On: the profile follows the logged-in character (<Name> - <Class> - <League>).\n" +
                              "Off: pin a profile manually below; the game character is ignored.");
 
+        Button(Settings.SyncToCharacter, "Sync tracker to character",
+            "Jump the tracker to your character's real progress (quest flags + current area)");
+
         var profiles = ListProfiles();
         if (profiles.Length > 0)
         {
@@ -480,11 +472,36 @@ public partial class ExileCampaigns
                 ImGui.SameLine();
                 if (ImGui.Button("Cancel")) _confirmResetProfile = null;
             }
+
+            // copy another profile's progress + build into the active one
+            bool canCopy = !string.IsNullOrEmpty(_charName) && sel >= 0 && sel < profiles.Length && profiles[sel] != _charName;
+            ImGui.BeginDisabled(!canCopy);
+            if (ImGui.Button("Copy into current") && canCopy)
+                _confirmCopyFrom = profiles[sel];
+            ImGui.EndDisabled();
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip(string.IsNullOrEmpty(_charName)
+                    ? "Load a profile first - this copies the selected one into the active profile."
+                    : "Copy the selected profile's route position and build into the active profile.");
+
+            if (_confirmCopyFrom != null)
+            {
+                ImGui.TextColored(new Vector4(1f, 0.5f, 0.4f, 1f),
+                    $"Copy '{_confirmCopyFrom}' into '{_charName}'? This overwrites the active profile's progress and build. Can't be undone.");
+                if (ImGui.Button("Yes, copy"))
+                {
+                    CopyProfileInto(_confirmCopyFrom);
+                    _confirmCopyFrom = null;
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Cancel##copyfrom")) _confirmCopyFrom = null;
+            }
         }
         else
         {
             ImGui.TextDisabled("(no saved profiles yet)");
             _confirmResetProfile = null;
+            _confirmCopyFrom = null;
         }
 
         ImGui.SetNextItemWidth(340);
@@ -507,12 +524,46 @@ public partial class ExileCampaigns
 
         ImGui.Separator();
     }
-}
 
-// one-shot dialog offered the first time a profile is created (manual Create or auto-switch on a new
-// character). lets the user flip the global Show-league-start setting without digging through settings.
-public partial class ExileCampaigns
-{
+    private bool _confirmResetRoute;   // route reset pending confirmation (two-step button)
+
+    // export / import / reset for the route file, drawn under the Guide tab
+    private void DrawRouteFileControls()
+    {
+        if (ImGui.Button("Export route..."))
+            ExportRoute();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Save the current route to a JSON file you pick.");
+
+        ImGui.SameLine();
+        if (ImGui.Button("Import route..."))
+            ImportRoute();
+        if (ImGui.IsItemHovered()) ImGui.SetTooltip("Load a route from a JSON file. Replaces your configured route.");
+
+        // reset only makes sense with a user copy on disk; without one you're already on the default
+        bool hasUserRoute = false;
+        try { hasUserRoute = File.Exists(UserRoutePath); } catch { /* config dir unreadable */ }
+        if (!hasUserRoute) { _confirmResetRoute = false; return; }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Reset to default"))
+            _confirmResetRoute = true;
+
+        if (_confirmResetRoute)
+        {
+            ImGui.TextColored(new Vector4(1f, 0.5f, 0.4f, 1f),
+                "Reset the route to the plugin default? This is irreversible - export your route first if you want to keep it.");
+            if (ImGui.Button("Yes, reset route"))
+            {
+                ResetRouteToDefault();
+                _confirmResetRoute = false;
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel##resetroute")) _confirmResetRoute = false;
+        }
+    }
+
+    // one-shot dialog offered the first time a profile is created (manual Create or auto-switch on a new
+    // character). lets the user flip the global Show-league-start setting without digging through settings.
     private bool _leagueStartPromptPending;   // set in SwitchProfile on a brand-new profile; cleared on answer
 
     private void DrawLeagueStartPrompt()
@@ -556,12 +607,9 @@ public partial class ExileCampaigns
 
         ImGui.EndPopup();
     }
-}
 
-// reusable toast notifications: short transient messages stacked at a fixed anchor, each fading out near
-// the end of its life. call ShowToast(...) from anywhere; DrawToasts() runs every frame in Render.
-public partial class ExileCampaigns
-{
+    // reusable toast notifications: short transient messages stacked at a fixed anchor, each fading out near
+    // the end of its life. call ShowToast(...) from anywhere; DrawToasts() runs every frame in Render.
     internal enum ToastLevel { Info, Success, Warning, Error }
 
     private sealed class Toast
@@ -600,7 +648,10 @@ public partial class ExileCampaigns
         var now = DateTime.Now;
         _toasts.RemoveAll(x => (now - x.ShownAt).TotalSeconds >= x.Duration);
         bool preview = t.Preview.Value;
-        if (_toasts.Count == 0 && !preview) return;
+        // a sample handle box lets you position toasts without waiting for one; Alt only unlocks a live toast
+        bool showSample = preview || Settings.AlertsMovable.Value;
+        bool draggable = showSample || (AltHeld && _toasts.Count > 0);
+        if (_toasts.Count == 0 && !showSample) return;
 
         var dl = ImGui.GetForegroundDrawList();
         var font = ImGui.GetFont();
@@ -628,13 +679,13 @@ public partial class ExileCampaigns
         float anchorX = t.PosX.Value;   // horizontal centre of the stack
         float y = t.PosY.Value;          // top of the stack, grows downward
 
-        // center-anchored move/resize during preview (only when unlocked), via the shared helper. the sample
+        // center-anchored move/resize when draggable (preview, alerts-movable toggle, or Alt-drag). the sample
         // box doubles as the drag handle; moving it updates PosX/PosY/MaxWidth for the real toasts too.
-        if (preview && OverlaysMovable)
+        if (draggable)
         {
             var (ssize, _) = MeasureBox("Sample toast (preview)");
             var min = new Vector2(t.PosX.Value - ssize.X / 2f, t.PosY.Value);
-            var (hovered, onEdge, active) = HandleCenterInteract("toasts", ref min, ssize, t.PosX, t.PosY, t.MaxWidth);
+            var (hovered, onEdge, active) = HandleCenterInteract("toasts", ref min, ssize, t.PosX, t.PosY, t.MaxWidth, forceMovable: true);
             if (hovered || active) DrawClickBlocker("toasts", min, ssize);
             DrawDragHint(min, min + ssize, active, hovered, onEdge, _resizeId == "toasts");
             anchorX = t.PosX.Value;   // follow a move this frame
@@ -671,7 +722,7 @@ public partial class ExileCampaigns
             y = DrawBox(toast.Text, toast.Level, alpha, y);
         }
 
-        if (preview && _toasts.Count == 0)
+        if (draggable && _toasts.Count == 0)
             DrawBox("Sample toast (preview)", ToastLevel.Info, 1f, y);
     }
 }

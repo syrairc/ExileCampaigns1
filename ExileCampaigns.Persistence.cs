@@ -67,23 +67,47 @@ public partial class ExileCampaigns
             _buildIndex.Rebuild(_build);
             var savedId = (string?)o["stepId"];
             int savedIndex = (int?)o["step"] ?? 0;
-            if (!string.IsNullOrEmpty(savedId))
-            {
-                // prefer id match: survives route reshuffles and step inserts
-                int found = -1;
-                for (int i = 0; i < _route.Steps.Count; i++)
-                    if (_route.Steps[i].Model?.Id == savedId) { found = i; break; }
-                if (found >= 0)
-                {
-                    _route.SetCurrent(found);
-                    _lastSavedStep = _route.Current;
-                    return;
-                }
-            }
-            _route.SetCurrent(savedIndex);   // SetCurrent already clamps + snaps off headers
-            _lastSavedStep = _route.Current;
+            SeekSavedStep(savedId, savedIndex);
         }
         catch { /* invalid saved progress */ }
+    }
+
+    // seek the live route to a saved position: prefer stepId (survives reshuffles/inserts), else the index.
+    // SetCurrent clamps + snaps off headers either way.
+    private void SeekSavedStep(string? savedId, int savedIndex)
+    {
+        if (!string.IsNullOrEmpty(savedId))
+        {
+            for (int i = 0; i < _route.Steps.Count; i++)
+                if (_route.Steps[i].Model?.Id == savedId) { _route.SetCurrent(i); _lastSavedStep = _route.Current; return; }
+        }
+        _route.SetCurrent(savedIndex);
+        _lastSavedStep = _route.Current;
+    }
+
+    // copy another profile's route position + build into the active profile. keeps our identity (character
+    // + filename), adopts their step and plan, then persists. irreversible: overwrites current progress+build.
+    private void CopyProfileInto(string sourceName)
+    {
+        if (string.IsNullOrEmpty(_charName) || sourceName == _charName) return;
+        try
+        {
+            var srcPath = Path.Combine(ProfilesDir, SanitizeProfile(sourceName) + ".json");
+            if (!File.Exists(srcPath)) { ShowToast("Source profile not found", ToastLevel.Error); return; }
+            var src = JObject.Parse(File.ReadAllText(srcPath));
+
+            _build = src["build"]?.ToObject<BuildPlan>() ?? new BuildPlan();
+            _buildIndex.Rebuild(_build);
+            SeekSavedStep((string?)src["stepId"], (int?)src["step"] ?? 0);
+
+            SaveProgress();   // write into the active profile file under _charName
+            ShowToast($"Copied '{sourceName}' into '{_charName}'", ToastLevel.Success);
+        }
+        catch (Exception ex)
+        {
+            LogError($"ExileCampaigns -> copy profile failed: {ex.Message}");
+            ShowToast("Copy failed", ToastLevel.Error);
+        }
     }
 
     // write current step on change (called each Tick; cheap, only writes when changed)
@@ -169,13 +193,9 @@ public partial class ExileCampaigns
         return s;
     }
 
-}
 
-// ExileCampaigns/ExileCampaigns.RouteStoreJson.cs
-// route.json runtime paths + read/write. RouteJson does the (de)serialization (Guide); this picks paths
-// and handles first-run migration from the legacy override path.
-public partial class ExileCampaigns
-{
+    // route.json runtime paths + read/write. RouteJson does the (de)serialization (Guide); this picks paths
+    // and handles first-run migration from the legacy override path.
     private string UserRoutePath => Path.Combine(ConfigDirectory, "route", "route.json");
     private string BundledRoutePath => Path.Combine(DirectoryFullName, "Data", "poe1", "route", "route.json");
 
@@ -187,7 +207,7 @@ public partial class ExileCampaigns
         if (File.Exists(BundledRoutePath))
             return RouteJson.Read(File.ReadAllText(BundledRoutePath));
         LogError("ExileCampaigns -> no route.json found (user or bundled). No steps loaded.");
-        return new RouteDocument(2, new System.Collections.Generic.List<RouteStep>());
+        return new RouteDocument(2, new List<RouteStep>());
     }
 
     // persist the current edit store to the user route.json (the copy that wins on load). data-only; no
@@ -200,7 +220,98 @@ public partial class ExileCampaigns
             Directory.CreateDirectory(Path.GetDirectoryName(UserRoutePath)!);
             File.WriteAllText(UserRoutePath, RouteJson.Write(_routeStore.ToDocument()));
         }
-        catch (System.Exception ex) { LogError($"ExileCampaigns -> user route.json write failed: {ex.Message}"); }
+        catch (Exception ex) { LogError($"ExileCampaigns -> user route.json write failed: {ex.Message}"); }
+    }
+
+    private readonly object _routeFileLock = new();
+    private (bool import, string path)? _pendingRouteFile;   // dialog result waiting for the render thread
+    private volatile bool _routeDialogOpen;                  // a picker is already up; block a second one
+
+    // export/import kick off a native file picker. ShowDialog pumps its own modal message loop, so it must
+    // NOT run on (or block) the render thread - that crashes ExileAPI. Fire it on a background STA thread
+    // with no join, then finish the work in DrainPendingRouteFile next Tick.
+    private void ExportRoute()
+    {
+        if (_routeStore == null) { ShowToast("No route loaded to export", ToastLevel.Warning); return; }
+        ShowRouteFilePicker(import: false);
+    }
+
+    private void ImportRoute() => ShowRouteFilePicker(import: true);
+
+    private void ShowRouteFilePicker(bool import)
+    {
+        if (_routeDialogOpen) return;   // one dialog at a time
+        _routeDialogOpen = true;
+        var th = new System.Threading.Thread(() =>
+        {
+            try
+            {
+                using System.Windows.Forms.FileDialog dlg = import
+                    ? new System.Windows.Forms.OpenFileDialog { Title = "Import route", CheckFileExists = true }
+                    : new System.Windows.Forms.SaveFileDialog { Title = "Export route", FileName = "route.json", DefaultExt = "json", AddExtension = true, OverwritePrompt = true };
+                dlg.Filter = "Route JSON (*.json)|*.json|All files (*.*)|*.*";
+                if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    lock (_routeFileLock) _pendingRouteFile = (import, dlg.FileName);
+            }
+            catch { /* dialog failed to open */ }
+            finally { _routeDialogOpen = false; }
+        });
+        th.SetApartmentState(System.Threading.ApartmentState.STA);
+        th.IsBackground = true;
+        th.Start();   // no Join - the render thread must keep running
+    }
+
+    // drained each Tick: finish a picked export/import on the render thread, where touching the route +
+    // toasts is safe.
+    private void DrainPendingRouteFile()
+    {
+        (bool import, string path)? pending;
+        lock (_routeFileLock) { pending = _pendingRouteFile; _pendingRouteFile = null; }
+        if (pending is not { } job) return;
+
+        if (!job.import)   // export: write the live route to the chosen path
+        {
+            try
+            {
+                if (_routeStore == null) { ShowToast("No route loaded to export", ToastLevel.Warning); return; }
+                File.WriteAllText(job.path, RouteJson.Write(_routeStore.ToDocument()));
+                ShowToast("Route exported", ToastLevel.Success);
+            }
+            catch (Exception ex) { LogError($"ExileCampaigns -> export route failed: {ex.Message}"); ShowToast("Export failed", ToastLevel.Error); }
+            return;
+        }
+
+        // import: only overwrite the user copy if it parses to a non-empty route (RouteJson.Read returns 0
+        // steps on junk), then reload + re-seek this character's saved step.
+        try
+        {
+            var doc = RouteJson.Read(File.ReadAllText(job.path));
+            if (doc.Steps.Count == 0) { ShowToast("Import failed: not a valid route", ToastLevel.Error); return; }
+            Directory.CreateDirectory(Path.GetDirectoryName(UserRoutePath)!);
+            File.WriteAllText(UserRoutePath, RouteJson.Write(doc));   // renormalize through our writer
+            LoadRoutes();
+            LoadProgress();
+            ShowToast($"Route imported ({doc.Steps.Count} steps)", ToastLevel.Success);
+        }
+        catch (Exception ex) { LogError($"ExileCampaigns -> import route failed: {ex.Message}"); ShowToast("Import failed", ToastLevel.Error); }
+    }
+
+    // drop the user route copy so the bundled default loads again, then reload + re-seek. irreversible: the
+    // user's edits are gone unless they exported first (the confirm warns them).
+    private void ResetRouteToDefault()
+    {
+        try
+        {
+            if (File.Exists(UserRoutePath)) File.Delete(UserRoutePath);
+            LoadRoutes();
+            LoadProgress();
+            ShowToast("Route reset to plugin default", ToastLevel.Success);
+        }
+        catch (Exception ex)
+        {
+            LogError($"ExileCampaigns -> reset route failed: {ex.Message}");
+            ShowToast("Reset failed", ToastLevel.Error);
+        }
     }
 
 }

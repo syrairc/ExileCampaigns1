@@ -3,19 +3,95 @@
   "version": 2,
   "steps": [
     {
-      "id": "imp-a1-0",
+      "id": "43927962b72f4286a628d4b7d50a7f76",
       "act": 1,
-      "areaId": "",
-      "areaName": "",
-      "text": "Find and kill Hillock",
+      "areaId": "1_1_1",
+      "areaName": "The Twilight Strand",
+      "text": "Pickup/Equip Weapon",
       "optional": false,
       "completeWhen": "All",
+      "objectives": [
+        {
+          "type": "Manual"
+        }
+      ]
+    },
+    {
+      "id": "34e20269257243eea84e81bf62d00fbd",
+      "act": 1,
+      "areaId": "1_1_1",
+      "areaName": "The Twilight Strand",
+      "text": "Talk to Dying Exile",
+      "optional": false,
+      "completeWhen": "Any",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "KilledBiteZombie"
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/WoundedExile"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/WoundedExile"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/WoundedExile"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "imp-a1-0",
+      "act": 1,
+      "areaId": "1_1_1",
+      "areaName": "The Twilight Strand",
+      "text": "Find and kill Hillock",
+      "optional": false,
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q1KilledHillock"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "beachtownsouth"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:f131efe9"
@@ -23,8 +99,8 @@
     {
       "id": "imp-a1-1",
       "act": 1,
-      "areaId": "1_1_town",
-      "areaName": "Lioneye's Watch",
+      "areaId": "1_1_1",
+      "areaName": "The Twilight Strand",
       "text": "Enter Lioneye's Watch",
       "optional": false,
       "completeWhen": "All",
@@ -106,7 +182,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:c68d550d"
@@ -153,7 +239,18 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q4HaveGlyph3"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "rhoanest"
+                }
+              }
+            }
+          ],
+          "mode": "All"
         }
       ],
       "importFp": "fnv1a:5b619c9f"
@@ -169,9 +266,47 @@
       "objectives": [
         {
           "type": "QuestFlag",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/QuestObjects/WaterCave/GlyphWall"
+              },
+              "matchBy": "Path"
+            }
+          ],
           "flag": {
             "value": "A1Q4PlacedGlyphs"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/WaterCave/GlyphWall"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
+                "kind": "Room",
+                "match": {
+                  "value": "Metadata/Terrain/Act1/Area3/Rooms/to_cave.arm"
+                }
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/WaterCave/GlyphWall"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ]
     },
@@ -298,8 +433,32 @@
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "A1Q5QuestReward2Seen"
-          }
+            "value": "A1Q4QuestReward2Taken"
+          },
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Tarkleigh"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Tarkleigh"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:859e5404"
@@ -317,7 +476,31 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q5QuestReward2Taken"
-          }
+          },
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Nessa"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Nessa"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:13fbb000"
@@ -350,7 +533,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "TownPortal"
+          "type": "TownPortal",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:7792884c"
@@ -368,7 +561,41 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "1_1_5"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "passageway"
+                }
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:4b906d6d"
@@ -487,7 +714,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "QuestFlag",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -514,7 +751,7 @@
       "act": 1,
       "areaId": "1_1_town",
       "areaName": "Lioneye's Watch",
-      "text": "Take portal",
+      "text": "Take portal (or WP to The Submerged Passage)",
       "optional": false,
       "completeWhen": "Any",
       "objectives": [
@@ -572,10 +809,43 @@
           "paths": [
             {
               "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
                 "kind": "Tile",
                 "match": {
                   "value": "forcedblank"
                 }
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
+                },
+                "matchBy": "Path"
               }
             }
           ]
@@ -611,7 +881,42 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q7QuestRewardSeen"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Tarkleigh"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Tarkleigh"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Tarkleigh"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:9c4ece94"
@@ -621,7 +926,7 @@
       "act": 1,
       "areaId": "1_1_town",
       "areaName": "Lioneye's Watch",
-      "text": "Waypoint to The Lower Prison",
+      "text": "Waypoint to The Prison",
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -650,7 +955,6 @@
       "areaId": "1_1_7_1",
       "areaName": "The Lower Prison",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -671,7 +975,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a1-30",
@@ -838,8 +1143,25 @@
               "target": {
                 "kind": "Tile",
                 "match": {
+                  "value": "exitdoor"
+                }
+              }
+            },
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
                   "value": "entranceup"
                 }
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
               }
             }
           ],
@@ -849,6 +1171,15 @@
                 "kind": "Entity",
                 "match": {
                   "value": "Metadata/QuestObjects/BossArenaEntranceTransition"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
                 },
                 "matchBy": "Path"
               }
@@ -862,6 +1193,17 @@
                 "kind": "Entity",
                 "match": {
                   "value": "Metadata/QuestObjects/BossArenaEntranceTransition"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
                 },
                 "matchBy": "Path"
               }
@@ -918,7 +1260,25 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Login",
+          "type": "Login"
+        }
+      ],
+      "importFp": "fnv1a:13d366ab"
+    },
+    {
+      "id": "imp-a1-34",
+      "act": 1,
+      "areaId": "1_1_7_2",
+      "areaName": "The Upper Prison",
+      "text": "Hand in The Caged Brute",
+      "optional": false,
+      "completeWhen": "All",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A1Q2QuestRewardTaken"
+          },
           "paths": [
             {
               "target": {
@@ -954,24 +1314,6 @@
               }
             }
           ]
-        }
-      ],
-      "importFp": "fnv1a:13d366ab"
-    },
-    {
-      "id": "imp-a1-34",
-      "act": 1,
-      "areaId": "1_1_7_2",
-      "areaName": "The Upper Prison",
-      "text": "Hand in The Caged Brute",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q2QuestRewardTaken"
-          }
         }
       ],
       "importFp": "fnv1a:4326abff"
@@ -1016,6 +1358,39 @@
                   "value": "shippassagea"
                 }
               }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
             }
           ]
         }
@@ -1032,7 +1407,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -1080,7 +1465,7 @@
               "target": {
                 "kind": "Tile",
                 "match": {
-                  "value": "skeletoncavecliff"
+                  "value": "skeletoncave"
                 }
               }
             }
@@ -1181,7 +1566,7 @@
       "areaName": "The Ship Graveyard Cave",
       "text": "Kill Stranglecharm",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "Kill",
@@ -1196,11 +1581,10 @@
           "paths": [
             {
               "target": {
-                "kind": "Entity",
+                "kind": "Tile",
                 "match": {
-                  "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave@12"
-                },
-                "matchBy": "Path"
+                  "value": "boatallflame"
+                }
               }
             }
           ],
@@ -1230,6 +1614,12 @@
               }
             }
           ]
+        },
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A1Q6HaveAllFlame"
+          }
         }
       ]
     },
@@ -1293,10 +1683,13 @@
       "areaName": "The Ship Graveyard Cave",
       "text": "Return to the Ship Graveyard",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_1_9"
+          },
           "paths": [
             {
               "target": {
@@ -1621,7 +2014,42 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "1_2_1"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/MerveilExitTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/MerveilExitTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/MerveilExitTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:3f15f0a0"
@@ -1827,7 +2255,50 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A2Q10KilledBeast"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "exitup"
+                }
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Beasts/BeastBossWhite@15"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Beasts/BeastBossWhite@15"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Beasts/BeastBossWhite@15"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:ce7a7393"
@@ -2004,14 +2475,13 @@
       "areaId": "1_2_6_2",
       "areaName": "The Chamber of Sins Level 2",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "NormalLabyrinthCompletedSins"
+            "value": "NormalLabyrinthCompletedCrypt"
           },
           "paths": [
             {
@@ -2025,7 +2495,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a2-16",
@@ -2242,7 +2713,8 @@
                 }
               }
             }
-          ]
+          ],
+          "mode": "All"
         }
       ],
       "importFp": "fnv1a:6a0d99b8"
@@ -2267,18 +2739,28 @@
       "areaId": "1_2_5_1",
       "areaName": "The Crypt Level 1",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "NormalLabyrinthCompletedCrypt"
-          }
+            "value": "NormalLabyrinthCompletedSins"
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "LabyrinthDoor"
+                }
+              }
+            }
+          ]
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a2-23",
@@ -2303,7 +2785,8 @@
                 }
               }
             }
-          ]
+          ],
+          "mode": "All"
         }
       ],
       "importFp": "fnv1a:b7329bf0"
@@ -3076,6 +3559,39 @@
                   "value": "passage"
                 }
               }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Axis/Lieutenant/LieutenantLetter@17"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Axis/Lieutenant/LieutenantLetter@17"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Axis/Lieutenant/LieutenantLetter@17"
+                },
+                "matchBy": "Path"
+              }
             }
           ]
         }
@@ -3447,7 +3963,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -3518,7 +4044,6 @@
       "areaId": "1_2_14_2",
       "areaName": "The Caverns",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -3536,7 +4061,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a2-102",
@@ -3694,15 +4220,59 @@
       "areaId": "1_2_14_3",
       "areaName": "The Ancient Pyramid",
       "text": "Get crafting recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "QuestFlag"
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 13.200001,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "3ec4883974d14166aa346b7a5b1c4fab",
@@ -3757,12 +4327,20 @@
       "areaId": "1_3_1",
       "areaName": "The City of Sarn",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
@@ -3800,7 +4378,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-2",
@@ -3896,18 +4475,7 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "1_3_2"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ],
       "importFp": "fnv1a:a8ecacdd"
@@ -3960,7 +4528,6 @@
       "areaId": "1_3_3_1",
       "areaName": "The Crematorium",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -3968,10 +4535,21 @@
           "type": "QuestFlag",
           "flag": {
             "value": "NormalLabyrinthCompletedCrematorium"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "LabyrinthDoor"
+                }
+              }
+            }
+          ]
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-7",
@@ -4031,12 +4609,14 @@
       "areaId": "1_3_3_1",
       "areaName": "The Crematorium",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A3Q2SeenTolmanItem"
+          },
           "paths": [
             {
               "target": {
@@ -4074,7 +4654,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "d3fe1985f83d448ba23680f90ac3cb1a",
@@ -4243,7 +4824,7 @@
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "A3Q11HaveBust1"
+            "value": "A3Q11HaveBust2"
           },
           "paths": [
             {
@@ -4270,7 +4851,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ],
+          "mode": "All"
         }
       ],
       "importFp": "fnv1a:90f6145d"
@@ -4298,7 +4890,8 @@
                 }
               }
             }
-          ]
+          ],
+          "mode": "All"
         }
       ],
       "importFp": "fnv1a:c970c61e"
@@ -4341,7 +4934,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:90f6145d"
@@ -4375,35 +4978,134 @@
       "importFp": "fnv1a:91eb9fc8"
     },
     {
-      "id": "imp-a3-20",
-      "act": 3,
-      "areaId": "1_3_6",
-      "areaName": "The Catacombs",
-      "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "NormalLabyrinthCompletedCatacombs"
-          }
-        }
-      ],
-      "importFp": "fnv1a:dd796688"
-    },
-    {
       "id": "imp-a3-21",
       "act": 3,
       "areaId": "1_3_6",
       "areaName": "The Catacombs",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "LabyrinthDoor"
+                }
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
+    },
+    {
+      "id": "imp-a3-20",
+      "act": 3,
+      "areaId": "1_3_6",
+      "areaName": "The Catacombs",
+      "text": "Complete Trial of Ascendancy",
+      "optional": false,
+      "completeWhen": "Any",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "NormalLabyrinthCompletedHedgeMaze"
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/Labyrinth/LabyrinthTrialPlaque"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "LabyrinthDoor"
+                }
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/Labyrinth/LabyrinthTrialPlaque"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/Labyrinth/LabyrinthTrialPlaque"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-22",
@@ -4620,7 +5322,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -4662,7 +5374,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -4703,7 +5425,16 @@
       "completeWhen": "Any",
       "objectives": [
         {
-          "type": "EnterArea",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 16.800001,
           "areaTarget": {
             "value": "1_3_8_2"
           },
@@ -4713,6 +5444,39 @@
                 "kind": "Entity",
                 "match": {
                   "value": "Metadata/QuestObjects/MapRoom/DiallaMapTransition"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
                 },
                 "matchBy": "Path"
               }
@@ -4866,7 +5630,42 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A3Q5HaveTalc"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act3/Dialla"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act3/Dialla"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act3/Dialla"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:6ec57d46"
@@ -4966,11 +5765,59 @@
       "areaId": "1_3_10_1",
       "areaName": "The Sewers",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:dc28940b"
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/QuestObjects/Sewers/BioWall"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-42",
@@ -4983,9 +5830,40 @@
       "objectives": [
         {
           "type": "EnterArea",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 76.8,
           "areaTarget": {
             "value": "1_3_13"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:e211ab9b"
@@ -5000,7 +5878,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:90f6145d"
@@ -5071,7 +5959,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -5108,7 +6006,7 @@
       "act": 3,
       "areaId": "1_3_14_2",
       "areaName": "The Lunaris Temple Level 2",
-      "text": "Take Portal",
+      "text": "Take Boss Portal",
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -5160,11 +6058,11 @@
       "areaId": "1_3_14_2",
       "areaName": "The Lunaris Temple Level 2",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-49",
@@ -5364,18 +6262,28 @@
       "areaId": "1_3_15",
       "areaName": "The Imperial Gardens",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "NormalLabyrinthCompletedHedgeMaze"
-          }
+            "value": "NormalLabyrinthCompletedCatacombs"
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "3x1_gateway"
+                }
+              }
+            }
+          ]
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-56",
@@ -5383,11 +6291,59 @@
       "areaId": "1_3_15",
       "areaName": "The Imperial Gardens",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 15.6,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-57",
@@ -5515,18 +6471,6 @@
       ]
     },
     {
-      "id": "imp-a3-62",
-      "act": 3,
-      "areaId": "1_3_17_2",
-      "areaName": "The Library",
-      "text": "Get Crafting Recipe",
-      "leagueStart": true,
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
-    },
-    {
       "id": "imp-a3-63",
       "act": 3,
       "areaId": "1_3_17_2",
@@ -5550,6 +6494,18 @@
         }
       ],
       "importFp": "fnv1a:f822d51e"
+    },
+    {
+      "id": "imp-a3-62",
+      "act": 3,
+      "areaId": "1_3_17_2",
+      "areaName": "The Library",
+      "text": "Get Crafting Recipe",
+      "optional": false,
+      "completeWhen": "All",
+      "objectives": [],
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "imp-a3-64",
@@ -5679,7 +6635,8 @@
                 }
               }
             }
-          ]
+          ],
+          "mode": "All"
         }
       ]
     },
@@ -5745,13 +6702,28 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/MiscellaneousObjects/AreaTransition"
+              },
+              "matchBy": "Path"
+            },
+            {
+              "match": {
+                "value": "The Sceptre of God"
+              },
+              "matchBy": "Name"
+            }
+          ],
+          "distance": 25.0,
           "paths": [
             {
               "target": {
                 "kind": "Tile",
                 "match": {
-                  "value": "up"
+                  "value": "waypoint"
                 }
               }
             },
@@ -5760,18 +6732,35 @@
                 "kind": "Tile",
                 "match": {
                   "value": "up"
-                }
-              }
-            },
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "exit"
                 }
               }
             }
-          ]
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "mode": "All"
         }
       ]
     },
@@ -5803,8 +6792,17 @@
                   "value": "exit"
                 }
               }
+            },
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "up"
+                }
+              }
             }
-          ]
+          ],
+          "mode": "All"
         }
       ]
     },
@@ -5929,12 +6927,20 @@
       "areaId": "1_4_2",
       "areaName": "The Dried Lake",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBoundBook"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
           "paths": [
             {
               "target": {
@@ -5972,7 +6978,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-5",
@@ -6095,11 +7102,59 @@
       "areaId": "1_4_3_1",
       "areaName": "The Mines Level 1",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:dc28940b"
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 86.4,
+          "paths": [
+            {
+              "target": {
+                "kind": "Room",
+                "match": {
+                  "value": "pikerivet_1",
+                  "regex": true
+                }
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Miner/MinerHammerBoss@34"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/Miner/MinerHammerBoss@34"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-10",
@@ -6220,7 +7275,6 @@
       "areaId": "1_4_3_3",
       "areaName": "The Crystal Veins",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -6263,7 +7317,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-14",
@@ -6445,7 +7500,6 @@
       "areaId": "1_4_5_2",
       "areaName": "The Grand Arena",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -6488,7 +7542,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-24",
@@ -6574,7 +7629,6 @@
       "areaId": "1_4_4_3",
       "areaName": "Kaom's Stronghold",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -6617,7 +7671,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-28",
@@ -6943,7 +7998,6 @@
       "areaId": "1_4_6_2",
       "areaName": "The Belly of the Beast Level 2",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -6986,7 +8040,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-40",
@@ -7336,7 +8391,6 @@
       "areaId": "1_4_7",
       "areaName": "The Ascent",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -7355,7 +8409,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a4-50",
@@ -8025,7 +9080,6 @@
       "areaId": "1_5_6",
       "areaName": "The Ossuary",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -8068,7 +9122,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "a5126d9eb7fa41a8b076bd56834c485f",
@@ -8163,11 +9218,11 @@
       "areaId": "1_5_7",
       "areaName": "The Reliquary",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a5-28",
@@ -8644,7 +9699,6 @@
       "areaId": "2_6_5",
       "areaName": "The Karui Fortress",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -8687,7 +9741,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a6-11",
@@ -8765,7 +9820,6 @@
       "areaId": "2_6_7_1",
       "areaName": "The Lower Prison",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -8776,7 +9830,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "78c1f0b3bfd6480e8406ef1ba9b114e4",
@@ -8822,7 +9877,6 @@
       "areaId": "2_6_7_1",
       "areaName": "The Lower Prison",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -8865,7 +9919,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a6-15",
@@ -8951,7 +10006,6 @@
       "areaId": "2_6_7_2",
       "areaName": "Shavronne's Tower",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -8994,7 +10048,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a6-19",
@@ -9086,7 +10141,6 @@
       "areaId": "2_6_9",
       "areaName": "The Western Forest",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -9104,7 +10158,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a6-22",
@@ -9569,11 +10624,11 @@
       "areaId": "2_6_14",
       "areaName": "The Beacon",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a6-36",
@@ -9865,7 +10920,6 @@
       "areaId": "2_7_4",
       "areaName": "The Crypt",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -9876,7 +10930,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a7-8",
@@ -9884,11 +10939,11 @@
       "areaId": "2_7_4",
       "areaName": "The Crypt",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "imp-a7-9",
@@ -10068,7 +11123,6 @@
       "areaId": "2_7_5_1",
       "areaName": "The Chamber of Sins Level 1",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -10111,7 +11165,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a7-16",
@@ -10397,7 +11452,6 @@
       "areaId": "2_7_5_2",
       "areaName": "The Chamber of Sins Level 2",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -10408,7 +11462,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a7-26",
@@ -10416,11 +11471,11 @@
       "areaId": "2_7_5_2",
       "areaName": "The Chamber of Sins Level 2",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "30da001ffa8b4af1bfd091c216982f2f",
@@ -10830,7 +11885,6 @@
       "areaId": "2_7_10",
       "areaName": "The Causeway",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -10848,7 +11902,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a7-40",
@@ -11562,7 +12617,6 @@
       "areaId": "2_8_2_2",
       "areaName": "Doedre's Cesspool",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -11605,7 +12659,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a8-7",
@@ -11945,7 +13000,6 @@
       "areaId": "2_8_12_2",
       "areaName": "The Solaris Temple Level 2",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -11988,7 +13042,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a8-19",
@@ -12385,7 +13440,29 @@
               "matchBy": "Path"
             }
           ],
-          "distance": 144.0
+          "distance": 144.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/GuardianOfLunaris/GuardianOfLunaris@59"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/GuardianOfLunaris/GuardianOfLunaris@59"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ]
     },
@@ -12426,7 +13503,6 @@
       "areaId": "2_8_7_2",
       "areaName": "The Lunaris Temple Level 2",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -12469,7 +13545,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a8-32",
@@ -12670,7 +13747,6 @@
       "areaId": "2_8_5",
       "areaName": "The Bath House",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -12681,7 +13757,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a8-42",
@@ -12689,11 +13766,11 @@
       "areaId": "2_8_5",
       "areaName": "The Bath House",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "b68aa283d3134ea38061910ec30e05dd",
@@ -13008,7 +14085,6 @@
       "areaId": "2_9_3",
       "areaName": "The Vastiri Desert",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -13051,7 +14127,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a9-5",
@@ -13186,7 +14263,6 @@
       "areaId": "2_9_6",
       "areaName": "The Boiling Lake",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -13229,7 +14305,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a9-11",
@@ -13632,7 +14709,6 @@
       "areaId": "2_9_7",
       "areaName": "The Tunnel",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -13643,7 +14719,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:d3b9defa"
+      "importFp": "fnv1a:d3b9defa",
+      "leagueStart": true
     },
     {
       "id": "imp-a9-23",
@@ -13651,11 +14728,11 @@
       "areaId": "2_9_7",
       "areaName": "The Tunnel",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "9a6479dd32744d6cb635ca9b17dbc95a",
@@ -13720,7 +14797,6 @@
       "areaId": "2_9_8",
       "areaName": "The Quarry",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -13763,7 +14839,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "c227b140ae024189845a63168c56be99",
@@ -14230,7 +15307,29 @@
               "matchBy": "Path"
             }
           ],
-          "distance": 52.800003
+          "distance": 52.800003,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/UnholyTrio/UnholyTrio@64"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/UnholyTrio/UnholyTrio@64"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ]
     },
@@ -14606,11 +15705,11 @@
       "areaId": "2_10_9",
       "areaName": "The Ossuary",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [],
-      "importFp": "fnv1a:0b0893fb"
+      "importFp": "fnv1a:0b0893fb",
+      "leagueStart": true
     },
     {
       "id": "imp-a10-12",
@@ -14618,7 +15717,6 @@
       "areaId": "2_10_9",
       "areaName": "The Ossuary",
       "text": "Complete Trial of Ascendancy",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -14629,7 +15727,8 @@
           }
         }
       ],
-      "importFp": "fnv1a:dd796688"
+      "importFp": "fnv1a:dd796688",
+      "leagueStart": true
     },
     {
       "id": "imp-a10-13",
@@ -14921,7 +16020,29 @@
               "matchBy": "Path"
             }
           ],
-          "distance": 158.40001
+          "distance": 158.40001,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/AvariusCasticus/AvariusCasticusWickerman@65"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/AvariusCasticus/AvariusCasticusWickerman@65"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ]
     },
@@ -15163,7 +16284,6 @@
       "areaId": "2_10_6",
       "areaName": "The Feeding Trough",
       "text": "Get Crafting Recipe",
-      "leagueStart": true,
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -15206,7 +16326,8 @@
           ]
         }
       ],
-      "importFp": "fnv1a:dc28940b"
+      "importFp": "fnv1a:dc28940b",
+      "leagueStart": true
     },
     {
       "id": "imp-a10-34",

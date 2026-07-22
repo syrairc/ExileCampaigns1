@@ -689,12 +689,9 @@ public partial class ExileCampaigns
             new Vector3(g.X * GridToWorldMultiplier, g.Y * GridToWorldMultiplier, hd[gy][gx]));
         return true;
     }
-}
 
-// draws authored MinimapIcons on the large map for every step in the current area.
-// anchors are resolved once and cached per area instance; entity anchors are resolved live each frame.
-public partial class ExileCampaigns
-{
+    // draws authored MinimapIcons on the large map for every step in the current area.
+    // anchors are resolved once and cached per area instance; entity anchors are resolved live each frame.
     private string? _mmiCacheKey;
     // Size is the per-icon override (null = global default), applied at draw so the global slider stays live;
     // StepId is the owning step, so the renderer can pulse the current objective's icons each frame.
@@ -813,25 +810,22 @@ public partial class ExileCampaigns
         try { return GameController?.Area?.CurrentArea?.Hash.ToString() ?? ""; }
         catch { return ""; }
     }
-}
 
-// Guides the player to a "Waypoint to X" step's destination on the open World Map panel.
-// The waypoint icon nodes (texture .../InGame/9.dds) carry no area name in memory - only a hover
-// tooltip - and the game lays them out in a STATIC per-area slot order (confirmed live), so a step's
-// target areaId maps to a fixed slot index per act via a baked table (built once with the id overlay below).
-//
-// This file currently hosts the AUTHORING aid: label each visible node with its slot index + the SUSPECTED
-// area name (WaypointNamesByAct once verified, else the act's WorldArea list in index order). Where the label
-// matches the real area it confirms the slot; where it diverges it reveals an area the map omits as a node.
-// The real destination indicator gets added once the areaId -> slot table is confirmed.
-//
-// Panel layout (verified live): WaypointsRoot only ever aliases ACT 1's icon holder. Acts 2-10 live in a
-// nested Part -> Act tree (Part 2 nests deeper than Part 1), so the shown act's holder is found by icon
-// texture (SearchVisibleIconHolder) rather than a fixed path. The viewed act is read off the panel tabs -
-// selected tab = the child with IsVisible && IsActive - so acts 2-10 can be authored from town by flipping
-// tabs, not only while standing in the act (ViewedActFromPanel).
-public partial class ExileCampaigns
-{
+    // Guides the player to a "Waypoint to X" step's destination on the open World Map panel.
+    // The waypoint icon nodes (texture .../InGame/9.dds) carry no area name in memory - only a hover
+    // tooltip - and the game lays them out in a STATIC per-area slot order (confirmed live), so a step's
+    // target areaId maps to a fixed slot index per act via a baked table (built once with the id overlay below).
+    //
+    // This file currently hosts the AUTHORING aid: label each visible node with its slot index + the SUSPECTED
+    // area name (WaypointNamesByAct once verified, else the act's WorldArea list in index order). Where the label
+    // matches the real area it confirms the slot; where it diverges it reveals an area the map omits as a node.
+    // The real destination indicator gets added once the areaId -> slot table is confirmed.
+    //
+    // Panel layout (verified live): WaypointsRoot only ever aliases ACT 1's icon holder. Acts 2-10 live in a
+    // nested Part -> Act tree (Part 2 nests deeper than Part 1), so the shown act's holder is found by icon
+    // texture (SearchVisibleIconHolder) rather than a fixed path. The viewed act is read off the panel tabs -
+    // selected tab = the child with IsVisible && IsActive - so acts 2-10 can be authored from town by flipping
+    // tabs, not only while standing in the act (ViewedActFromPanel).
     // cache the derived act-ordered names so the ~2k-entry dict isn't walked every frame (dev overlay only).
     private int _wpNamesAct = -1;
     private List<string> _wpNames = new();
@@ -1048,7 +1042,7 @@ public partial class ExileCampaigns
         {
             var model = _route.CurrentStep?.Model;
             if (model == null) return null;
-            Guide.Objective? obj = null;
+            Objective? obj = null;
             foreach (var o in model.Objectives)
                 if (o.Type == Guide.ObjectiveType.EnterArea && o.AreaTarget != null) { obj = o; break; }
             if (obj == null) return null;
@@ -1072,7 +1066,7 @@ public partial class ExileCampaigns
     // or glow the correct Part/Act tab first when that tab isn't the one shown.
     private void DrawWaypointDestination()
     {
-        if (!Settings.ShowWaypointHighlight) return;
+        if (!Settings.WaypointOverlay.Enable) return;
         var target = CurrentWaypointTarget();
         if (target == null) return;
 
@@ -1162,14 +1156,11 @@ public partial class ExileCampaigns
         }
         catch { return null; }
     }
-}
 
-// in-world interaction indicator: golden pulsing down-arrow over the step's resolved target.
-// target = ONLY the objective's explicit Indicators[] entity children, decoupled from the ground path
-// (Paths[]): an arrow needs no path, a path needs no arrow, and no Indicator means no arrow (no text-pass
-// inference). advance is handled by EvaluateAdvance (AdvanceEngine); this file only drives the arrow.
-public partial class ExileCampaigns
-{
+    // in-world interaction indicator: golden pulsing down-arrow over the step's resolved target.
+    // target = ONLY the objective's explicit Indicators[] entity children, decoupled from the ground path
+    // (Paths[]): an arrow needs no path, a path needs no arrow, and no Indicator means no arrow (no text-pass
+    // inference). advance is handled by EvaluateAdvance (AdvanceEngine); this file only drives the arrow.
     private const string IndicatorTexture = "ExileCampaigns_Icons";
     private bool _indicatorTexLoaded;
 
@@ -1265,19 +1256,16 @@ public partial class ExileCampaigns
         Graphics.DrawImage(IndicatorTexture, dest, uv, col);
     }
 
-}
 
-// Dev/authoring overlay: annotated layers on the large minimap to help author routes.
-// All guarded on Settings.Dev.ShowDevOverlay (off by default, zero overhead in production).
-//
-// Layers (each toggled independently under Dev settings):
-//   Room names    AreaGraph room boxes + name labels. these are what Radar's targets.json and
-//                 Radar.ClusterTarget match against, so this shows the tile-pattern for a StepTargetResolver fallback.
-//   Entity labels AreaTransition / Waypoint / boss entity paths at their grid positions. shows which
-//                 entity path StepTargetResolver should match.
-//   Target marker crosshair at the current step's resolved target grid coord (validates resolver).
-public partial class ExileCampaigns
-{
+    // Dev/authoring overlay: annotated layers on the large minimap to help author routes.
+    // All guarded on Settings.Dev.ShowDevOverlay (off by default, zero overhead in production).
+    //
+    // Layers (each toggled independently under Dev settings):
+    //   Room names    AreaGraph room boxes + name labels. these are what Radar's targets.json and
+    //                 Radar.ClusterTarget match against, so this shows the tile-pattern for a StepTargetResolver fallback.
+    //   Entity labels AreaTransition / Waypoint / boss entity paths at their grid positions. shows which
+    //                 entity path StepTargetResolver should match.
+    //   Target marker crosshair at the current step's resolved target grid coord (validates resolver).
     private const int TileToGrid = 23;
     private const string TerrainPrefix = "Metadata/Terrain/";
 

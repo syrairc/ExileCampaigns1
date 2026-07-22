@@ -47,7 +47,7 @@ public class PathRenderSettings
     public ToggleNode ShowGroundPathOnlyWithClosedMap { get; set; } = new ToggleNode(false);
 
     [Menu("Path color")]
-    public ColorNode PathColor { get; set; } = new ColorNode(new Color(104, 255, 0, 132));
+    public ColorNode PathColor { get; set; } = new ColorNode(new Color(0, 255, 20, 255));
 
     [Menu("Highlight shortest path", "When a step draws several paths at once, tint the shortest a different color")]
     public ToggleNode HighlightShortest { get; set; } = new ToggleNode(true);
@@ -59,25 +59,25 @@ public class PathRenderSettings
     public RangeNode<float> PathThickness { get; set; } = new RangeNode<float>(3f, 1f, 20f);
 
     [Menu("Draw every Nth point", "Thin the path by drawing only every Nth grid point (higher = sparser/faster)")]
-    public RangeNode<int> DrawEveryNthSegment { get; set; } = new RangeNode<int>(2, 1, 10);
+    public RangeNode<int> DrawEveryNthSegment { get; set; } = new RangeNode<int>(10, 1, 10);
 
     [Menu("Flowing comets", "Slide comet sprites along the ground path toward the objective (in addition to / instead of the line)")]
     public ToggleNode ShowComets { get; set; } = new ToggleNode(true);
 
     [Menu("Comets only (hide line)", "When comets are on, don't draw the solid ground line")]
-    public ToggleNode CometsOnly { get; set; } = new ToggleNode(false);
+    public ToggleNode CometsOnly { get; set; } = new ToggleNode(true);
 
     [Menu("Comet color")]
-    public ColorNode CometColor { get; set; } = new ColorNode(new Color(104, 255, 0, 255));
+    public ColorNode CometColor { get; set; } = new ColorNode(new Color(36, 255, 0, 255));
 
     [Menu("Comet spacing", "Grid units between comets; count scales with path length (smaller = denser)")]
-    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(60f, 10f, 400f);
+    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(25f, 10f, 400f);
 
     [Menu("Comet size", "Comet length in grid units")]
-    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(14f, 1f, 80f);
+    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(5f, 1f, 80f);
 
     [Menu("Comet speed", "Flow speed in grid units per second")]
-    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(60f, 5f, 300f);
+    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(36.8f, 5f, 300f);
 }
 
 // golden arrow over the step's interact target, plus the interaction auto-advance thresholds
@@ -251,11 +251,11 @@ public class StepsOverlayStyle
 
     // -- Sliders --
     [Menu("Text size", "Font height in pixels")]
-    public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(16f, 8f, 48f);
+    public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(16.8f, 8f, 48f);
     [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(0, 0, 8);
     [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(20, 0, 40);
     [Menu("Steps shown behind", "How many completed steps to show above the current one")]
-    public RangeNode<int> StepsBehind { get; set; } = new RangeNode<int>(2, 0, 12);
+    public RangeNode<int> StepsBehind { get; set; } = new RangeNode<int>(0, 0, 12);
     [Menu("Steps shown ahead", "How many upcoming steps to show below the current one")]
     public RangeNode<int> StepsAhead { get; set; } = new RangeNode<int>(7, 0, 12);
 
@@ -283,6 +283,9 @@ public class BannerStyle
     [Menu("Preview", "Keep the banner on screen with sample text so you can position/resize it " +
         "(needs overlays unlocked to drag). Turn off when done.")]
     public ToggleNode Preview { get; set; } = new ToggleNode(false);
+
+    [Menu("Persistent", "Keep the banner up until the next auto-advance instead of fading after the duration")]
+    public ToggleNode Persistent { get; set; } = new ToggleNode(false);
 
     // -- Colors --
     [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
@@ -368,6 +371,9 @@ public class DiagnosticsSettings
 [Submenu]
 public class WaypointOverlaySettings
 {
+    [Menu("Enabled", "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map")]
+    public ToggleNode Enable { get; set; } = new ToggleNode(true);
+
     [Menu("Center X offset", "Ring centre X, as a fraction of the map panel height")]
     public RangeNode<float> OffsetX { get; set; } = new RangeNode<float>(0.042f, -0.15f, 0.15f);
 
@@ -411,6 +417,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
     public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);
 
+    [Menu("Alerts movable", "Let the banner and toasts be dragged even when overlays are locked (Alt-drag also works)")]
+    public ToggleNode AlertsMovable { get; set; } = new ToggleNode(false);
+
     [Menu("Auto-advance banner", "Large transient banner shown when the tracker auto-advances on a zone change")]
     public BannerStyle Banner { get; set; } = new BannerStyle();
 
@@ -429,9 +438,6 @@ public class ExileCampaignsSettings : ISettings
 
     [Menu("Show league-start steps", "Include league-start chores (crafting recipes, trials). Turn off on a re-run when you don't need them")]
     public ToggleNode ShowLeagueStart { get; set; } = new ToggleNode(true);
-
-    [Menu("Highlight waypoint destination", "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map")]
-    public ToggleNode ShowWaypointHighlight { get; set; } = new ToggleNode(true);
 
     public WaypointOverlaySettings WaypointOverlay { get; set; } = new WaypointOverlaySettings();
 
