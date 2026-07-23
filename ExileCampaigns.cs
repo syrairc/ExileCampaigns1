@@ -173,6 +173,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         InitStats();
         InitIndicatorTexture();
         InitCometTexture();
+        RegisterGuidanceBridge();
+        EnsureGuidanceProviders();   // initial detection; Tick re-probes on a throttle
         return true;
     }
 
@@ -337,7 +339,25 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (Settings.LogQuestFlags || Settings.Dev.ShowTriageButtons) HarvestQuestFlags();
         RecordDiagFlagChanges();
 
-        UpdatePathTarget();
+        EnsureGuidanceProviders();
+        _targetResolver.CacheLocations = Settings.GuidanceProvider.RememberTargetLocations.Value;
+        _guidanceMode = ActiveMode();
+        _clusterTarget = ActiveClusterTarget(_guidanceMode);
+        if (_guidanceMode == GuidanceMode.InGame)
+            UpdatePathTarget();
+        else if (_currentTarget != null || _currentPath != null || _objectiveTargets != null || _tileCandidateMode)
+        {
+            // leaving in-game mode: drop the running routes AND clear the "already routing" guard so a later
+            // return to in-game re-resolves cleanly. guarded so steady-state non-in-game ticks don't churn CTSes.
+            CancelPath();
+            CancelObjectivePaths();
+            _currentTarget = null;
+            _tileCandidateMode = false;
+            _lastStepForTarget = -1;
+        }
+        if (_guidanceMode == GuidanceMode.Panel)
+            BuildExportSnapshot();
+        else { _exportPathTargets = null; _exportIcons = null; }
         UpdateWaypointPulse();
         UpdateLoginPulse();
         UpdateInteractTarget();

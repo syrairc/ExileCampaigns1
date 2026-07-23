@@ -42,6 +42,17 @@ public sealed class StepTargetResolver
         !string.IsNullOrEmpty(pattern) && RadarTileCounts != null
         && RadarTileCounts.TryGetValue(pattern!, out var c) && c > 1 ? c : 1;
 
+    // remember last-seen grid pos of entities resolved as path/icon targets, so the path/icon survives the
+    // entity leaving load range. keyed by entity address (stable per area instance), cleared on area change via
+    // ResetSeenCache. a cached entry is only re-served when its stored identity still matches the live query, so
+    // a step advance (different patterns) drops old entries on its own. off -> exact old live-only behavior.
+    // set from the Guidance "Remember target locations" toggle each tick.
+    public bool CacheLocations { get; set; } = true;
+    private readonly Dictionary<long, SeenEntity> _seen = new();
+    private readonly record struct SeenEntity(Vector2 Grid, string? Path, string? RenderName);
+
+    public void ResetSeenCache() => _seen.Clear();
+
     public Vector2? Resolve(GameController gc, RouteStep step, Func<string, int, Vector2[]>? clusterTarget,
         string? effectiveAreaId = null)
     {
@@ -116,18 +127,28 @@ public sealed class StepTargetResolver
     {
         var res = new List<Vector2>();
         if (gc == null || entityPaths == null || entityPaths.Count == 0) return res;
+        bool Match(string? mp) => mp != null &&
+            entityPaths.Any(p => !string.IsNullOrEmpty(p) && mp.Contains(p, StringComparison.OrdinalIgnoreCase));
+        // caching active for this call only when the toggle is on and the caller wants persistence (not liveOnly).
+        var live = CacheLocations && !liveOnly ? new HashSet<long>() : null;
         var entities = gc.EntityListWrapper?.Entities;
-        if (entities == null) return res;
-        foreach (var e in entities)
-        {
-            if (e == null || !e.IsValid || !HasGrid(e)) continue;
-            var mp = MatchPath(e);
-            if (mp == null) continue;
-            if (!entityPaths.Any(p => !string.IsNullOrEmpty(p) && mp.Contains(p, StringComparison.OrdinalIgnoreCase))) continue;
-            // WorldItems vanish when looted; isTargetable doesn't flip. skip the interactable check for them.
-            if (liveOnly && e.Type != EntityType.WorldItem && !IsInteractable(e)) continue;
-            res.Add(SnapToWalkable(gc, GridOf(e)));
-        }
+        if (entities != null)
+            foreach (var e in entities)
+            {
+                if (e == null || !e.IsValid || !HasGrid(e)) continue;
+                var mp = MatchPath(e);
+                if (!Match(mp)) continue;
+                // WorldItems vanish when looted; isTargetable doesn't flip. skip the interactable check for them.
+                if (liveOnly && e.Type != EntityType.WorldItem && !IsInteractable(e)) continue;
+                var g = SnapToWalkable(gc, GridOf(e));
+                res.Add(g);
+                if (live != null) { _seen[e.Address] = new SeenEntity(g, mp, e.RenderName ?? ""); live.Add(e.Address); }
+            }
+        // out-of-range fallback: cached spots that still match this query and aren't live right now.
+        if (live != null)
+            foreach (var kv in _seen)
+                if (!live.Contains(kv.Key) && Match(kv.Value.Path))
+                    res.Add(kv.Value.Grid);
         return res;
     }
 
@@ -257,16 +278,28 @@ public sealed class StepTargetResolver
     {
         var res = new List<Vector2>();
         if (gc == null || t == null || t.Kind != TargetKind.Entity) return res;
-        var entities = gc.EntityListWrapper?.Entities;
-        if (entities == null) return res;
         var em = new PatternMatcher(t.Match);
         bool byPath = t.MatchBy == MatchKind.Path;
-        foreach (var e in entities
-            .Where(e => e != null && e.IsValid && HasGrid(e))
-            .Where(e => !t.LivingOnly || IsLiving(e))
-            .Where(e => em.IsMatch(byPath ? MatchPath(e) : e.RenderName))
-            .OrderBy(e => e.DistancePlayer))
-            res.Add(GridOf(e));
+        bool Match(string? path, string? name) => em.IsMatch(byPath ? path : name);
+        // living targets (bosses/monsters) can die out of range, so never cache them -- a lingering icon over a
+        // dead boss is wrong. non-living matches (chests, transitions, NPCs, drops) persist at last-seen.
+        var live = CacheLocations && !t.LivingOnly ? new HashSet<long>() : null;
+        var entities = gc.EntityListWrapper?.Entities;
+        if (entities != null)
+            foreach (var e in entities
+                .Where(e => e != null && e.IsValid && HasGrid(e))
+                .Where(e => !t.LivingOnly || IsLiving(e))
+                .Where(e => Match(MatchPath(e), e.RenderName))
+                .OrderBy(e => e.DistancePlayer))
+            {
+                var g = GridOf(e);
+                res.Add(g);
+                if (live != null) { _seen[e.Address] = new SeenEntity(g, MatchPath(e) ?? "", e.RenderName ?? ""); live.Add(e.Address); }
+            }
+        if (live != null)
+            foreach (var kv in _seen)
+                if (!live.Contains(kv.Key) && Match(kv.Value.Path, kv.Value.RenderName))
+                    res.Add(kv.Value.Grid);
         return res;
     }
 

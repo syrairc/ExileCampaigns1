@@ -71,9 +71,23 @@ public partial class ExileCampaigns
 
         if (ImGui.BeginTabItem("Guidance"))
         {
+            ImGui.SeparatorText("Guidance surface");
+            bool radarLive = _radarLookForRoute != null;
+            bool eminiLive = _eminimapClusterTarget != null;
+            ImGui.TextDisabled($"Radar: {(radarLive ? "detected" : "not detected")}    ExileMinimap: {(eminiLive ? "detected" : "not detected")}");
+            if (!radarLive && !eminiLive)
+                ImGui.TextColored(new Vector4(1f, 0.55f, 0.2f, 1f), "No guidance provider detected - install/enable Radar or ExileMinimap.");
+            else if (radarLive && eminiLive)
+                Combo("Surface##guid", Settings.GuidanceProvider.Surface, GuidanceSurfaces, "where campaign guidance draws (path + minimap icons)");
+            else
+                ImGui.TextDisabled(radarLive ? "Only Radar live -> drawing on the in-game map." : "Only ExileMinimap live -> drawing on its panel.");
+
+            Toggle("Remember target locations", Settings.GuidanceProvider.RememberTargetLocations,
+                "Keep an entity path/icon at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.");
+
             ImGui.SeparatorText("Path to next step");
             var p = Settings.Path;
-            Toggle("Show path on ground", p.ShowPathOnGround, "Draw a line on the terrain toward the objective (needs the Radar plugin)");
+            Toggle("Show path on ground", p.ShowPathOnGround, "Draw a line on the terrain toward the objective (in-game map / Radar mode; ExileMinimap draws its own)");
             Toggle("Show path on minimap", p.ShowPathOnMinimap, "Draw the path on the in-game large map");
             Toggle("Ground path only with map closed", p.ShowGroundPathOnlyWithClosedMap,
                 "Hide the ground line while the large map is open");
@@ -222,6 +236,7 @@ public partial class ExileCampaigns
     }
 
     private static readonly string[] PenaltyModes = { "Bar", "Text", "Off" };
+    private static readonly string[] GuidanceSurfaces = { "In-game map (Radar)", "ExileMinimap panel" };
 
     // the XP/stats panel: OverlayStyle controls plus the redesigned 2a row toggles + penalty-display mode.
     private static void DrawCharStatsStyle(CharStatsOverlayStyle s)

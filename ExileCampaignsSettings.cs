@@ -384,6 +384,19 @@ public class WaypointOverlaySettings
     public RangeNode<float> Scale { get; set; } = new RangeNode<float>(0.038f, 0.005f, 0.15f);
 }
 
+[Submenu]
+public class GuidanceProviderSettings
+{
+    // 0 = in-game map (Radar), 1 = ExileMinimap panel. only consulted when both providers are live.
+    public RangeNode<int> Surface { get; set; } = new RangeNode<int>(0, 0, 1);
+
+    // remember an entity target/icon's last-seen grid spot so its path/icon survives the entity leaving load
+    // range. per-area (cleared on area change). town/hideout objects never move, so it's effectively permanent
+    // there; in combat zones the marker sits at last-seen until you re-approach or the step advances.
+    [Menu("Remember target locations", "Keep an entity path/icon at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.")]
+    public ToggleNode RememberTargetLocations { get; set; } = new ToggleNode(true);
+}
+
 public class ExileCampaignsSettings : ISettings
 {
     public ToggleNode Enable { get; set; } = new ToggleNode(true);
@@ -452,6 +465,9 @@ public class ExileCampaignsSettings : ISettings
 
     [Menu("Minimap icons", "Authored minimap icons drawn on the large map for the current area")]
     public MinimapIconSettings MinimapIcons { get; set; } = new MinimapIconSettings();
+
+    [Menu("Guidance provider")]
+    public GuidanceProviderSettings GuidanceProvider { get; set; } = new GuidanceProviderSettings();
 
     // ---- Dev / route authoring ----
     [Menu("Dev overlay", "Minimap overlays for route authoring: room tile names, entity paths, step target marker")]

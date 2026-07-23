@@ -38,6 +38,18 @@ public partial class ExileCampaigns
     // Radar bridge delegates (null until Radar loads / registers them)
     private Func<Vector2, Action<List<Vector2i>>, CancellationToken, Task>? _radarLookForRoute;
     private Func<string, int, Vector2[]>? _radarClusterTarget;
+    // second provider: ExileMinimap's own cluster resolver (panel mode). Radar-free.
+    private Func<string, int, Vector2[]>? _eminimapClusterTarget;
+    // the cluster delegate the resolver should use this frame: Radar's (in-game) or ExileMinimap's (panel).
+    private Func<string, int, Vector2[]>? _clusterTarget;
+    private DateTime _lastProviderProbe;
+
+    // where guidance draws this frame. resolved from live availability + the surface selector.
+    private GuidanceMode _guidanceMode = GuidanceMode.None;
+
+    // None = no provider live (notice in settings). InGame = Radar routes + in-game self-draw (today's path).
+    // Panel = ExileMinimap pathfinds + draws on its panel; we export targets/icons and skip self-draw.
+    private enum GuidanceMode { None, InGame, Panel }
 
     private StepTargetResolver _targetResolver = new();
     private CancellationTokenSource _pathCts = new();
@@ -71,19 +83,48 @@ public partial class ExileCampaigns
 
     private bool PathsEnabled => Settings.Path.ShowPathOnGround || Settings.Path.ShowPathOnMinimap;
 
-    // lazily grab the Radar bridge methods; retry until present (Radar may init after us)
-    private void EnsureRadarBridge()
+    // live throttled re-probe of both providers. non-null == installed AND enabled (ExileAPI nulls a disabled
+    // plugin's bridge). drops a delegate the moment its GetMethod returns null, so enable/disable is tracked
+    // (unlike the old cache-once EnsureRadarBridge). called each Tick + forced on area change.
+    private void EnsureGuidanceProviders()
     {
-        if (_radarLookForRoute != null) return;
-        try
-        {
-            _radarLookForRoute = GameController.PluginBridge
-                .GetMethod<Func<Vector2, Action<List<Vector2i>>, CancellationToken, Task>>("Radar.LookForRoute");
-            _radarClusterTarget = GameController.PluginBridge
-                .GetMethod<Func<string, int, Vector2[]>>("Radar.ClusterTarget");
-        }
-        catch { /* bridge not ready */ }
+        if ((DateTime.Now - _lastProviderProbe).TotalSeconds < 1.0) return;
+        _lastProviderProbe = DateTime.Now;
+        var b = GameController?.PluginBridge;
+        if (b == null) { _radarLookForRoute = null; _radarClusterTarget = null; _eminimapClusterTarget = null; return; }
+        try { _radarLookForRoute = b.GetMethod<Func<Vector2, Action<List<Vector2i>>, CancellationToken, Task>>("Radar.LookForRoute"); }
+        catch { _radarLookForRoute = null; }
+        try { _radarClusterTarget = b.GetMethod<Func<string, int, Vector2[]>>("Radar.ClusterTarget"); }
+        catch { _radarClusterTarget = null; }
+        try { _eminimapClusterTarget = b.GetMethod<Func<string, int, Vector2[]>>("ExileMinimap.ClusterTarget"); }
+        catch { _eminimapClusterTarget = null; }
     }
+
+    // publish the guidance snapshot for ExileMinimap. getters return the last-built export lists (empty when
+    // not in panel mode). registered once in Initialise; the closures read the live fields each call.
+    private void RegisterGuidanceBridge()
+    {
+        var b = GameController?.PluginBridge;
+        if (b == null) return;
+        b.SaveMethod("ExileCampaigns.CurrentPathTargets",
+            (Func<List<(Vector2i, bool)>>)(() => _exportPathTargets ?? new List<(Vector2i, bool)>()));
+        b.SaveMethod("ExileCampaigns.CurrentMinimapIcons",
+            (Func<List<(Vector2, int, uint, float, bool)>>)(() => _exportIcons ?? new List<(Vector2, int, uint, float, bool)>()));
+    }
+
+    // radar => in-game only; exileminimap => panel only; both => selector (default in-game); neither => none.
+    private GuidanceMode ActiveMode()
+    {
+        bool radar = _radarLookForRoute != null;
+        bool emini = _eminimapClusterTarget != null;
+        if (!radar && !emini) return GuidanceMode.None;
+        if (radar && !emini) return GuidanceMode.InGame;
+        if (!radar && emini) return GuidanceMode.Panel;
+        return Settings.GuidanceProvider.Surface.Value == 1 ? GuidanceMode.Panel : GuidanceMode.InGame;
+    }
+
+    private Func<string, int, Vector2[]>? ActiveClusterTarget(GuidanceMode mode)
+        => mode == GuidanceMode.Panel ? _eminimapClusterTarget : _radarClusterTarget;
 
     // called from Tick (throttled). resolves the current step's target and (re)starts the Radar route on step/target change
     private void UpdatePathTarget()
@@ -92,7 +133,6 @@ public partial class ExileCampaigns
         if ((DateTime.Now - _lastPathPoll).TotalSeconds < 0.25) return;
         _lastPathPoll = DateTime.Now;
 
-        EnsureRadarBridge();
         if (_radarLookForRoute == null) return;   // Radar not installed/enabled, no path, no errors
 
         // step changed: drop stale path and re-resolve
@@ -118,9 +158,9 @@ public partial class ExileCampaigns
         // one reachable in this instance). route to EVERY candidate and draw the closest reachable one -- a
         // geometric-nearest pick can land on an unreachable instance, Radar returns no path, nothing draws.
         var tiles = GuidanceView.PathTilePatterns(step);
-        if (tiles.Count > 0 && _radarClusterTarget != null)
+        if (tiles.Count > 0 && _clusterTarget != null)
         {
-            var clusters = _targetResolver.ResolveTileClusters(GameController, tiles, _radarClusterTarget);
+            var clusters = _targetResolver.ResolveTileClusters(GameController, tiles, _clusterTarget);
             if (clusters.Count > 1)
             {
                 CancelPath();
@@ -132,7 +172,7 @@ public partial class ExileCampaigns
             }
         }
 
-        var target = _targetResolver.Resolve(GameController, step, _radarClusterTarget, areaId);
+        var target = _targetResolver.Resolve(GameController, step, _clusterTarget, areaId);
         if (target == null) return;               // nothing resolvable yet, retry next poll
 
         _currentTarget = target;
@@ -418,14 +458,19 @@ public partial class ExileCampaigns
         catch { _targetResolver.RadarTileCounts = null; }
         _lastStepForTarget = -1;
         _currentTarget = null;
+        _targetResolver.ResetSeenCache();   // last-seen coords are grid-local; a new instance starts fresh
         CancelPath();
         ResetObjectiveProgress();
+        _exportPathTargets = null;
+        _exportIcons = null;
+        _lastProviderProbe = DateTime.MinValue;   // force an immediate re-probe next Tick
     }
 
     // --- drawing (called from Render) ---
 
     private void DrawStepPath()
     {
+        if (_guidanceMode != GuidanceMode.InGame) return;   // panel mode exports instead of self-drawing
         if (!PathsEnabled) return;
         var hd = _heightData;
         if (hd == null) return;
@@ -697,8 +742,93 @@ public partial class ExileCampaigns
     // StepId is the owning step, so the renderer can pulse the current objective's icons each frame.
     private readonly List<(Vector2 Coord, SpriteIcon Icon, uint Tint, float? Size, string StepId)> _mmiStatic = new();
 
+    // export snapshot (panel mode): rebuilt on a throttle, returned as-is by the published getters.
+    // rebuilt as fresh lists each time (never mutated in place) so a same-thread consumer reads a stable set.
+    private List<(Vector2i Grid, bool Current)>? _exportPathTargets;
+    private List<(Vector2 Grid, int IconIndex, uint Tint, float Size, bool Current)>? _exportIcons;
+    private DateTime _lastSnapshot;
+
+    // fill the per-area static-anchor icon cache (non-entity anchors). map-open-independent so both the
+    // in-game draw and the panel export can use it. entity anchors resolve live per frame, not here.
+    private void EnsureMmiCache()
+    {
+        if (!Settings.MinimapIcons.Enable || _routeStore == null) return;
+        var areaKey = AreaInstanceKey();
+        if (areaKey == _mmiCacheKey) return;
+        _mmiStatic.Clear();
+        foreach (var s in GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId))
+        {
+            if (s.Anchor.Kind == TargetKind.Entity) continue;
+            if (_targetResolver.ResolveTargetCoord(GameController, s.Anchor, _clusterTarget) is { } c)
+                _mmiStatic.Add((c, SpriteAtlas.Parse(s.IconKey), s.Tint, s.Size, s.StepId));
+        }
+        _mmiCacheKey = areaKey;
+    }
+
+    // build the panel-export snapshot: current-step path targets + visible minimap icons, grid space,
+    // independent of whether the in-game map is open. targets are exported wholesale (every resolved cluster/
+    // entity/room); ExileMinimap keeps the shortest + dedups on its side. throttled; getters read the last build.
+    private void BuildExportSnapshot()
+    {
+        if ((DateTime.Now - _lastSnapshot).TotalSeconds < 0.25) return;
+        _lastSnapshot = DateTime.Now;
+        try
+        {
+            // --- path targets ---
+            var pts = new List<(Vector2i, bool)>();
+            var step = _route.CurrentStep?.Model;
+            if (step != null)
+            {
+                var targets = new List<Vector2>();
+                var tilePats = GuidanceView.PathTilePatterns(step);
+                if (tilePats.Count > 0 && _clusterTarget != null)
+                    targets.AddRange(_targetResolver.ResolveTileClusters(GameController, tilePats, _clusterTarget));
+                var entPats = GuidanceView.PathEntityPatterns(step).ToList();
+                if (entPats.Count > 0)
+                    targets.AddRange(_targetResolver.ObjectiveEntityPositions(GameController, entPats, liveOnly: false));
+                var roomPats = GuidanceView.PathRoomPatterns(step);
+                if (roomPats.Count > 0)
+                    targets.AddRange(_targetResolver.ResolveRoomCenters(GameController, roomPats));
+                if (targets.Count == 0)
+                {
+                    var single = _targetResolver.Resolve(GameController, step, _clusterTarget, _route.CurrentAreaId);
+                    if (single is { } sv) targets.Add(sv);
+                }
+                foreach (var t in targets)
+                    pts.Add((new Vector2i((int)t.X, (int)t.Y), true));   // current step -> Current = true
+            }
+            _exportPathTargets = pts;
+
+            // --- icons ---
+            var icons = new List<(Vector2, int, uint, float, bool)>();
+            if (Settings.MinimapIcons.Enable && _routeStore != null)
+            {
+                EnsureMmiCache();
+                float globalSize = Settings.MinimapIcons.IconSize.Value;
+                var currentId = _route.CurrentStep?.Model?.Id;
+                var visibleIds = LookaheadStepIds(Settings.MinimapIcons.Lookahead.Value);
+                foreach (var (coord, icon, tint, size, stepId) in _mmiStatic)
+                {
+                    if (!visibleIds.Contains(stepId)) continue;
+                    icons.Add((coord, (int)icon, tint, size ?? globalSize, stepId == currentId));
+                }
+                foreach (var s in GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId))
+                {
+                    if (s.Anchor.Kind != TargetKind.Entity) continue;
+                    if (!visibleIds.Contains(s.StepId)) continue;
+                    int idx = (int)SpriteAtlas.Parse(s.IconKey);
+                    foreach (var c in _targetResolver.ResolveEntityCoords(GameController, s.Anchor))
+                        icons.Add((c, idx, s.Tint, s.Size ?? globalSize, s.StepId == currentId));
+                }
+            }
+            _exportIcons = icons;
+        }
+        catch (Exception ex) { LogError($"ExileCampaigns -> export snapshot failed: {ex.Message}"); }
+    }
+
     private void DrawMinimapIcons()
     {
+        if (_guidanceMode != GuidanceMode.InGame) return;   // panel mode exports instead of self-drawing
         if (!Settings.MinimapIcons.Enable || _routeStore == null) return;
 
         SubMap? largeMap = null;
@@ -720,18 +850,7 @@ public partial class ExileCampaigns
         var currentId = _route.CurrentStep?.Model?.Id;   // icons of this step pulse
         var visibleIds = LookaheadStepIds(Settings.MinimapIcons.Lookahead.Value);   // only current + next N steps draw
 
-        var areaKey = AreaInstanceKey();
-        if (areaKey != _mmiCacheKey)
-        {
-            _mmiStatic.Clear();
-            foreach (var s in specs)
-            {
-                if (s.Anchor.Kind == TargetKind.Entity) continue;
-                if (_targetResolver.ResolveTargetCoord(GameController, s.Anchor, _radarClusterTarget) is { } c)
-                    _mmiStatic.Add((c, SpriteAtlas.Parse(s.IconKey), s.Tint, s.Size, s.StepId));
-            }
-            _mmiCacheKey = areaKey;
-        }
+        EnsureMmiCache();
 
         foreach (var (coord, icon, tint, size, stepId) in _mmiStatic)
         {
