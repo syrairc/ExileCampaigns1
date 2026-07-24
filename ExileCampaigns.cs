@@ -363,6 +363,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         UpdateInteractTarget();
         // runs after profile switch resolves above, so a swap window never scans the new char against the old build
         DetectBuildUsed();
+        // safety net for a dirty notes edit that never got its deactivated-after-edit frame (tab switch, header collapse click)
+        if (_notesDirty && (DateTime.UtcNow - _notesDirtySince).TotalSeconds > 2) FlushNotes();
         EvaluateAdvance();
 
         MaybeSaveProgress();

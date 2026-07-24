@@ -63,7 +63,7 @@ public partial class ExileCampaigns
             }
             var o = JObject.Parse(File.ReadAllText(ProgressPath));
             // build is optional: profiles written before this feature simply have no key
-            _build = o["build"]?.ToObject<BuildPlan>() ?? new BuildPlan();
+            _build = BuildPlan.Migrate(o["build"] as JObject);
             _buildIndex.Rebuild(_build);
             var savedId = (string?)o["stepId"];
             int savedIndex = (int?)o["step"] ?? 0;
@@ -96,7 +96,7 @@ public partial class ExileCampaigns
             if (!File.Exists(srcPath)) { ShowToast("Source profile not found", ToastLevel.Error); return; }
             var src = JObject.Parse(File.ReadAllText(srcPath));
 
-            _build = src["build"]?.ToObject<BuildPlan>() ?? new BuildPlan();
+            _build = BuildPlan.Migrate(src["build"] as JObject);
             _buildIndex.Rebuild(_build);
             SeekSavedStep((string?)src["stepId"], (int?)src["step"] ?? 0);
 

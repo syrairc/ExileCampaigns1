@@ -45,11 +45,12 @@ public partial class ExileCampaigns
 
     private void DetectBuildUsed()
     {
-        if (_build.Sets.Count == 0) return;
+        if (!_build.AllSets.Any()) return;
         if ((DateTime.UtcNow - _lastUsedScan).TotalSeconds < 1.0) return;
         _lastUsedScan = DateTime.UtcNow;
 
-        var levelSet = LevelSet();
+        var gearSet = LevelGearSet();
+        var skillSet = LevelSkillSet();
 
         try
         {
@@ -66,8 +67,8 @@ public partial class ExileCampaigns
                 foreach (var e in items)
                 {
                     if (e == null || e.Address == 0 || !e.IsValid) continue;
-                    changed |= MarkWornItem(e, levelSet);
-                    changed |= MarkSocketedGems(e, levelSet);
+                    changed |= MarkWornItem(e, gearSet);
+                    changed |= MarkSocketedGems(e, skillSet);
                 }
             }
 
@@ -145,10 +146,15 @@ public partial class ExileCampaigns
         return changed;
     }
 
-    private string? _selectedSetId;
+    private string? _selectedGearSetId;
+    private string? _selectedSkillSetId;
 
-    private BuildSet? SelectedSet =>
-        _build.FindSet(_selectedSetId) ?? _build.Sets.FirstOrDefault();
+    // scoped to their own list on purpose: a stale id from the other tab must not resolve here
+    private BuildSet? SelectedGearSet =>
+        _build.GearSets.FirstOrDefault(s => s.Id == _selectedGearSetId) ?? _build.GearSets.FirstOrDefault();
+
+    private BuildSet? SelectedSkillSet =>
+        _build.SkillSets.FirstOrDefault(s => s.Id == _selectedSkillSetId) ?? _build.SkillSets.FirstOrDefault();
 
     // every build mutation goes through here: persist and re-index in one place
     private void SaveBuild()
@@ -159,36 +165,32 @@ public partial class ExileCampaigns
 
     private void DrawBuildTab()
     {
-        // pin a set so you can author the 31-55 loadout at level 4
-        var active = ActiveSet();
-        var pinned = _build.FindSet(_build.ActiveSetOverrideId);
-        ImGui.SetNextItemWidth(240);
-        if (ImGui.BeginCombo("Active set", pinned?.Name ?? $"auto ({active?.Name ?? "none"})"))
-        {
-            if (ImGui.Selectable("auto (follow level)", pinned == null))
-            {
-                _build.ActiveSetOverrideId = null;
-                SaveBuild();
-            }
-            foreach (var s in _build.Sets)
-            {
-                ImGui.PushID(s.Id);
-                if (ImGui.Selectable(s.Name, s.Id == _build.ActiveSetOverrideId))
-                {
-                    _build.ActiveSetOverrideId = s.Id;
-                    SaveBuild();
-                }
-                ImGui.PopID();
-            }
-            ImGui.EndCombo();
-        }
+        // pin a set so you can author the 31-55 loadout at level 4. one pin per axis.
+        DrawPinCombo("Pinned gear set", gear: true);
+        DrawPinCombo("Pinned skill set", gear: false);
         ImGui.Separator();
 
         DrawImportSection();
+        DrawNotesSection();
 
-        DrawSetList();
-        ImGui.SameLine();
-        DrawSetDetail();
+        if (ImGui.BeginTabBar("##ec_buildaxis"))
+        {
+            if (ImGui.BeginTabItem("Gear"))
+            {
+                DrawSetList(gear: true);
+                ImGui.SameLine();
+                DrawSetDetail(gear: true);
+                ImGui.EndTabItem();
+            }
+            if (ImGui.BeginTabItem("Skills"))
+            {
+                DrawSetList(gear: false);
+                ImGui.SameLine();
+                DrawSetDetail(gear: false);
+                ImGui.EndTabItem();
+            }
+            ImGui.EndTabBar();
+        }
 
         ImGui.SeparatorText("Build indicators");
         var bi = Settings.BuildIndicators;
@@ -205,39 +207,115 @@ public partial class ExileCampaigns
         SliderFloat("Marker size##bi", bi.Size);
     }
 
-    private void DrawSetList()
+    private void DrawPinCombo(string label, bool gear)
     {
-        ImGui.BeginChild("##ec_setlist", new Vector2(220, 520), ImGuiChildFlags.Border);
+        var sets = gear ? _build.GearSets : _build.SkillSets;
+        var pinnedId = gear ? _build.PinnedGearSetId : _build.PinnedSkillSetId;
+        var pinned = sets.FirstOrDefault(s => s.Id == pinnedId);
+        var auto = gear ? LevelGearSet() : LevelSkillSet();
+
+        ImGui.SetNextItemWidth(240);
+        if (!ImGui.BeginCombo(label, pinned?.Name ?? $"auto ({auto?.Name ?? "none"})")) return;
+
+        if (ImGui.Selectable("auto (follow level)", pinned == null))
+        {
+            if (gear) _build.PinnedGearSetId = null; else _build.PinnedSkillSetId = null;
+            SaveBuild();
+        }
+        foreach (var s in sets)
+        {
+            ImGui.PushID(s.Id);
+            if (ImGui.Selectable(s.Name, s.Id == pinnedId))
+            {
+                if (gear) _build.PinnedGearSetId = s.Id; else _build.PinnedSkillSetId = s.Id;
+                SaveBuild();
+            }
+            ImGui.PopID();
+        }
+        ImGui.EndCombo();
+    }
+
+    private bool _notesDirty;
+    private DateTime _notesDirtySince;
+
+    // notes can be tens of KB and SaveBuild rewrites the whole profile, so edits are flushed on a debounce
+    // instead of per keystroke. _build.Notes is updated live; this only controls when it reaches disk.
+    private void FlushNotes()
+    {
+        if (!_notesDirty) return;
+        _notesDirty = false;
+        SaveBuild();
+    }
+
+    // pob's build notes, stored raw. colour codes (^7, ^xRRGGBB) are kept so a future renderer can use them;
+    // nothing parses them yet. saves on focus loss, not per keystroke - this field can run to tens of KB.
+    private void DrawNotesSection()
+    {
+        if (!ImGui.CollapsingHeader("Notes")) { FlushNotes(); return; }
+
+        var notes = _build.Notes;
+        if (ImGui.InputTextMultiline("##ec_buildnotes", ref notes, 65536, new Vector2(-1f, 120f)))
+        {
+            _build.Notes = notes;
+            _notesDirty = true;
+            _notesDirtySince = DateTime.UtcNow;
+        }
+        if (ImGui.IsItemDeactivatedAfterEdit()) FlushNotes();
+
+        if (ImGui.Button("Strip colour codes") && _build.Notes.Length > 0)
+        {
+            _build.Notes = System.Text.RegularExpressions.Regex.Replace(
+                _build.Notes, @"\^(x[0-9a-fA-F]{6}|\d)", "");
+            _notesDirty = false;   // saving now, no debounced flush needed after
+            SaveBuild();
+        }
+        ImGui.SameLine();
+        ImGui.TextDisabled("PoB colour codes are kept as-is (^7, ^xRRGGBB)");
+        ImGui.Separator();
+    }
+
+    private void DrawSetList(bool gear)
+    {
+        var sets = gear ? _build.GearSets : _build.SkillSets;
+        var selectedId = (gear ? SelectedGearSet : SelectedSkillSet)?.Id;
+
+        ImGui.BeginChild(gear ? "##ec_setlist_gear" : "##ec_setlist_skill",
+            new Vector2(220, 520), ImGuiChildFlags.Border);
 
         if (ImGui.Button("Add set", new Vector2(-1, 0)))
         {
-            var set = new BuildSet { Name = "New set" };
-            _build.Sets.Add(set);
-            _selectedSetId = set.Id;
+            var set = new BuildSet { Name = gear ? "New gear set" : "New skill set" };
+            sets.Add(set);
+            if (gear) _selectedGearSetId = set.Id; else _selectedSkillSetId = set.Id;
             SaveBuild();
         }
         ImGui.Separator();
 
-        foreach (var set in _build.Sets.ToList())
+        foreach (var set in sets.ToList())
         {
             ImGui.PushID(set.Id);
-            bool selected = set.Id == SelectedSet?.Id;
-            if (ImGui.Selectable($"{set.Name}  ({set.MinLevel}-{set.MaxLevel})", selected))
-                _selectedSetId = set.Id;
+            if (ImGui.Selectable($"{set.Name}  ({set.MinLevel}-{set.MaxLevel})", set.Id == selectedId))
+            {
+                if (gear) _selectedGearSetId = set.Id; else _selectedSkillSetId = set.Id;
+            }
             ImGui.PopID();
         }
 
         ImGui.EndChild();
     }
 
-    private void DrawSetDetail()
+    private void DrawSetDetail(bool gear)
     {
-        var set = SelectedSet;
-        ImGui.BeginChild("##ec_setdetail", new Vector2(0, 520), ImGuiChildFlags.Border);
+        var sets = gear ? _build.GearSets : _build.SkillSets;
+        var set = gear ? SelectedGearSet : SelectedSkillSet;
+        ImGui.BeginChild(gear ? "##ec_setdetail_gear" : "##ec_setdetail_skill",
+            new Vector2(0, 520), ImGuiChildFlags.Border);
 
         if (set == null)
         {
-            ImGui.TextDisabled("No sets yet. Add one on the left.");
+            ImGui.TextDisabled(gear
+                ? "No gear sets yet. Add one on the left."
+                : "No skill sets yet. Add one on the left.");
             ImGui.EndChild();
             return;
         }
@@ -260,24 +338,24 @@ public partial class ExileCampaigns
         if (ImGui.Button("Duplicate set"))
         {
             var copy = CloneSet(set);
-            _build.Sets.Add(copy);
-            _selectedSetId = copy.Id;
+            sets.Add(copy);
+            if (gear) _selectedGearSetId = copy.Id; else _selectedSkillSetId = copy.Id;
             SaveBuild();
             ShowToast($"Duplicated {set.Name}", ToastLevel.Success);
         }
         ImGui.SameLine();
         if (ImGui.Button("Delete set"))
         {
-            _build.Sets.Remove(set);
-            _selectedSetId = null;
+            sets.Remove(set);
+            if (gear) _selectedGearSetId = null; else _selectedSkillSetId = null;
             SaveBuild();
         }
 
         ImGui.Separator();
-        DrawPicker(set);
+        DrawPicker(set, gemsOnly: !gear);
 
         ImGui.Separator();
-        DrawEntryTable(set);
+        DrawEntryTable(set, gear);
 
         ImGui.PopID();
         ImGui.EndChild();
@@ -290,10 +368,17 @@ public partial class ExileCampaigns
     // add-by-name. the catalog is built on first use: BaseItemTypes is thousands of rows and the game
     // files are not ready at plugin init anyway. self-contained filter + combo: ExileCore's SearchCombobox
     // rebuilds dictionaries over the whole ~2000-item catalog every frame and hangs, so we don't use it.
-    private void DrawPicker(BuildSet set)
+    private void DrawPicker(BuildSet set, bool gemsOnly)
     {
         _catalog ??= BuildCatalog.Load(GameController, DirectoryFullName, m => LogError($"ExileCampaigns -> {m}"));
         if (_catalog.Items.Count == 0) { ImGui.TextDisabled("item catalog unavailable"); return; }
+
+        // selection is shared across both tabs, so a gear pick must not survive a switch to the skills tab
+        if (_pickerSelection != null && _pickerSelection.IsGem != gemsOnly)
+        {
+            _pickerSelection = null;
+            _pickerInput = "";
+        }
 
         ImGui.SetNextItemWidth(300);
         if (ImGui.BeginCombo("##ec_picker", _pickerSelection?.Label ?? "<pick an item>"))
@@ -303,7 +388,10 @@ public partial class ExileCampaigns
             ImGui.SetNextItemWidth(290);
             ImGui.InputText("##ec_pickerfilter", ref _pickerInput, 64);
 
-            var matches = _catalog.Items.Where(it => PickerMatch(it.Label, _pickerInput)).Take(50).ToList();
+            // the gear tab must not offer gems and vice versa - an entry in the wrong axis never detects
+            var matches = _catalog.Items
+                .Where(it => it.IsGem == gemsOnly && PickerMatch(it.Label, _pickerInput))
+                .Take(50).ToList();
             for (int i = 0; i < matches.Count; i++)
             {
                 ImGui.PushID(i);
@@ -319,6 +407,7 @@ public partial class ExileCampaigns
         {
             _pendingItem = default;
             _pendingPick = _pickerSelection;
+            _pendingSetId = set.Id;
             _dialogLevel = PrefillLevel(set, _pickerSelection.RequiredLevel);
             _dialogNote = "";
             _pendingLinkId = null;
@@ -386,16 +475,10 @@ public partial class ExileCampaigns
     private bool _focusDialogLevel;
     private const string BuildPopupId = "Add to Build##ec_addbuild";
 
-    // hotkey: snapshot what is under the cursor and request the popup
+    // hotkey: snapshot what is under the cursor and request the popup. the item's own kind picks the axis,
+    // so hovering a gem always lands in the skill set even with the Gear tab open.
     private void OnAddBuildItemPressed()
     {
-        var set = SelectedSet;
-        if (set == null)
-        {
-            ShowToast("No build set selected - add one in the Build tab", ToastLevel.Warning);
-            return;
-        }
-
         var snap = TryCaptureHoveredItem();
         if (!snap.Valid)
         {
@@ -403,7 +486,17 @@ public partial class ExileCampaigns
             return;
         }
 
+        var set = snap.IsGem ? SelectedSkillSet : SelectedGearSet;
+        if (set == null)
+        {
+            ShowToast(snap.IsGem
+                ? "No skill set yet - add one in the Build tab (Skills)"
+                : "No gear set yet - add one in the Build tab (Gear)", ToastLevel.Warning);
+            return;
+        }
+
         _pendingItem = snap;
+        _pendingSetId = set.Id;
         _dialogLevel = PrefillLevel(set, snap.RequiredLevel);
         _dialogNote = "";
         _pendingPick = null;
@@ -417,6 +510,7 @@ public partial class ExileCampaigns
 
     private CatalogItem? _pendingPick;    // set when the add came from the picker instead of a hover
     private string? _pendingLinkId;
+    private string? _pendingSetId;    // which set this add lands in. gems go to the skill axis, gear to gear.
 
     // the two add paths converge here so the dialog does not care where the item came from
     private (string Name, string BaseType, string ItemClass, ItemRarity Rarity, bool IsGem, bool IsSupport, int ReqLevel, bool Valid) PendingFields()
@@ -447,7 +541,7 @@ public partial class ExileCampaigns
         if (!ImGui.BeginPopupModal(BuildPopupId, ref open, ImGuiWindowFlags.AlwaysAutoResize))
             return;
 
-        var set = SelectedSet;
+        var set = _build.FindSet(_pendingSetId);
         var f = PendingFields();
         if (set == null || !f.Valid) { ImGui.CloseCurrentPopup(); ImGui.EndPopup(); return; }
 
@@ -513,6 +607,7 @@ public partial class ExileCampaigns
             _pendingPick = null;
             _pendingItem = default;
             _pendingLinkId = null;
+            _pendingSetId = null;
             ImGui.CloseCurrentPopup();
         }
 
@@ -539,21 +634,24 @@ public partial class ExileCampaigns
         _pendingPick = null;
         _pendingItem = default;
         _pendingLinkId = null;
+        _pendingSetId = null;
         SaveBuild();
         ShowToast($"Added {f.Name} @ Lvl {_dialogLevel}", ToastLevel.Success);
     }
 
     // entry table for the selected set. per-row PushID: without it every row's widgets share an id and
     // editing one row edits another.
-    private void DrawEntryTable(BuildSet set)
+    private void DrawEntryTable(BuildSet set, bool gear)
     {
         if (set.Entries.Count == 0)
         {
-            ImGui.TextDisabled("  (no entries - hover an item and press the add key)");
+            ImGui.TextDisabled(gear
+                ? "  (no entries - hover an item and press the add key)"
+                : "  (no entries - hover a gem and press the add key)");
             return;
         }
 
-        if (!ImGui.BeginTable("##ec_entries", 7,
+        if (!ImGui.BeginTable(gear ? "##ec_entries_gear" : "##ec_entries_skill", 7,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
                 new Vector2(0, 420)))
             return;
@@ -620,20 +718,6 @@ public partial class ExileCampaigns
         }
     }
 
-    private enum PairingMode { MergeByMarker, OnePerItemSet, SingleSet }
-
-    // a socket group whose label names none of its own gems (a shopping list or stray note, not a real link).
-    // built but held out of the set so the user can review it (see the gems + label) and keep or skip per group.
-    private sealed class ImportCluster
-    {
-        public string Id { get; } = Guid.NewGuid().ToString("N");
-        public string SetId = "";
-        public string SetName = "";
-        public string Label = "";
-        public List<BuildEntry> Entries = new();
-        public bool Keep;
-    }
-
     private static readonly System.Net.Http.HttpClient _http = MakeHttp();
 
     private static System.Net.Http.HttpClient MakeHttp()
@@ -652,12 +736,13 @@ public partial class ExileCampaigns
     private string _importMetaTitle = "";
 
     private PobBuild? _importBuild;
-    private List<BuildSet>? _importPreview;
+    private List<BuildSet>? _importPreviewGear;
+    private List<BuildSet>? _importPreviewSkill;
     private List<string> _importDropped = new();          // gem names not found in the catalog
     private readonly List<string> _importDroppedItems = new();   // gear whose base could not be resolved
     private readonly HashSet<string> _importUnparsed = new();    // set ids whose level range was guessed
-    private readonly List<ImportCluster> _importClusters = new();   // reference groups awaiting keep/skip review
-    private PairingMode _importMode = PairingMode.MergeByMarker;
+    private string _importNotes = "";
+    private bool _importNotesInclude = true;
 
     private void BeginImport() => BeginImportFrom(_importInput);
 
@@ -746,13 +831,17 @@ public partial class ExileCampaigns
         {
             var xml = PobImport.Decode(code);
             _importBuild = PobImport.Parse(xml);
-            _importPreview = ToProposal(_importBuild, _importMode, out _importDropped);
-            _importError = _importPreview.Count == 0 ? "nothing importable found in that build" : "";
+            (_importPreviewGear, _importPreviewSkill) = ToProposal(_importBuild, out _importDropped);
+            _importNotes = _importBuild.Notes;
+            _importError = _importPreviewGear.Count + _importPreviewSkill.Count == 0
+                ? "nothing importable found in that build" : "";
         }
         catch (Exception ex)   // never let a parse/map throw imbalance the settings ImGui stack
         {
             _importBuild = null;
-            _importPreview = null;
+            _importPreviewGear = null;
+            _importPreviewSkill = null;
+            _importNotes = "";
             _importError = ex is PobImportException ? ex.Message : $"import failed: {ex.Message}";
         }
     }
@@ -850,59 +939,26 @@ public partial class ExileCampaigns
     private static int ClampInto(int req, int min, int max) =>
         req <= 0 ? min : req < min ? min : req > max ? max : req;
 
-    private List<BuildSet> ToProposal(PobBuild b, PairingMode mode, out List<string> droppedGems)
+    // gear and skills map straight across, one build set per pob set, no pairing. pob's two axes are
+    // independent and usually different lengths, so anything that tried to pair them dropped whole stages.
+    private (List<BuildSet> Gear, List<BuildSet> Skill) ToProposal(PobBuild b, out List<string> droppedGems)
     {
         EnsureCatalogLookups();
         droppedGems = new List<string>();
         _importDroppedItems.Clear();
         _importUnparsed.Clear();
-        _importClusters.Clear();
-        var sets = new List<BuildSet>();
 
-        if (mode == PairingMode.SingleSet)
-        {
-            var iset = b.ItemSets.FirstOrDefault(x => x.Id == b.ActiveItemSetId) ?? b.ItemSets.FirstOrDefault();
-            var sset = b.SkillSets.FirstOrDefault(x => x.Id == b.ActiveSkillSetId) ?? b.SkillSets.FirstOrDefault();
-            var name = string.IsNullOrWhiteSpace(iset?.Title) ? "Imported build" : iset!.Title;
-            sets.Add(BuildOneSet(b, name, 1, 100, iset, sset, droppedGems));
-            return sets;
-        }
-
-        // MergeByMarker and OnePerItemSet both spine off item sets
+        var gear = new List<BuildSet>();
         foreach (var iset in b.ItemSets)
         {
             var (min, max, parsed) = PobImport.ParseLevelRange(iset.Title);
-            var sset = PickSkillSet(b, iset, mode);
-            var name = string.IsNullOrWhiteSpace(iset.Title) ? $"Set {sets.Count + 1}" : iset.Title;
-            var set = BuildOneSet(b, name, min, max, iset, sset, droppedGems);
-            if (!parsed) _importUnparsed.Add(set.Id);
-            sets.Add(set);
-        }
-        return sets;
-    }
+            var set = new BuildSet
+            {
+                Name = string.IsNullOrWhiteSpace(iset.Title) ? $"Gear {gear.Count + 1}" : iset.Title,
+                MinLevel = min,
+                MaxLevel = max,
+            };
 
-    private PobSkillSet? PickSkillSet(PobBuild b, PobItemSet iset, PairingMode mode)
-    {
-        if (mode == PairingMode.MergeByMarker && iset.Markers.Length > 0)
-        {
-            var best = b.SkillSets
-                .Select(s => (set: s, overlap: s.Markers.Count(iset.Markers.Contains)))
-                .Where(x => x.overlap > 0)
-                .OrderByDescending(x => x.overlap)
-                .Select(x => x.set)
-                .FirstOrDefault();
-            if (best != null) return best;
-        }
-        return b.SkillSets.FirstOrDefault(x => x.Id == b.ActiveSkillSetId) ?? b.SkillSets.FirstOrDefault();
-    }
-
-    private BuildSet BuildOneSet(PobBuild b, string name, int min, int max,
-        PobItemSet? iset, PobSkillSet? sset, List<string> droppedGems)
-    {
-        var set = new BuildSet { Name = name, MinLevel = min, MaxLevel = max };
-
-        if (iset != null)
-        {
             var seen = new HashSet<int>();
             foreach (var slot in iset.Slots)
             {
@@ -911,13 +967,30 @@ public partial class ExileCampaigns
                 var item = b.Items.FirstOrDefault(x => x.Id == slot.ItemId);
                 if (item != null) AddGearEntry(set, item);
             }
+
+            if (!parsed) _importUnparsed.Add(set.Id);
+            gear.Add(set);
         }
 
-        if (sset != null)
-            foreach (var grp in sset.Groups)
-                AddGroupGems(set, grp, droppedGems);
+        var skill = new List<BuildSet>();
+        foreach (var sset in b.SkillSets)
+        {
+            // strict: skill sets are usually titled by act ("Act 4-10") and those digits are not levels
+            var (min, max, parsed) = PobImport.ParseLevelRange(sset.Title, strictRange: true);
+            var set = new BuildSet
+            {
+                Name = string.IsNullOrWhiteSpace(sset.Title) ? $"Skills {skill.Count + 1}" : sset.Title,
+                MinLevel = min,
+                MaxLevel = max,
+            };
 
-        return set;
+            foreach (var grp in sset.Groups) AddGroupGems(set, grp, droppedGems);
+
+            if (!parsed) _importUnparsed.Add(set.Id);
+            skill.Add(set);
+        }
+
+        return (gear, skill);
     }
 
     private void AddGearEntry(BuildSet set, PobItem item)
@@ -985,25 +1058,14 @@ public partial class ExileCampaigns
             entry.LinkedToId = primaryEntry?.Id;   // null tolerated by detection's fallback
         }
         if (made.Count == 0) return;
-
-        // a real group's label (if any) names one of its own gems; a shopping-list or stray-note label names
-        // none of them. hold those aside for keep/skip review instead of dropping their gems into the set.
-        if (LabelNamesNoGem(grp))
-        {
-            _importClusters.Add(new ImportCluster
-            {
-                SetId = set.Id, SetName = set.Name, Label = grp.Label, Entries = made,
-            });
-            return;
-        }
-
         set.Entries.AddRange(made);
 
         // the label describes the whole group: note on the primary skill (skip dividers and labels that just
-        // repeat the name), optional flags every gem in the group
+        // repeat the name), optional flags every gem in the group. category labels like "Auras" land here too,
+        // which is the point - they are the author telling you what the group is for.
         if (primaryEntry != null && grp.Label.Length > 0 &&
             !PobImport.IsDivider(grp.Label) && !SameWords(grp.Label, primaryEntry.Name))
-            primaryEntry.Note = grp.Label;
+            primaryEntry.Note = grp.Label.Length > 128 ? grp.Label[..128] : grp.Label;
         if (grp.Optional)
             foreach (var e in made) e.Optional = true;
     }
@@ -1012,20 +1074,6 @@ public partial class ExileCampaigns
     private static bool SameWords(string a, string b) => Squash(a) == Squash(b);
     private static string Squash(string s) =>
         new string(s.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
-
-    // a real socket group's label names one of its own gems ("Flame Wall (shoot into wall)"); a shopping-list
-    // or stray-note label references none of them ("Click here for Gems to Purchase"). empty label = real.
-    private static bool LabelNamesNoGem(PobLinkGroup grp)
-    {
-        if (grp.Label.Length == 0) return false;
-        var label = Squash(grp.Label);
-        foreach (var g in grp.Gems)
-        {
-            var name = Squash(g.Name);
-            if (name.Length >= 4 && label.Contains(name)) return false;   // label mentions a gem it holds -> real
-        }
-        return true;
-    }
 
     private BuildEntry? MakeGemEntry(BuildSet set, PobGem g, List<string> droppedGems)
     {
@@ -1043,7 +1091,7 @@ public partial class ExileCampaigns
             RequiredLevel = req,
             TargetLevel = req > 0 ? Clamp(req) : set.MinLevel,   // gem's own required level, not the set floor
         };
-        return entry;   // caller decides whether it lands in the set or a held-aside reference cluster
+        return entry;
     }
 
     private bool _importReplace;
@@ -1070,73 +1118,19 @@ public partial class ExileCampaigns
         if (_importError.Length > 0)
             ImGui.TextColored(new Vector4(0.9f, 0.5f, 0.3f, 1f), _importError);
 
-        if (_importPreview == null) { ImGui.Separator(); return; }
+        if (_importPreviewGear == null || _importPreviewSkill == null) { ImGui.Separator(); return; }
 
         if (_importMetaTitle.Length > 0)
             ImGui.TextDisabled($"Build: {_importMetaTitle}");
 
-        ImGui.SetNextItemWidth(200);
-        if (ImGui.BeginCombo("Pairing", _importMode.ToString()))
-        {
-            foreach (PairingMode m in Enum.GetValues<PairingMode>())
-                if (ImGui.Selectable(m.ToString(), m == _importMode) && m != _importMode)
-                {
-                    _importMode = m;
-                    _importExclude.Clear();
-                    if (_importBuild != null)
-                        _importPreview = ToProposal(_importBuild, _importMode, out _importDropped);
-                }
-            ImGui.EndCombo();
-        }
-        ImGui.SameLine();
         ImGui.Checkbox("Replace existing plan", ref _importReplace);
         ImGui.SameLine();
         if (ImGui.Checkbox("Unique items only", ref _importUniquesOnly) && _importBuild != null)
-            _importPreview = ToProposal(_importBuild, _importMode, out _importDropped);
+            (_importPreviewGear, _importPreviewSkill) = ToProposal(_importBuild, out _importDropped);
         if (ImGui.IsItemHovered()) ImGui.SetTooltip("skip magic/rare/white gear; gems still import");
 
-        if (ImGui.BeginTable("##ec_importpreview", 5,
-                ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
-                new Vector2(0, 160)))
-        {
-            ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 26);
-            ImGui.TableSetupColumn("Set", ImGuiTableColumnFlags.WidthStretch);
-            ImGui.TableSetupColumn("Min", ImGuiTableColumnFlags.WidthFixed, 60);
-            ImGui.TableSetupColumn("Max", ImGuiTableColumnFlags.WidthFixed, 60);
-            ImGui.TableSetupColumn("Entries", ImGuiTableColumnFlags.WidthFixed, 60);
-            ImGui.TableHeadersRow();
-
-            foreach (var set in _importPreview)
-            {
-                ImGui.PushID(set.Id);
-                ImGui.TableNextRow();
-
-                ImGui.TableNextColumn();
-                bool inc = !_importExclude.Contains(set.Id);
-                if (ImGui.Checkbox("##inc", ref inc))
-                {
-                    if (inc) _importExclude.Remove(set.Id); else _importExclude.Add(set.Id);
-                }
-
-                ImGui.TableNextColumn();
-                var nm = set.Name; ImGui.SetNextItemWidth(-1);
-                if (ImGui.InputText("##nm", ref nm, 64)) set.Name = nm;
-
-                ImGui.TableNextColumn();
-                int mn = set.MinLevel; ImGui.SetNextItemWidth(-1);
-                if (ImGui.InputInt("##mn", ref mn, 0)) set.MinLevel = Clamp(mn);
-
-                ImGui.TableNextColumn();
-                int mx = set.MaxLevel; ImGui.SetNextItemWidth(-1);
-                if (ImGui.InputInt("##mx", ref mx, 0)) set.MaxLevel = Clamp(mx);
-
-                ImGui.TableNextColumn();
-                ImGui.Text(set.Entries.Count.ToString());
-
-                ImGui.PopID();
-            }
-            ImGui.EndTable();
-        }
+        DrawImportSetTable("##ec_importgear", "Gear sets", _importPreviewGear);
+        DrawImportSetTable("##ec_importskill", "Skill sets", _importPreviewSkill);
 
         if (_importUnparsed.Count > 0)
             ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1f),
@@ -1150,23 +1144,13 @@ public partial class ExileCampaigns
             ImGui.TextDisabled($"{_importDroppedItems.Distinct().Count()} item(s) base not recognized, skipped: " +
                                string.Join(", ", _importDroppedItems.Distinct().Take(8)));
 
-        if (_importClusters.Count > 0)
-        {
-            ImGui.TextColored(new Vector4(0.9f, 0.7f, 0.3f, 1f),
-                $"{_importClusters.Count} group(s) whose label names no gem (shopping lists / notes - usually not real). Tick to import:");
-            foreach (var c in _importClusters)
-            {
-                ImGui.PushID(c.Id);
-                bool keep = c.Keep;
-                if (ImGui.Checkbox("##keep", ref keep)) c.Keep = keep;
-                ImGui.SameLine();
-                var gems = string.Join(", ", c.Entries.Select(e => e.Name));
-                var trimmed = c.Label.Trim('<', '>', ' ');   // "<<Level 1-20 >>" -> "Level 1-20"
-                var lbl = trimmed.Length > 0 ? trimmed : "(no label)";
-                ImGui.TextWrapped($"{c.SetName} / {lbl}: {gems}");
-                ImGui.PopID();
-            }
-        }
+        bool hasNotes = _importNotes.Length > 0;
+        ImGui.BeginDisabled(!hasNotes);
+        ImGui.Checkbox(hasNotes ? $"Import notes ({_importNotes.Length} chars)"
+                                : "Import notes (build has no notes)", ref _importNotesInclude);
+        ImGui.EndDisabled();
+        if (hasNotes && _importNotesInclude && _build.Notes.Length > 0)
+            ImGui.TextDisabled("  replaces your current notes");
 
         if (ImGui.Button("Import", new Vector2(120, 0))) CommitImport();
         ImGui.SameLine();
@@ -1174,37 +1158,92 @@ public partial class ExileCampaigns
         ImGui.Separator();
     }
 
+    // one preview table per axis. same columns as before; unticking a row leaves that set out of the import.
+    private void DrawImportSetTable(string id, string title, List<BuildSet> sets)
+    {
+        ImGui.TextDisabled(title);
+        if (sets.Count == 0) { ImGui.TextDisabled("  (none in this build)"); return; }
+
+        if (!ImGui.BeginTable(id, 5,
+                ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
+                new Vector2(0, 140)))
+            return;
+
+        ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 26);
+        ImGui.TableSetupColumn("Set", ImGuiTableColumnFlags.WidthStretch);
+        ImGui.TableSetupColumn("Min", ImGuiTableColumnFlags.WidthFixed, 60);
+        ImGui.TableSetupColumn("Max", ImGuiTableColumnFlags.WidthFixed, 60);
+        ImGui.TableSetupColumn("Entries", ImGuiTableColumnFlags.WidthFixed, 60);
+        ImGui.TableHeadersRow();
+
+        foreach (var set in sets)
+        {
+            ImGui.PushID(set.Id);
+            ImGui.TableNextRow();
+
+            ImGui.TableNextColumn();
+            bool inc = !_importExclude.Contains(set.Id);
+            if (ImGui.Checkbox("##inc", ref inc))
+            {
+                if (inc) _importExclude.Remove(set.Id); else _importExclude.Add(set.Id);
+            }
+
+            ImGui.TableNextColumn();
+            var nm = set.Name; ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputText("##nm", ref nm, 64)) set.Name = nm;
+
+            ImGui.TableNextColumn();
+            int mn = set.MinLevel; ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputInt("##mn", ref mn, 0)) set.MinLevel = Clamp(mn);
+
+            ImGui.TableNextColumn();
+            int mx = set.MaxLevel; ImGui.SetNextItemWidth(-1);
+            if (ImGui.InputInt("##mx", ref mx, 0)) set.MaxLevel = Clamp(mx);
+
+            ImGui.TableNextColumn();
+            ImGui.Text(set.Entries.Count.ToString());
+
+            ImGui.PopID();
+        }
+        ImGui.EndTable();
+    }
+
     private void CommitImport()
     {
-        if (_importPreview == null) return;
-        var chosen = _importPreview.Where(s => !_importExclude.Contains(s.Id)).ToList();
-        if (chosen.Count == 0) { _importError = "no sets selected"; return; }
+        if (_importPreviewGear == null || _importPreviewSkill == null) return;
+        var gear = _importPreviewGear.Where(s => !_importExclude.Contains(s.Id)).ToList();
+        var skill = _importPreviewSkill.Where(s => !_importExclude.Contains(s.Id)).ToList();
+        bool takeNotes = _importNotesInclude && _importNotes.Length > 0;
+        if (gear.Count + skill.Count == 0 && !takeNotes) { _importError = "no sets selected"; return; }
 
-        // fold kept reference clusters back into their set (only if that set is being imported)
-        foreach (var c in _importClusters.Where(c => c.Keep))
-            chosen.FirstOrDefault(s => s.Id == c.SetId)?.Entries.AddRange(c.Entries);
+        if (_importReplace) { _build.GearSets.Clear(); _build.SkillSets.Clear(); }
+        _build.GearSets.AddRange(gear);
+        _build.SkillSets.AddRange(skill);
+        if (takeNotes) _build.Notes = _importNotes;
+        if (gear.Count > 0) _selectedGearSetId = gear[0].Id;
+        if (skill.Count > 0) _selectedSkillSetId = skill[0].Id;
 
-        if (_importReplace) _build.Sets.Clear();
-        int entries = chosen.Sum(s => s.Entries.Count);
-        _build.Sets.AddRange(chosen);
-        _selectedSetId = chosen[0].Id;
         SaveBuild();
-        ShowToast($"Imported {chosen.Count} set(s), {entries} entrie(s)", ToastLevel.Success);
+        int entries = gear.Sum(s => s.Entries.Count) + skill.Sum(s => s.Entries.Count);
+        ShowToast($"Imported {gear.Count} gear + {skill.Count} skill set(s), {entries} entries",
+            ToastLevel.Success);
         ResetImport();
     }
 
     private void ResetImport()
     {
-        _importPreview = null;
+        _importPreviewGear = null;
+        _importPreviewSkill = null;
         _importBuild = null;
         _importDropped = new List<string>();
         _importDroppedItems.Clear();
         _importUnparsed.Clear();
-        _importClusters.Clear();
         _importExclude.Clear();
         _importInput = "";
         _importError = "";
         _importReplace = false;
+        _importNotes = "";
+        _importNotesInclude = true;
     }
 
     // corner markers on inventory items in the build, and outlines on quest rewards in the build. both route
@@ -1233,7 +1272,7 @@ public partial class ExileCampaigns
 
     private void DrawBuildIndicators()
     {
-        if (!Settings.BuildIndicators.Enable || _build.Sets.Count == 0) return;
+        if (!Settings.BuildIndicators.Enable || !_build.AllSets.Any()) return;
         if (Settings.BuildIndicators.MarkInventory) DrawInventoryMarkers();
 
         if (Settings.BuildIndicators.HighlightQuestRewards)
@@ -1381,15 +1420,22 @@ public partial class ExileCampaigns
         catch { /* hover/window mid-teardown */ }
     }
 
-    // build overlay: from the active set, what you can equip now and what unlocks next. reads the build
+    // build overlay: from the active sets, what you can equip now and what unlocks next. reads the build
     // directly, ignoring route steps. used entries drop off.
     // first set whose range covers the character, no pin. overlaps are first-wins by design: validating
-    // ranges would buy a modal error in exchange for nothing.
-    private BuildSet? LevelSet() =>
-        _build.Sets.FirstOrDefault(s => _playerLevel >= s.MinLevel && _playerLevel <= s.MaxLevel);
+    // ranges would buy a modal error in exchange for nothing. gear and skills resolve independently.
+    private BuildSet? LevelGearSet() =>
+        _build.GearSets.FirstOrDefault(s => _playerLevel >= s.MinLevel && _playerLevel <= s.MaxLevel);
+
+    private BuildSet? LevelSkillSet() =>
+        _build.SkillSets.FirstOrDefault(s => _playerLevel >= s.MinLevel && _playerLevel <= s.MaxLevel);
 
     // pinned set wins (authoring aid, for editing a bracket you haven't reached yet), else the level set.
-    private BuildSet? ActiveSet() => _build.FindSet(_build.ActiveSetOverrideId) ?? LevelSet();
+    // scoped to its own list - a stale id from the other tab must not resolve here.
+    private BuildSet? ActiveGearSet() =>
+        _build.GearSets.FirstOrDefault(s => s.Id == _build.PinnedGearSetId) ?? LevelGearSet();
+    private BuildSet? ActiveSkillSet() =>
+        _build.SkillSets.FirstOrDefault(s => s.Id == _build.PinnedSkillSetId) ?? LevelSkillSet();
 
     // ctrl-click an overlay row to mark it equipped/owned, same one-way flag the editor checkbox sets.
     private void MarkEntryHave(BuildEntry e)
@@ -1409,19 +1455,25 @@ public partial class ExileCampaigns
     // had drops out. Num carries availability (now / have / L{level}); ctrl-click marks have.
     private List<PanelLine> BuildPanelLines(OverlayStyle s)
     {
-        var set = ActiveSet();
-        var header = set == null ? "Build" : $"Build - {set.Name}";
+        var gearSet = ActiveGearSet();
+        var skillSet = ActiveSkillSet();
+
+        var names = new List<string>();
+        if (gearSet != null) names.Add(gearSet.Name);
+        if (skillSet != null) names.Add(skillSet.Name);
+        var header = names.Count == 0 ? "Build" : "Build - " + string.Join(" / ", names);
+
         var lines = new List<PanelLine>
         {
             new PanelLine(header, s.HeaderColor.Value, isHeader: true),
         };
 
-        if (_build.Sets.Count == 0)
+        if (!_build.AllSets.Any())
         {
             lines.Add(new PanelLine("  (no build sets - add one in the Build tab)", s.OptionalColor.Value));
             return lines;
         }
-        if (set == null)
+        if (gearSet == null && skillSet == null)
         {
             lines.Add(new PanelLine($"  (no set for level {_playerLevel})", s.OptionalColor.Value));
             return lines;
@@ -1442,9 +1494,10 @@ public partial class ExileCampaigns
             return new PanelLine(name, col, num: num, indent: support ? 1 : 0, onCtrlClick: () => MarkEntryHave(e));
         }
 
-        var skills = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && !e.IsSupport).ToList();
-        var supports = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && e.IsSupport).ToList();
-        var items = set.Entries.Where(e => e.Kind == BuildItemKind.Equipment).ToList();
+        var empty = new List<BuildEntry>();
+        var skills = skillSet?.Entries.Where(e => e.Kind == BuildItemKind.Gem && !e.IsSupport).ToList() ?? empty;
+        var supports = skillSet?.Entries.Where(e => e.Kind == BuildItemKind.Gem && e.IsSupport).ToList() ?? empty;
+        var items = gearSet?.Entries.Where(e => e.Kind == BuildItemKind.Equipment).ToList() ?? empty;
 
         // each skill in declared order, then the supports that link to it (a support feeding several skills
         // repeats under each). a group whose skill and every support are already had is skipped entirely.
@@ -1464,8 +1517,9 @@ public partial class ExileCampaigns
         foreach (var it in items.Where(it => !it.Used))
         { lines.Add(Row(it, support: false)); shown++; }
 
-        if (set.Entries.Count == 0)
-            lines.Add(new PanelLine("  (set is empty)", s.OptionalColor.Value));
+        int total = (gearSet?.Entries.Count ?? 0) + (skillSet?.Entries.Count ?? 0);
+        if (total == 0)
+            lines.Add(new PanelLine("  (sets are empty)", s.OptionalColor.Value));
         else if (shown == 0)
             lines.Add(new PanelLine("  (all equipped)", s.OptionalColor.Value));
 

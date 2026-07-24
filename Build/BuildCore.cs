@@ -4,6 +4,7 @@ using ExileCore.Shared.Enums;
 using System.Text;
 using System.IO;
 using ExileCore;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IO.Compression;
 using System.Linq;
@@ -43,26 +44,102 @@ public sealed class BuildSet
     public List<BuildEntry> Entries { get; set; } = new();
 }
 
-// persisted inside the character profile json under the "build" key. Version lets later shapes migrate.
+// persisted inside the character profile json under the "build" key. gear and skills are independent axes:
+// one gear set and one skill set are active at any level, because gear cadence and gem cadence rarely line up.
 public sealed class BuildPlan
 {
-    public int Version { get; set; } = 1;
-    public List<BuildSet> Sets { get; set; } = new();
-    public string? ActiveSetOverrideId { get; set; }   // null = follow character level
+    public int Version { get; set; } = 2;
+    public List<BuildSet> GearSets { get; set; } = new();
+    public List<BuildSet> SkillSets { get; set; } = new();
+    public string? PinnedGearSetId { get; set; }    // null = follow character level
+    public string? PinnedSkillSetId { get; set; }
+    public string Notes { get; set; } = "";         // raw pob notes, colour codes kept as-is
+
+    // computed, not a real list - keep it out of the saved json or it just doubles the file
+    [JsonIgnore]
+    public IEnumerable<BuildSet> AllSets => GearSets.Concat(SkillSets);
 
     public BuildSet? FindSet(string? id) =>
-        string.IsNullOrEmpty(id) ? null : Sets.Find(s => s.Id == id);
+        string.IsNullOrEmpty(id) ? null : AllSets.FirstOrDefault(s => s.Id == id);
 
     // entry lookup across every set. used to resolve a support's LinkedToId to its skill.
     public BuildEntry? FindEntry(string? id)
     {
         if (string.IsNullOrEmpty(id)) return null;
-        foreach (var s in Sets)
+        foreach (var s in AllSets)
         {
             var e = s.Entries.Find(x => x.Id == id);
             if (e != null) return e;
         }
         return null;
+    }
+
+    // v1 profiles carry one "Sets" list of mixed gear+gem entries. split each by entry kind into a gear set
+    // and a skill set on the same bracket, so an old plan keeps resolving exactly as it did. entry ids are
+    // preserved so a support's LinkedToId still finds its skill (both are gems, so they land in the same half).
+    public static BuildPlan Migrate(JObject? raw)
+    {
+        // must never throw - the caller can't tell "bad build data" from "bad everything" and reacts by
+        // tossing the whole profile load, so a throw here costs the route position too, not just the build.
+        try
+        {
+            return MigrateCore(raw);
+        }
+        catch
+        {
+            return new BuildPlan();
+        }
+    }
+
+    private static BuildPlan MigrateCore(JObject? raw)
+    {
+        if (raw == null) return new BuildPlan();
+
+        // case-insensitive because the on-disk shape is PascalCase but hand-edited files turn up either way
+        var gearTok = raw.GetValue("GearSets", StringComparison.OrdinalIgnoreCase);
+        var skillTok = raw.GetValue("SkillSets", StringComparison.OrdinalIgnoreCase);
+        if (gearTok != null || skillTok != null)
+            return raw.ToObject<BuildPlan>() ?? new BuildPlan();
+
+        var plan = new BuildPlan
+        {
+            Notes = (string?)raw.GetValue("Notes", StringComparison.OrdinalIgnoreCase) ?? "",
+        };
+        // check the shape instead of deserializing the whole array in one call - a non-array Sets ({} or a
+        // bare string) just isn't a JArray, no throw needed. deserialize per element too, so one hand-typo'd
+        // set (a string where a number belongs) can't take every other set in the profile down with it.
+        var setsTok = raw.GetValue("Sets", StringComparison.OrdinalIgnoreCase);
+        var old = new List<BuildSet>();
+        if (setsTok is JArray arr)
+            foreach (var t in arr)
+            {
+                try { if (t.ToObject<BuildSet>() is { } s) old.Add(s); }
+                catch (JsonException) { /* one bad set, skip it, keep the rest of the profile */ }
+            }
+
+        var pin = (string?)raw.GetValue("ActiveSetOverrideId", StringComparison.OrdinalIgnoreCase);
+        foreach (var s in old)
+        {
+            // complement, not two positive filters - json.net doesn't validate enum range, so a corrupt or
+            // future third Kind value must still land somewhere instead of matching neither and vanishing.
+            // gear is the safe default side since Equipment is the zero value anyway.
+            var gems = s.Entries.Where(e => e.Kind == BuildItemKind.Gem).ToList();
+            var gear = s.Entries.Where(e => e.Kind != BuildItemKind.Gem).ToList();
+
+            if (gear.Count > 0)
+            {
+                var g = new BuildSet { Name = s.Name, MinLevel = s.MinLevel, MaxLevel = s.MaxLevel, Entries = gear };
+                plan.GearSets.Add(g);
+                if (s.Id == pin) plan.PinnedGearSetId = g.Id;
+            }
+            if (gems.Count > 0)
+            {
+                var k = new BuildSet { Name = s.Name, MinLevel = s.MinLevel, MaxLevel = s.MaxLevel, Entries = gems };
+                plan.SkillSets.Add(k);
+                if (s.Id == pin) plan.PinnedSkillSetId = k.Id;
+            }
+        }
+        return plan;
     }
 }
 
@@ -97,7 +174,7 @@ public sealed class BuildIndex
     {
         _byName.Clear();
         _byBase.Clear();
-        foreach (var set in plan.Sets)
+        foreach (var set in plan.AllSets)
             foreach (var e in set.Entries)
             {
                 var m = new BuildMatch(e, set);
@@ -251,7 +328,6 @@ public sealed class PobItemSet
 {
     public string Title { get; init; } = "";
     public int Id { get; init; }
-    public int[] Markers { get; init; } = Array.Empty<int>();
     public List<PobSlot> Slots { get; init; } = new();
 }
 
@@ -267,7 +343,6 @@ public sealed class PobSkillSet
 {
     public string Title { get; init; } = "";
     public int Id { get; init; }
-    public int[] Markers { get; init; } = Array.Empty<int>();
     public List<PobLinkGroup> Groups { get; init; } = new();
 }
 
@@ -279,6 +354,7 @@ public sealed class PobBuild
     public List<PobSkillSet> SkillSets { get; init; } = new();
     public int ActiveItemSetId { get; init; }
     public int ActiveSkillSetId { get; init; }
+    public string Notes { get; init; } = "";   // raw, colour codes kept. NotesHTML is ignored on purpose
 }
 
 // Turns a Path of Building export (base64 url-safe + zlib XML) into a flat model. BCL only.
@@ -353,7 +429,6 @@ public static class PobImport
             {
                 Title = title,
                 Id = ParseInt((string?)isEl.Attribute("id"), 0),
-                Markers = StageMarkers(title),
                 Slots = slots,
             });
         }
@@ -395,7 +470,6 @@ public static class PobImport
             {
                 Title = title,
                 Id = ParseInt((string?)setEl.Attribute("id"), 0),
-                Markers = StageMarkers(title),
                 Groups = groups,
             });
         }
@@ -408,6 +482,7 @@ public static class PobImport
             SkillSets = skillSets,
             ActiveItemSetId = ParseInt((string?)itemsEl?.Attribute("activeItemSet"), 0),
             ActiveSkillSetId = ParseInt((string?)skillsEl?.Attribute("activeSkillSet"), 0),
+            Notes = (root.Element("Notes")?.Value ?? "").Trim(),
         };
     }
 
@@ -453,7 +528,7 @@ public static class PobImport
         Regex.Replace(title, @"\^(x[0-9a-fA-F]{6}|\d)", "").Trim();
 
     // socket-group label: strip colour codes and pull an "Optional" marker out into a flag. dividers are kept
-    // (the cluster review shows them to identify a group); IsDivider gates whether one becomes a skill note.
+    // as labels; IsDivider gates whether one becomes a skill note.
     public static (string Label, bool Optional) CleanLabel(string raw)
     {
         var s = CleanTitle(raw);
@@ -470,29 +545,25 @@ public static class PobImport
     // "<< Damage Skills >>" style dividers identify a group but must not be attached as a skill's note
     public static bool IsDivider(string label) => Regex.IsMatch(label, @"^<{1,}.*>{1,}$");
 
-    // the {n} numbers in a title, e.g. "{4,5}" -> [4,5]
-    public static int[] StageMarkers(string title)
-    {
-        var m = Regex.Match(title, @"\{([\d,\s]+)\}");
-        if (!m.Success) return Array.Empty<int>();
-        return m.Groups[1].Value.Split(',')
-            .Select(p => int.TryParse(p.Trim(), out var n) ? n : -1)
-            .Where(n => n >= 0).ToArray();
-    }
-
     // title -> level bracket. Parsed=false means "no range found, caller should default to 1-100 and flag it".
-    public static (int Min, int Max, bool Parsed) ParseLevelRange(string title)
+    // strictRange is for skill-set titles: those are usually act names ("Act 4-10") and a bare number range
+    // that is act numbers, not levels. gear titles are authored as brackets so they keep the loose rule.
+    public static (int Min, int Max, bool Parsed) ParseLevelRange(string title, bool strictRange = false)
     {
         var t = Regex.Replace(title, @"\{[^}]*\}", " ");    // drop stage markers so they aren't read as levels
-        var r = Regex.Match(t, @"(\d+)\s*(?:-|–|—|to)\s*(\d+)", RegexOptions.IgnoreCase);
+        var r = Regex.Match(t, strictRange
+            ? @"(?:level|lvl|lv)\s*(\d+)\s*(?:-|–|—|to)\s*(\d+)"
+            : @"(\d+)\s*(?:-|–|—|to)\s*(\d+)", RegexOptions.IgnoreCase);
         if (r.Success && int.TryParse(r.Groups[1].Value, out var a) && int.TryParse(r.Groups[2].Value, out var b))
             return (Clamp(Math.Min(a, b)), Clamp(Math.Max(a, b)), true);
-        var plus = Regex.Match(t, @"(\d+)\s*\+");
+        var plus = Regex.Match(t, strictRange ? @"(?:level|lvl|lv)\s*(\d+)\s*\+" : @"(\d+)\s*\+",
+            RegexOptions.IgnoreCase);
         if (plus.Success && int.TryParse(plus.Groups[1].Value, out var n))
             return (Clamp(n), 100, true);
         // a lone "Level 90" gives a floor but no ceiling. use it as Min (Max stays 100) so the set does not
         // start at 1 and shadow every later bracket; Parsed=false flags it for the user to set the ceiling.
-        var lone = Regex.Match(t, @"(?:level|lvl)\s*(\d+)", RegexOptions.IgnoreCase);
+        // "lv" is in the alternation because pob authors write "lv73" far more often than "lvl 73".
+        var lone = Regex.Match(t, @"(?:level|lvl|lv)\s*(\d+)", RegexOptions.IgnoreCase);
         if (lone.Success && int.TryParse(lone.Groups[1].Value, out var ln))
             return (Clamp(ln), 100, false);
         return (1, 100, false);
