@@ -413,9 +413,11 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (!_visible)
             return;
 
-        // cache the open side-panel rects once per frame; every overlay hides where it would overlap one.
+        // cache the open panel rects once per frame; every overlay hides (or slides clear) where it overlaps one.
         _leftPanelRect = ui.OpenLeftPanel.IsVisible ? SafeClientRect(ui.OpenLeftPanel) : null;
         _rightPanelRect = ui.OpenRightPanel.IsVisible ? SafeClientRect(ui.OpenRightPanel) : null;
+        _leftPanelRect = UnionStashTabList(ui, _leftPanelRect);
+        CacheLargePanelRects(ui);
 
         DrawStepPath();
         DrawInteractIndicators();
@@ -590,6 +592,61 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         (_leftPanelRect != null || _rightPanelRect != null) &&
         OverlapsSidePanel(new RectangleF(min.X, min.Y, max.X - min.X, max.Y - min.Y));
 
+    // the stash tab list hangs off the right edge of the stash window and isn't inside its client rect,
+    // so offsetting past the stash alone still lands under it. widen the left rect to cover both.
+    private static RectangleF? UnionStashTabList(ExileCore.PoEMemory.MemoryObjects.IngameUIElements ui, RectangleF? left)
+    {
+        if (left is not { } l) return left;
+        try
+        {
+            var list = ui.StashElement?.ViewAllStashPanel;
+            if (list is { IsVisible: true } && SafeClientRect(list) is { } r) return RectangleF.Union(l, r);
+        }
+        catch { }
+        return left;
+    }
+
+    // open large windows (stash, vendor, crafting, ritual, ...). refreshed each frame in Render.
+    private readonly List<RectangleF> _largePanelRects = new();
+
+    private void CacheLargePanelRects(ExileCore.PoEMemory.MemoryObjects.IngameUIElements ui)
+    {
+        _largePanelRects.Clear();
+        try
+        {
+            foreach (var p in ui.LargePanels)
+                if (p is { IsVisible: true } && SafeClientRect(p) is { } r) _largePanelRects.Add(r);
+        }
+        catch { }
+    }
+
+    private bool OverlapsLargePanel(RectangleF r)
+    {
+        foreach (var p in _largePanelRects)
+            if (p.Intersects(r)) return true;
+        return false;
+    }
+
+    // x offset that slides a rect clear of the side panel it overlaps: right past a left panel, left past a
+    // right panel. 0 when it can't clear - caller hides instead.
+    private float SidePanelShift(RectangleF r)
+    {
+        float screenW = GameController.Window.GetWindowRectangle().Width;
+        float dx = 0f;
+        if (_leftPanelRect is { } l && l.Intersects(r))
+        {
+            dx = l.Right - r.Left;
+            if (r.Right + dx > screenW) return 0f;
+        }
+        else if (_rightPanelRect is { } rp && rp.Intersects(r))
+        {
+            dx = rp.Left - r.Right;
+            if (r.Left + dx < 0f) return 0f;
+        }
+        // sliding out from under one panel can land us under the other
+        return dx != 0f && OverlapsSidePanel(new RectangleF(r.X + dx, r.Y, r.Width, r.Height)) ? 0f : dx;
+    }
+
     // point-test variant for per-vertex world draws (path segments, comets).
     private bool PointInSidePanel(Vector2 p) =>
         (_leftPanelRect is { } l && l.Contains(p.X, p.Y)) || (_rightPanelRect is { } rp && rp.Contains(p.X, p.Y));
@@ -708,11 +765,23 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var panelSize = new Vector2(contentW + pad * 2, totalH);
         var origin = new Vector2(posX.Value, posY.Value);
 
-        // hide where this overlay would sit under an open side panel.
-        if (OverlapsSidePanel(origin, origin + panelSize))
-            return;
+        // big windows always hide us; a side panel hides or pushes us aside per Settings.PanelAvoidMode.
+        var panelRect = new RectangleF(origin.X, origin.Y, panelSize.X, panelSize.Y);
+        if (OverlapsLargePanel(panelRect)) return;
 
-        var (hovered, onEdge) = HandleInteract(id, ref origin, panelSize, posX, posY, maxWidth);
+        float shift = 0f;
+        if (OverlapsSidePanel(panelRect))
+        {
+            if (Settings.PanelAvoidMode.Value == 0) return;
+            shift = SidePanelShift(panelRect);
+            if (shift == 0f) return;   // nowhere to slide, hide instead
+        }
+
+        // no drag/resize while offset - the saved position would jump by the shift.
+        var (hovered, onEdge) = shift == 0f
+            ? HandleInteract(id, ref origin, panelSize, posX, posY, maxWidth)
+            : (false, false);
+        origin.X += shift;
         bool active = _dragId == id || _resizeId == id;
 
         var min = origin;

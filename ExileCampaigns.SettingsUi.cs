@@ -46,6 +46,8 @@ public partial class ExileCampaigns
         {
             Toggle("Lock overlays", Settings.LockOverlays,
                 "When off, drag any overlay with the left mouse button to reposition it. Turn on once placed so clicks pass through.");
+            Combo("Side panel behaviour", Settings.PanelAvoidMode, PanelAvoidModes,
+                "What an overlay does when the character/inventory panel opens over it. Big windows (stash, vendor, crafting) always hide it.");
             ImGui.SeparatorText("Route guide (steps)");
             DrawStepsStyle(Settings.Steps);
             ImGui.SeparatorText("Statistics Overlay");
@@ -237,6 +239,7 @@ public partial class ExileCampaigns
 
     private static readonly string[] PenaltyModes = { "Bar", "Text", "Off" };
     private static readonly string[] GuidanceSurfaces = { "In-game map (Radar)", "ExileMinimap panel" };
+    private static readonly string[] PanelAvoidModes = { "Hide overlay", "Offset overlay" };
 
     // the XP/stats panel: OverlayStyle controls plus the redesigned 2a row toggles + penalty-display mode.
     private static void DrawCharStatsStyle(CharStatsOverlayStyle s)

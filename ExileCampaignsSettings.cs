@@ -405,6 +405,10 @@ public class ExileCampaignsSettings : ISettings
         "Turn on once placed so clicks pass through to the game.")]
     public ToggleNode LockOverlays { get; set; } = new ToggleNode(true);
 
+    // what an overlay does when the character/inventory panel opens on top of it: 0 hide, 1 slide clear.
+    [Menu("Side panel behaviour", "Hide the overlay under an open character/inventory panel, or offset it out of the way.")]
+    public RangeNode<int> PanelAvoidMode { get; set; } = new RangeNode<int>(0, 0, 1);
+
     // auto-switch the active profile to the logged-in character. drawn manually atop the panel
     // by the profile manager; [IgnoreMenu] keeps it out of the reflected list.
     [IgnoreMenu] public ToggleNode AutoSwitchProfile { get; set; } = new ToggleNode(true);
