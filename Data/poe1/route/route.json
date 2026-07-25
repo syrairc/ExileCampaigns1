@@ -40,30 +40,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/WoundedExile"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/WoundedExile"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -129,17 +105,6 @@
             "value": "A1Q1QuestRewardTaken"
           },
           "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
             {
               "target": {
                 "kind": "Entity",
@@ -295,17 +260,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/WaterCave/GlyphWall"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -434,31 +388,7 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q4QuestReward2Taken"
-          },
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ],
       "importFp": "fnv1a:859e5404"
@@ -476,31 +406,7 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A1Q5QuestReward2Taken"
-          },
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Nessa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Nessa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ],
       "importFp": "fnv1a:13fbb000"
@@ -524,29 +430,87 @@
       "importFp": "fnv1a:df67bace"
     },
     {
-      "id": "imp-a1-17",
+      "id": "imp-a1-23",
       "act": 1,
       "areaId": "1_1_4_1",
       "areaName": "The Submerged Passage",
-      "text": "Find bridge, place portal",
+      "text": "Enter The Flooded Depths",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "TownPortal",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_1_4_0"
+          },
           "paths": [
             {
               "target": {
                 "kind": "Tile",
                 "match": {
-                  "value": "waypoint"
+                  "value": "towaterydepths"
                 }
               }
             }
           ]
         }
       ],
-      "importFp": "fnv1a:7792884c"
+      "importFp": "fnv1a:e8780545"
+    },
+    {
+      "id": "imp-a1-24",
+      "act": 1,
+      "areaId": "1_1_4_0",
+      "areaName": "The Flooded Depths",
+      "text": "Find and kill The Dweller of the Deep",
+      "optional": false,
+      "completeWhen": "All",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A1Q7KilledDweller"
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
+                },
+                "matchBy": "Path"
+              }
+            },
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "forcedblank"
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "importFp": "fnv1a:4836e09f"
+    },
+    {
+      "id": "imp-a1-25",
+      "act": 1,
+      "areaId": "1_1_4_0",
+      "areaName": "The Flooded Depths",
+      "text": "Enter Submerged Passage (take boat)",
+      "optional": false,
+      "completeWhen": "All",
+      "objectives": [
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_1_4_1"
+          }
+        }
+      ],
+      "importFp": "fnv1a:13d366ab"
     },
     {
       "id": "imp-a1-18",
@@ -569,30 +533,6 @@
                 "match": {
                   "value": "passageway"
                 }
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
               }
             }
           ]
@@ -714,7 +654,7 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "QuestFlag",
+          "type": "ActivateWaypoint",
           "paths": [
             {
               "target": {
@@ -747,128 +687,6 @@
       "importFp": "fnv1a:ebe2fb27"
     },
     {
-      "id": "imp-a1-22",
-      "act": 1,
-      "areaId": "1_1_town",
-      "areaName": "Lioneye's Watch",
-      "text": "Take portal (or WP to The Submerged Passage)",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_4_1"
-          }
-        }
-      ],
-      "importFp": "fnv1a:33feff21"
-    },
-    {
-      "id": "imp-a1-23",
-      "act": 1,
-      "areaId": "1_1_4_1",
-      "areaName": "The Submerged Passage",
-      "text": "Enter The Flooded Depths",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_4_0"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "towaterydepths"
-                }
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:e8780545"
-    },
-    {
-      "id": "imp-a1-24",
-      "act": 1,
-      "areaId": "1_1_4_0",
-      "areaName": "The Flooded Depths",
-      "text": "Find and kill The Dweller of the Deep",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q7KilledDweller"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
-                },
-                "matchBy": "Path"
-              }
-            },
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "forcedblank"
-                }
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/ShieldCrabs/ShieldCrabBossSlowAura@6"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:4836e09f"
-    },
-    {
-      "id": "imp-a1-25",
-      "act": 1,
-      "areaId": "1_1_4_0",
-      "areaName": "The Flooded Depths",
-      "text": "log out",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "Login"
-        }
-      ],
-      "importFp": "fnv1a:13d366ab"
-    },
-    {
       "id": "imp-a1-26",
       "act": 1,
       "areaId": "1_1_town",
@@ -884,30 +702,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -1029,30 +823,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Labyrinth/Objects/HiddenDoor_Short"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Labyrinth/Objects/HiddenDoor_Short"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -1087,30 +857,6 @@
                 "match": {
                   "value": "bossentrance2"
                 }
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Brute/BossBrute@9"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Brute/BossBrute@9"
-                },
-                "matchBy": "Path"
               }
             }
           ]
@@ -1164,65 +910,7 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/BossArenaEntranceTransition"
-                },
-                "matchBy": "Path"
-              }
-            },
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/BossArenaEntranceTransition"
-                },
-                "matchBy": "Path"
-              }
-            },
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
-        }
-      ]
-    },
-    {
-      "id": "8f9a3e6398ca431daf696d856549ef05",
-      "act": 1,
-      "areaId": "1_1_7_2",
-      "areaName": "The Upper Prison",
-      "text": "Get Waypoint",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "ActivateWaypoint"
         }
       ]
     },
@@ -1255,12 +943,12 @@
       "act": 1,
       "areaId": "1_1_8",
       "areaName": "",
-      "text": "log out",
+      "text": "Waypoint to Lioneye's Watch",
       "optional": false,
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Login"
+          "type": "EnterArea"
         }
       ],
       "importFp": "fnv1a:13d366ab"
@@ -1268,8 +956,8 @@
     {
       "id": "imp-a1-34",
       "act": 1,
-      "areaId": "1_1_7_2",
-      "areaName": "The Upper Prison",
+      "areaId": "1_1_town",
+      "areaName": "Lioneye's Watch",
       "text": "Hand in The Caged Brute",
       "optional": false,
       "completeWhen": "All",
@@ -1289,30 +977,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -1321,8 +985,8 @@
     {
       "id": "imp-a1-35",
       "act": 1,
-      "areaId": "1_1_7_2",
-      "areaName": "The Upper Prison",
+      "areaId": "1_1_town",
+      "areaName": "Lioneye's Watch",
       "text": "Waypoint to Prisoner's Gate",
       "optional": false,
       "completeWhen": "All",
@@ -1368,30 +1032,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -1422,29 +1062,33 @@
       ]
     },
     {
-      "id": "imp-a1-37",
+      "id": "imp-a1-43",
       "act": 1,
       "areaId": "1_1_9",
       "areaName": "The Ship Graveyard",
-      "text": "Place a portal at the Ship Graveyard Cave",
+      "text": "Kill Captain Fairgraves",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "TownPortal",
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A1Q6KilledFairgraves"
+          },
           "paths": [
             {
               "target": {
-                "kind": "Tile",
+                "kind": "Entity",
                 "match": {
-                  "value": "shipentrance"
-                }
+                  "value": "Metadata/NPC/Act1/Fairgraves"
+                },
+                "matchBy": "Path"
               }
             }
           ]
         }
       ],
-      "importFp": "fnv1a:ca066cec"
+      "importFp": "fnv1a:bded5ab5"
     },
     {
       "id": "imp-a1-38",
@@ -1499,296 +1143,11 @@
       ]
     },
     {
-      "id": "imp-a1-39",
-      "act": 1,
-      "areaId": "1_1_11_2",
-      "areaName": "",
-      "text": "Waypoint to Lioneye's Watch",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_town"
-          }
-        }
-      ],
-      "importFp": "fnv1a:ebe2fb27"
-    },
-    {
-      "id": "imp-a1-40",
-      "act": 1,
-      "areaId": "1_1_town",
-      "areaName": "Lioneye's Watch",
-      "text": "Take portal",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "TownPortal"
-        }
-      ],
-      "importFp": "fnv1a:33feff21"
-    },
-    {
-      "id": "imp-a1-41",
-      "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "Enter The Ship Graveyard Cave",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_9a"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Room",
-                "match": {
-                  "value": "Metadata/Terrain/Act1/Area9/Rooms/shipdungeon_entrance_cliff.arm"
-                }
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:48df5e61"
-    },
-    {
-      "id": "c89837b9b0c64e2d92fcd6c64e27de5c",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Kill Stranglecharm",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "Kill",
-          "entities": [
-            {
-              "match": {
-                "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave"
-              },
-              "matchBy": "Name"
-            }
-          ],
-          "paths": [
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "boatallflame"
-                }
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave@12"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave@12"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ]
-        },
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6HaveAllFlame"
-          }
-        }
-      ]
-    },
-    {
-      "id": "imp-a1-42",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Find Slave Girl, take Allflame",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6HaveAllFlame"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:386fc54e"
-    },
-    {
-      "id": "aa6fef57c60d4d4f91a9103dc65c407c",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Return to the Ship Graveyard",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_9"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "imp-a1-43",
-      "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "Kill Captain Fairgraves",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6KilledFairgraves"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:bded5ab5"
-    },
-    {
       "id": "imp-a1-44",
       "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "log out",
+      "areaId": "1_1_11_1",
+      "areaName": "The Cavern of Wrath",
+      "text": "Waypoint to Lioneye's Watch",
       "optional": false,
       "completeWhen": "All",
       "objectives": [
@@ -1822,30 +1181,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -1867,30 +1202,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Nessa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Nessa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -2017,30 +1328,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/MerveilExitTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/MerveilExitTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -2274,30 +1561,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Beasts/BeastBossWhite@15"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Beasts/BeastBossWhite@15"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -2334,30 +1597,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Yeena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Yeena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -2530,30 +1769,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/DemonFourLegged/BossFourLeggedDemon@16"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/DemonFourLegged/BossFourLeggedDemon@16"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -2610,31 +1825,7 @@
               "target": {
                 "kind": "Entity",
                 "match": {
-                  "value": "Metadata/NPC/Act2/HelenaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/HelenaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/HelenaTown"
+                  "value": "Metadata/NPC/Act2/Greust"
                 },
                 "matchBy": "Path"
               }
@@ -2683,6 +1874,15 @@
                 "match": {
                   "value": "gatetransitionReverse"
                 }
+              }
+            },
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
+                },
+                "matchBy": "Path"
               }
             }
           ]
@@ -2850,30 +2050,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Yeena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Yeena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -3102,30 +2278,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Silk"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Silk"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -3260,30 +2412,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/BanditLeaderDexInt/BanditLeaderKraityn@16"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/BanditLeaderDexInt/BanditLeaderKraityn@16"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -3509,30 +2637,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/BanditLeaderInt/BanditLeaderAlira@17"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/BanditLeaderInt/BanditLeaderAlira@17"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -3569,30 +2673,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Axis/Lieutenant/LieutenantLetter@17"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Axis/Lieutenant/LieutenantLetter@17"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -3614,30 +2694,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Spikes/SpikeBlockageButton"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Spikes/SpikeBlockageButton"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -3682,30 +2738,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act2/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -3761,30 +2793,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -3832,30 +2840,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Inca/PoisonTree"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Inca/PoisonTree"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -3874,7 +2858,17 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "1_2_11"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "entrance"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -3901,30 +2895,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Inca/IncaDarknessRelease"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Inca/IncaDarknessRelease"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -3939,7 +2909,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_2_8"
+          },
           "paths": [
             {
               "target": {
@@ -4048,7 +3021,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
@@ -4143,31 +3126,7 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A2Q8SeenShadowMonster"
-          },
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/IncaShadowBoss/IncaBossSpawner"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/IncaShadowBoss/IncaBossSpawner"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ]
     },
@@ -4186,31 +3145,7 @@
           "distance": 120.0,
           "flag": {
             "value": "A2Q8KilledShadowMonster"
-          },
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/IncaShadowBoss/BossIncaShadow@23"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/IncaShadowBoss/BossIncaShadow@23"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ]
     },
@@ -4244,49 +3179,11 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
       "importFp": "fnv1a:dc28940b",
       "leagueStart": true
-    },
-    {
-      "id": "3ec4883974d14166aa346b7a5b1c4fab",
-      "act": 2,
-      "areaId": "1_2_14_3",
-      "areaName": "The Ancient Pyramid",
-      "text": "Enter the City of Sarn",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "Manual"
-        }
-      ]
     },
     {
       "id": "imp-a3-0",
@@ -4351,30 +3248,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -4397,30 +3270,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/ClarissaSlums"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/ClarissaSlums"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -4574,30 +3423,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Axis/PietyEscape@25"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Axis/PietyEscape@25"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -4627,30 +3452,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -4670,31 +3471,7 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A3Q2HaveTolmanItem"
-          },
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Tolman/TolmanChair"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Tolman/TolmanChair"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ]
     },
@@ -4729,30 +3506,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/ClarissaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/ClarissaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -4956,6 +3709,7 @@
       "areaName": "The Marketplace",
       "text": "Enter The Catacombs",
       "optional": false,
+      "leagueStart": true,
       "completeWhen": "All",
       "objectives": [
         {
@@ -5015,30 +3769,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -5077,30 +3807,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Labyrinth/LabyrinthTrialPlaque"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Labyrinth/LabyrinthTrialPlaque"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -5112,12 +3818,18 @@
       "act": 3,
       "areaId": "1_3_6",
       "areaName": "The Catacombs",
-      "text": "log out",
+      "text": "Log out / Waypoint to Sarn",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "Login"
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_3_town"
+          }
         }
       ],
       "importFp": "fnv1a:13d366ab"
@@ -5138,30 +3850,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -5261,16 +3949,6 @@
             "value": "A3Q4HaveRibbonSpool"
           },
           "paths": [
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "brokenbridge"
-                }
-              }
-            }
-          ],
-          "indicators": [
             {
               "target": {
                 "kind": "Tile",
@@ -5457,30 +4135,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -5641,30 +4295,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Dialla"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Dialla"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -5730,30 +4360,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Sewers/BioWallBlocker"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Sewers/BioWallBlocker"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -5781,30 +4387,6 @@
           "distance": 9.6,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Sewers/BioWall"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -5843,17 +4425,6 @@
             "value": "1_3_13"
           },
           "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
             {
               "target": {
                 "kind": "Entity",
@@ -6060,7 +4631,31 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:dc28940b",
       "leagueStart": true
     },
@@ -6103,30 +4698,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Grigor"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Grigor"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -6148,30 +4719,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Maramoa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act3/Maramoa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -6315,30 +4862,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -6466,7 +4989,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual"
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_3_17_2"
+          }
         }
       ]
     },
@@ -6477,10 +5003,13 @@
       "areaName": "The Library",
       "text": "Find 4xGolden Page",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A3Q12HavePage4"
+          },
           "paths": [
             {
               "target": {
@@ -6494,18 +5023,6 @@
         }
       ],
       "importFp": "fnv1a:f822d51e"
-    },
-    {
-      "id": "imp-a3-62",
-      "act": 3,
-      "areaId": "1_3_17_2",
-      "areaName": "The Library",
-      "text": "Get Crafting Recipe",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:0b0893fb",
-      "leagueStart": true
     },
     {
       "id": "imp-a3-64",
@@ -6736,30 +5253,6 @@
               }
             }
           ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
           "mode": "All"
         }
       ]
@@ -6951,30 +5444,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Info/VollBookStand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Info/VollBookStand"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -6991,7 +5460,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Login"
+          "type": "Login",
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBoundBook"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:13d366ab"
@@ -7041,30 +5521,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/Oyun"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/Oyun"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -7126,30 +5582,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Miner/MinerHammerBoss@34"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Miner/MinerHammerBoss@34"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -7190,30 +5622,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Act4/DeshretSpirit"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Act4/DeshretSpirit"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -7279,33 +5687,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -7410,29 +5804,21 @@
       "act": 4,
       "areaId": "Labyrinth_Airlock",
       "areaName": "Aspirants' Plaza",
-      "text": "Complete Normal Lab",
+      "text": "Complete Normal Lab, Waypoint to The Crystal Veins",
       "optional": false,
-      "completeWhen": "All",
-      "objectives": [],
-      "importFp": "fnv1a:db4e409a"
-    },
-    {
-      "id": "imp-a4-20",
-      "act": 4,
-      "areaId": "Labyrinth_Airlock",
-      "areaName": "Aspirants' Plaza",
-      "text": "Waypoint to The Crystal Veins",
-      "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "EnterArea",
           "areaTarget": {
             "value": "1_4_3_3"
           }
+        },
+        {
+          "type": "Login"
         }
       ],
-      "importFp": "fnv1a:4f85d0e9"
+      "importFp": "fnv1a:db4e409a"
     },
     {
       "id": "imp-a4-21",
@@ -7455,8 +5841,8 @@
     {
       "id": "imp-a4-22",
       "act": 4,
-      "areaId": "Labyrinth_Airlock",
-      "areaName": "Aspirants' Plaza",
+      "areaId": "1_4_5_1",
+      "areaName": "Daresso's Dream",
       "text": "Enter The Grand Arena",
       "optional": false,
       "completeWhen": "All",
@@ -7504,33 +5890,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBoundBook"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBoundBook"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -7633,33 +6005,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -7784,30 +6142,6 @@
                 }
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Totems/ShotgunTotem@33"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Totems/ShotgunTotem@33"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -7862,30 +6196,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/DiallaRapture"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/DiallaRapture"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -8002,33 +6312,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBeast"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockBeast"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -8193,30 +6489,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/PietyHarvest"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/PietyHarvest"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -8246,17 +6518,6 @@
             "value": "A4Q1SeenMalachai"
           },
           "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/QuestObjects/Act4/MalachaiGroundHole"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
             {
               "target": {
                 "kind": "Entity",
@@ -8327,30 +6588,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/Tasuni"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act4/Tasuni"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -8395,7 +6632,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
@@ -8527,30 +6774,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -8775,14 +6998,24 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
-                "kind": "Tile",
+                "kind": "Entity",
                 "match": {
-                  "value": "epic_stair"
-                }
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+                },
+                "matchBy": "Path"
               }
             }
           ]
@@ -8856,30 +7089,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -9084,33 +7293,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -9194,20 +7388,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Skeletons/SkeletonCasterGold@44"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A5Q7HaveItem3"
+          }
         }
       ],
       "importFp": "fnv1a:ac2fc48c"
@@ -9220,7 +7404,33 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                  "regex": true
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:dc28940b",
       "leagueStart": true
     },
@@ -9255,30 +7465,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act5/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -9438,33 +7624,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Target",
-              "tint": 4294901760,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ]
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A6Q4AreaCleared"
+          }
         }
       ],
       "importFp": "fnv1a:120c5b28"
@@ -9500,30 +7663,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Lilly"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Lilly"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -9703,33 +7842,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -9815,25 +7940,6 @@
       "importFp": "fnv1a:76a1ddce"
     },
     {
-      "id": "imp-a6-13",
-      "act": 6,
-      "areaId": "2_6_7_1",
-      "areaName": "The Lower Prison",
-      "text": "Complete Trial of Ascendancy",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "CruelLabyrinthCompletedPrison"
-          }
-        }
-      ],
-      "importFp": "fnv1a:dd796688",
-      "leagueStart": true
-    },
-    {
       "id": "78c1f0b3bfd6480e8406ef1ba9b114e4",
       "act": 6,
       "areaId": "2_6_7_1",
@@ -9852,12 +7958,16 @@
       "act": 6,
       "areaId": "2_6_7_1",
       "areaName": "The Lower Prison",
-      "text": "Complete the Trial of Ascendency",
+      "text": "Complete Trial of Ascendancy",
       "optional": false,
+      "leagueStart": true,
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "QuestFlag",
+          "flag": {
+            "value": "CruelLabyrinthCompletedPrison"
+          },
           "paths": [
             {
               "target": {
@@ -9881,37 +7991,23 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
                 "kind": "Entity",
                 "match": {
                   "value": "Metadata/Monsters/Necromancer/NecromancerFlammability2@47"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockLabyrinth"
                 },
                 "matchBy": "Path"
               }
@@ -9935,7 +8031,17 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "2_6_7_2"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "shavronne"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:7b868115"
@@ -10013,30 +8119,6 @@
           "type": "QuestFlag",
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -10145,7 +8227,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
@@ -10295,30 +8387,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/InsectSpawner/InsectSpawnerParasiteBoss@48"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/InsectSpawner/InsectSpawnerParasiteBoss@48"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -10354,30 +8422,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Tarkleigh"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -10626,7 +8670,31 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:dc28940b",
       "leagueStart": true
     },
@@ -10921,12 +8989,12 @@
       "areaName": "The Crypt",
       "text": "Complete Trial of Ascendancy",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "CruelLabyrinthCompletedCrypt"
+            "value": "CruelLabyrinthCompletedSins"
           }
         }
       ],
@@ -10941,7 +9009,33 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                  "regex": true
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:0b0893fb",
       "leagueStart": true
     },
@@ -10995,30 +9089,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/MaligaroMapChest"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/MaligaroMapChest"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -11127,33 +9197,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockDecayed"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -11265,30 +9321,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Weylam"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Weylam"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -11310,30 +9342,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Helena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Helena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -11381,30 +9389,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/SilkSins"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/SilkSins"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -11473,7 +9457,33 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                  "regex": true
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:0b0893fb",
       "leagueStart": true
     },
@@ -11487,7 +9497,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_7_6"
+          },
           "paths": [
             {
               "target": {
@@ -11535,7 +9548,10 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_7_7"
+          },
           "paths": [
             {
               "target": {
@@ -11666,30 +9682,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -11746,38 +9738,17 @@
       "act": 7,
       "areaId": "2_6_8",
       "areaName": "Prisoner's Gate",
-      "text": "portal",
+      "text": "Portal to Lioneye's Watch",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "TownPortal",
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_6_town"
+          },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act6/Bestel"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -11889,7 +9860,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
               "target": {
@@ -12044,7 +10025,31 @@
       "text": "Get Crafting Recipe (???)",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Monsters/Snake/SnakeSpit@53"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 10.8,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockRunestone"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:dc28940b"
     },
     {
@@ -12058,6 +10063,15 @@
       "objectives": [
         {
           "type": "QuestFlag",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockRunestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 13.200001,
           "flag": {
             "value": "A7Q9KilledBoss"
           },
@@ -12083,10 +10097,26 @@
       "areaName": "The Dread Thicket",
       "text": "Portal/Logout",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "TownPortal"
+          "type": "TownPortal",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "cave"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_7_town"
+          }
         }
       ],
       "importFp": "fnv1a:51c28ab6"
@@ -12107,30 +10137,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Eramir"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -12160,30 +10166,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Weylam"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act7/Weylam"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -12222,8 +10204,15 @@
       "areaName": "Aspirants' Plaza",
       "text": "Complete Cruel Lab",
       "optional": false,
-      "completeWhen": "All",
-      "objectives": [],
+      "completeWhen": "Any",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "LabyrinthComplete2"
+          }
+        }
+      ],
       "importFp": "fnv1a:69dbb808"
     },
     {
@@ -12306,22 +10295,10 @@
           "paths": [
             {
               "target": {
-                "kind": "Entity",
+                "kind": "Tile",
                 "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
+                  "value": "stairsdown"
+                }
               }
             }
           ]
@@ -12339,20 +10316,63 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 13.200001,
           "paths": [
             {
               "target": {
-                "kind": "Tile",
+                "kind": "Entity",
                 "match": {
-                  "value": "exit"
-                }
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockVaal"
+                },
+                "matchBy": "Path"
               }
             }
           ]
         }
       ],
       "importFp": "fnv1a:dc28940b"
+    },
+    {
+      "id": "71a7cb056765478da652c0c2503fba74",
+      "act": 7,
+      "areaId": "2_7_12_2",
+      "areaName": "The Temple of Decay Level 2",
+      "text": "Go Down",
+      "optional": false,
+      "completeWhen": "All",
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/MiscellaneousObjects/AreaTransition"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 39.600002,
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "stairsdown"
+                }
+              }
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "imp-a7-59",
@@ -12367,7 +10387,17 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A7Q4KilledBoss"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "exit"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:150f4b3f"
@@ -12581,17 +10611,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -12621,33 +10640,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -13004,33 +11009,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -13084,30 +11075,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -13137,30 +11104,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Maramoa"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Maramoa"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -13182,30 +11125,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/ClarissaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/ClarissaTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -13451,17 +11370,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/GuardianOfLunaris/GuardianOfLunaris@59"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -13479,20 +11387,7 @@
           "type": "QuestFlag",
           "flag": {
             "value": "A8Q2HaveItem"
-          },
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
+          }
         }
       ],
       "importFp": "fnv1a:b8c57624"
@@ -13507,33 +11402,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGoldenBookstand"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -13768,7 +11649,33 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                  "regex": true
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:0b0893fb",
       "leagueStart": true
     },
@@ -13900,30 +11807,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act8/Hargan"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -14089,33 +11972,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 9.6,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -14267,33 +12135,19 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -14365,30 +12219,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/PetarusVanja"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/PetarusVanja"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -14436,30 +12266,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/PetarusVanja"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/PetarusVanja"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -14495,7 +12301,17 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "2_9_4"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "wagons_reverse"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:2a84bdd3"
@@ -14561,30 +12377,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Shakari/Shakari@61"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/Shakari/Shakari@61"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -14596,10 +12388,22 @@
       "areaName": "The Oasis",
       "text": "log out",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "Login"
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_8_town"
+          }
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_9_town"
+          }
         }
       ],
       "importFp": "fnv1a:13d366ab"
@@ -14620,30 +12424,6 @@
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Irasha"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Irasha"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -14716,7 +12496,17 @@
           "type": "QuestFlag",
           "flag": {
             "value": "MercilessLabyrinthCompletedTunnel"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "doorframe"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:d3b9defa",
@@ -14730,7 +12520,33 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                "regex": true
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/",
+                  "regex": true
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:0b0893fb",
       "leagueStart": true
     },
@@ -14744,7 +12560,17 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "ActivateWaypoint"
+          "type": "ActivateWaypoint",
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "waypoint"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -14801,33 +12627,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockGravestone"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -14932,30 +12743,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Irasha"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Irasha"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -15006,31 +12793,6 @@
         }
       ],
       "importFp": "fnv1a:06999f47"
-    },
-    {
-      "id": "imp-a9-32",
-      "act": 9,
-      "areaId": "2_9_9",
-      "areaName": "The Refinery",
-      "text": "Get Crafting Recipe (???)",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "Manual",
-          "paths": [
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "boss_transition"
-                }
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:dc28940b"
     },
     {
       "id": "imp-a9-33",
@@ -15113,7 +12875,18 @@
           "type": "QuestFlag",
           "flag": {
             "value": "SinEnterBeast"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act9/SinQuarry"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:261b7b4f"
@@ -15131,7 +12904,17 @@
           "type": "EnterArea",
           "areaTarget": {
             "value": "2_9_10_1"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "beast_membrane"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:559c2a66"
@@ -15318,17 +13101,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/UnholyTrio/UnholyTrio@64"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ]
@@ -15363,30 +13135,6 @@
           "type": "TownPortal",
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Lilly"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act9/Lilly"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -15495,30 +13243,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -15534,7 +13258,8 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "TownPortal"
+          "type": "TownPortal",
+          "distance": 60.0
         }
       ],
       "importFp": "fnv1a:becb4e54"
@@ -15613,30 +13338,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/BannonTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/BannonTown"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -15649,10 +13350,16 @@
       "areaName": "Oriath Docks",
       "text": "Take portal",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
           "type": "TownPortal"
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "2_10_2"
+          }
         }
       ],
       "importFp": "fnv1a:33feff21"
@@ -15688,6 +13395,7 @@
       "areaName": "Oriath Docks",
       "text": "Enter The Ossuary",
       "optional": false,
+      "leagueStart": true,
       "completeWhen": "All",
       "objectives": [
         {
@@ -15707,7 +13415,31 @@
       "text": "Get Crafting Recipe",
       "optional": false,
       "completeWhen": "All",
-      "objectives": [],
+      "objectives": [
+        {
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 26.400002,
+          "paths": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ]
+        }
+      ],
       "importFp": "fnv1a:0b0893fb",
       "leagueStart": true
     },
@@ -15724,7 +13456,17 @@
           "type": "QuestFlag",
           "flag": {
             "value": "MercilessLabyrinthCompletedOssuary"
-          }
+          },
+          "paths": [
+            {
+              "target": {
+                "kind": "Tile",
+                "match": {
+                  "value": "firepit"
+                }
+              }
+            }
+          ]
         }
       ],
       "importFp": "fnv1a:dd796688",
@@ -15737,6 +13479,7 @@
       "areaName": "The Ossuary",
       "text": "log out",
       "optional": false,
+      "leagueStart": true,
       "completeWhen": "All",
       "objectives": [
         {
@@ -15830,30 +13573,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -15884,8 +13603,15 @@
       "areaName": "Labyrinth_Airlock",
       "text": "Complete Merciless Lab",
       "optional": false,
-      "completeWhen": "All",
-      "objectives": [],
+      "completeWhen": "Any",
+      "objectives": [
+        {
+          "type": "QuestFlag",
+          "flag": {
+            "value": "LabyrinthComplete3"
+          }
+        }
+      ],
       "importFp": "fnv1a:f675b7a8"
     },
     {
@@ -15986,14 +13712,24 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 7.2000003,
           "paths": [
             {
               "target": {
-                "kind": "Tile",
+                "kind": "Entity",
                 "match": {
-                  "value": "epic_stair"
-                }
+                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockTemplarBook"
+                },
+                "matchBy": "Path"
               }
             }
           ]
@@ -16022,17 +13758,6 @@
           ],
           "distance": 158.40001,
           "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/AvariusCasticus/AvariusCasticusWickerman@65"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
             {
               "target": {
                 "kind": "Entity",
@@ -16103,30 +13828,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/BannonTown"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/BannonTown"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -16144,34 +13845,10 @@
         {
           "type": "QuestFlag",
           "flag": {
-            "value": "A10Q2QuestRewardTaken"
+            "value": "A10Q2QuestRewardSeen"
           },
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -16288,33 +13965,18 @@
       "completeWhen": "All",
       "objectives": [
         {
-          "type": "Manual",
+          "type": "Proximity",
+          "entities": [
+            {
+              "match": {
+                "value": "Metadata/Monsters/Skitterbot/SkitterbotCold@60"
+              },
+              "matchBy": "Path"
+            }
+          ],
+          "distance": 6.0,
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiPillar"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {
@@ -16428,30 +14090,6 @@
                 "matchBy": "Path"
               }
             }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act10/Lani"
-                },
-                "matchBy": "Path"
-              }
-            }
           ]
         }
       ],
@@ -16488,30 +14126,6 @@
           "type": "Manual",
           "paths": [
             {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiRackNoHelena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Terrain/Missions/CraftingUnlocks/RecipeUnlockKaruiRackNoHelena"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
               "target": {
                 "kind": "Entity",
                 "match": {

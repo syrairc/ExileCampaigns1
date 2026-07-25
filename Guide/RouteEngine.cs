@@ -34,23 +34,10 @@ public sealed record ItemMatcher(Pattern Match, int Count = 1);
 // filter; Entity = live entity by metadata Path or RenderName.
 public enum TargetKind { Tile, Entity, Room }
 
-// a guidance target shared by Path / Indicator / MinimapIcon. MatchBy + LivingOnly apply only to Entity.
-// LivingOnly: only resolve a live entity that's actually alive (has Life, CurrentHP > 0), so an arrow/icon
-// skips a corpse or a lifeless prop sharing the name. honored by Indicators + MinimapIcons (not the Paths channel).
-public sealed record Target(TargetKind Kind, Pattern Match, MatchKind MatchBy = MatchKind.Name, bool LivingOnly = false);
+public sealed record Target(TargetKind Kind, Pattern Match, MatchKind MatchBy = MatchKind.Name);
 
 // one ground/minimap route line. an Entity target that matches several live entities draws one line each.
 public sealed record GuidePath(Target Target);
-
-// one on-screen arrow/marker. Entity targets draw the arrow; Tile/Room are accepted but not drawn yet.
-public sealed record Indicator(Target Target);
-
-// single per-objective minimap icon. IconKey = SpriteIcon enum name; Tint = packed ARGB (default gold);
-// Size = per-icon pixel size, null = use the global MinimapIcons.IconSize default.
-public sealed record MinimapIcon(string IconKey, Target? Target = null, uint Tint = 0xFFFFC83Cu, float? Size = null)  // Tint default = gold
-{
-    public const uint GoldDefault = 0xFFFFC83Cu;   // gold, matches the interaction arrow
-}
 
 // one objective on a step. only the fields relevant to Type are used.
 public sealed record Objective(
@@ -65,8 +52,6 @@ public sealed record Objective(
     string? Label = null,
     string? Note = null,
     IReadOnlyList<GuidePath>? Paths = null,          // guidance: ground/minimap route lines (independent of Type)
-    IReadOnlyList<Indicator>? Indicators = null,     // guidance: on-screen arrows (independent of Type)
-    IReadOnlyList<MinimapIcon>? MinimapIcons = null,// guidance: large-map icons (independent of Type)
     PathMode Mode = PathMode.Nearest);              // path line count: Nearest = one (default), All = per target
 
 // one route step. self-describing: explicit act + area, plus its objectives. Id is the stable identity.
@@ -85,7 +70,7 @@ public sealed record RouteStep(
 // the whole route. Steps list order is the canonical sequence.
 public sealed record RouteDocument(int Version, IReadOnlyList<RouteStep> Steps)
 {
-    public const int CurrentVersion = 2;   // v2: guidance decoupled into Paths/Indicators/MinimapIcon children
+    public const int CurrentVersion = 2;
     public static readonly RouteDocument Empty = new(CurrentVersion, new List<RouteStep>());
 }
 
@@ -166,8 +151,6 @@ public static class RouteJson
         if (o.Label != null) j["label"] = o.Label;
         if (o.Note != null) j["note"] = o.Note;
         if (o.Paths != null && o.Paths.Count > 0) j["paths"] = new JArray(o.Paths.Select(PathToJson));
-        if (o.Indicators != null && o.Indicators.Count > 0) j["indicators"] = new JArray(o.Indicators.Select(IndToJson));
-        if (o.MinimapIcons != null && o.MinimapIcons.Count > 0) j["minimapIcons"] = new JArray(o.MinimapIcons.Select(MinimapToJson));
         if (o.Mode != PathMode.Nearest) j["mode"] = o.Mode.ToString();
         return j;
     }
@@ -178,13 +161,6 @@ public static class RouteJson
         var type = ParseEnum((string?)o["type"], ObjectiveType.Manual);
         var entities = (o["entities"] as JArray)?.Select(EntFromJson).ToList();
         var paths = (o["paths"] as JArray)?.Select(PathFromJson).ToList();
-        var indicators = (o["indicators"] as JArray)?.Select(IndFromJson).ToList();
-        // v1 back-compat: pre-decouple objectives stored pathType + tiles. reconstruct guidance children.
-        if (paths == null && indicators == null)
-        {
-            var legacyTiles = (o["tiles"] as JArray)?.Select(PatFromJson).ToList();
-            (paths, indicators) = ReconstructV1Guidance(type, entities, legacyTiles);
-        }
         return new Objective(
             type,
             entities,
@@ -197,41 +173,7 @@ public static class RouteJson
             (string?)o["label"],
             (string?)o["note"],
             paths,
-            indicators,
-            ReadMinimapIcons(o),
             ParseEnum((string?)o["mode"], PathMode.Nearest));
-    }
-
-    // minimap icons: the v2 `minimapIcons` array, or a single legacy `minimapIcon` object wrapped to a list.
-    private static IReadOnlyList<MinimapIcon>? ReadMinimapIcons(JObject o)
-    {
-        if (o["minimapIcons"] is JArray arr) return arr.Select(MinimapFromJson).ToList();
-        if (o["minimapIcon"] is JObject mi) return new List<MinimapIcon> { MinimapFromJson(mi) };
-        return null;
-    }
-
-    // pre-decouple (v1) objectives used pathType + tiles instead of Paths/Indicators children. rebuild the
-    // children with the same tile routing the old LegacyView used (Interact/Proximity/Talk tiles -> Room,
-    // else Tile; every entity matcher -> Entity path + indicator).
-    private static (List<GuidePath>?, List<Indicator>?) ReconstructV1Guidance(
-        ObjectiveType type, IReadOnlyList<EntityMatcher>? ents, IReadOnlyList<Pattern>? tiles)
-    {
-        var paths = new List<GuidePath>();
-        var inds = new List<Indicator>();
-        if (ents != null)
-            foreach (var e in ents)
-            {
-                var tgt = new Target(TargetKind.Entity, e.Match, e.MatchBy);
-                paths.Add(new GuidePath(tgt));
-                inds.Add(new Indicator(tgt));
-            }
-        if (tiles != null)
-        {
-            var kind = type is ObjectiveType.Interact or ObjectiveType.Proximity or ObjectiveType.Talk
-                ? TargetKind.Room : TargetKind.Tile;
-            foreach (var t in tiles) paths.Add(new GuidePath(new Target(kind, t)));
-        }
-        return (paths.Count > 0 ? paths : null, inds.Count > 0 ? inds : null);
     }
 
     private static JObject PatToJson(Pattern p)
@@ -257,37 +199,18 @@ public static class RouteJson
     {
         var j = new JObject { ["kind"] = t.Kind.ToString(), ["match"] = PatToJson(t.Match) };
         if (t.Kind == TargetKind.Entity) j["matchBy"] = t.MatchBy.ToString();
-        if (t.Kind == TargetKind.Entity && t.LivingOnly) j["living"] = true;
         return j;
     }
     private static Target TargetFromJson(JToken t) =>
         new(ParseEnum((string?)t["kind"], TargetKind.Tile),
             t["match"] is JObject m ? PatFromJson(m) : new Pattern(""),
-            ParseEnum((string?)t["matchBy"], MatchKind.Name),
-            (bool?)t["living"] ?? false);
+            ParseEnum((string?)t["matchBy"], MatchKind.Name));
 
     private static JObject PathToJson(GuidePath p) => new() { ["target"] = TargetToJson(p.Target) };
     private static GuidePath PathFromJson(JToken t) => new(TargetFromJson(t["target"] ?? t));
-    private static JObject IndToJson(Indicator i) => new() { ["target"] = TargetToJson(i.Target) };
-    private static Indicator IndFromJson(JToken t) => new(TargetFromJson(t["target"] ?? t));
-    private static JObject MinimapToJson(MinimapIcon m)
-    {
-        var j = new JObject { ["iconKey"] = m.IconKey, ["tint"] = m.Tint };
-        if (m.Target != null) j["target"] = TargetToJson(m.Target);
-        if (m.Size != null) j["size"] = m.Size.Value;
-        return j;
-    }
-    private static MinimapIcon MinimapFromJson(JToken t) =>
-        new((string?)t["iconKey"] ?? "",
-            t["target"] is JObject tg ? TargetFromJson(tg) : null,
-            (uint?)t["tint"] ?? MinimapIcon.GoldDefault,
-            (float?)t["size"]);
-
     private static T ParseEnum<T>(string? s, T fallback) where T : struct =>
         System.Enum.TryParse<T>(s, true, out var v) ? v : fallback;
 }
-
-public enum ChildKind { Path, Indicator, MinimapIcon }
 
 // pure edit helpers over the immutable route records. the ImGui editor is a thin caller; all list math and
 // record-rebuilding lives here so it's unit-tested without any game state.
@@ -336,86 +259,18 @@ public static class RouteEditing
 
     public static Objective AddPath(Objective o, GuidePath p) => o with { Paths = Append(o.Paths, p) };
 
-    public static Objective AddIndicator(Objective o, Indicator i) => o with { Indicators = Append(o.Indicators, i) };
-
-    public static Objective AddMinimapIcon(Objective o, MinimapIcon icon) => o with { MinimapIcons = Append(o.MinimapIcons, icon) };
-
-    // replace a Path/Indicator's Target in place (e.g. toggle LivingOnly). no-op if out of range.
-    public static Objective ReplaceTarget(Objective o, ChildKind kind, int index, Target target)
+    public static Objective RemovePath(Objective o, int index)
     {
-        if (kind == ChildKind.Path)
-        {
-            var list = (o.Paths ?? new List<GuidePath>()).ToList();
-            if (index < 0 || index >= list.Count) return o;
-            list[index] = new GuidePath(target);
-            return o with { Paths = list };
-        }
-        else
-        {
-            var list = (o.Indicators ?? new List<Indicator>()).ToList();
-            if (index < 0 || index >= list.Count) return o;
-            list[index] = new Indicator(target);
-            return o with { Indicators = list };
-        }
-    }
-
-    // replace the icon at index in place (sprite/tint/size/target edits). no-op if out of range.
-    public static Objective UpdateMinimapIcon(Objective o, int index, MinimapIcon icon)
-    {
-        var list = (o.MinimapIcons ?? new List<MinimapIcon>()).ToList();
+        var list = (o.Paths ?? new List<GuidePath>()).ToList();
         if (index < 0 || index >= list.Count) return o;
-        list[index] = icon;
-        return o with { MinimapIcons = list };
+        list.RemoveAt(index);
+        return o with { Paths = list };
     }
 
-    public static Objective RemoveAt(Objective o, ChildKind kind, int index)
+    public static Objective MovePath(Objective o, int index, int delta)
     {
-        switch (kind)
-        {
-            case ChildKind.Path:
-            {
-                var list = (o.Paths ?? new List<GuidePath>()).ToList();
-                if (index < 0 || index >= list.Count) return o;
-                list.RemoveAt(index);
-                return o with { Paths = list };
-            }
-            case ChildKind.MinimapIcon:
-            {
-                var list = (o.MinimapIcons ?? new List<MinimapIcon>()).ToList();
-                if (index < 0 || index >= list.Count) return o;
-                list.RemoveAt(index);
-                return o with { MinimapIcons = list };
-            }
-            default:
-            {
-                var inds = (o.Indicators ?? new List<Indicator>()).ToList();
-                if (index < 0 || index >= inds.Count) return o;
-                inds.RemoveAt(index);
-                return o with { Indicators = inds };
-            }
-        }
-    }
-
-    public static Objective MoveChild(Objective o, ChildKind kind, int index, int delta)
-    {
-        switch (kind)
-        {
-            case ChildKind.Path:
-            {
-                var list = (o.Paths ?? new List<GuidePath>()).ToList();
-                return Move(list, index, delta) ? o with { Paths = list } : o;
-            }
-            case ChildKind.MinimapIcon:
-            {
-                var list = (o.MinimapIcons ?? new List<MinimapIcon>()).ToList();
-                return Move(list, index, delta) ? o with { MinimapIcons = list } : o;
-            }
-            default:
-            {
-                var inds = (o.Indicators ?? new List<Indicator>()).ToList();
-                return Move(inds, index, delta) ? o with { Indicators = inds } : o;
-            }
-        }
+        var list = (o.Paths ?? new List<GuidePath>()).ToList();
+        return Move(list, index, delta) ? o with { Paths = list } : o;
     }
 
     private static List<T> Append<T>(IReadOnlyList<T>? src, T item)
@@ -585,8 +440,10 @@ public sealed class RouteRepository
     // for the route header's top-right. "" when there is no current step.
     public string CurrentAreaName => Current >= 0 && Current < _stepAreaName.Count ? _stepAreaName[Current] : "";
 
-    // count of real (numbered) steps in an act, for the route-progress stat. headers carry StepInAct 0.
-    public int StepsInAct(int act) => _steps.Count(s => s.Act == act && s.StepInAct > 0);
+    // count of real (numbered) steps per act, for the route-progress stat. headers carry StepInAct 0.
+    // counted once on load - the overlay asks for this every frame and it only changes on a route reload.
+    private readonly Dictionary<int, int> _stepsPerAct = new();
+    public int StepsInAct(int act) => _stepsPerAct.TryGetValue(act, out var n) ? n : 0;
 
     // a zone-label line: kept in the model for the area->index map, but never an objective. navigation
     // never rests on one and they're excluded from Previous/Upcoming.
@@ -628,6 +485,7 @@ public sealed class RouteRepository
     public bool LoadFromDocument(RouteDocument doc)
     {
         _steps.Clear(); _areaToIndices.Clear(); _stepArea.Clear(); _stepAreaName.Clear();
+        _stepsPerAct.Clear();
         Current = 0;
         if (doc == null) { Status = "no route document"; return false; }
 
@@ -656,6 +514,7 @@ public sealed class RouteRepository
 
             int idx = _steps.Count;
             _steps.Add(new FlatStep(model.Act, ++stepInAct, model));
+            _stepsPerAct[model.Act] = _stepsPerAct.TryGetValue(model.Act, out var n) ? n + 1 : 1;
             _stepArea.Add(curArea);
             _stepAreaName.Add(model.AreaName ?? "");
         }
@@ -685,6 +544,15 @@ public sealed class RouteRepository
         // (skips the header and, when optional is hidden, any leading optional steps).
         Current = next;
         SnapForwardVisible();
+    }
+
+    // true when no visible step lies ahead of Current - the last real objective in the route.
+    public bool IsLastVisibleStep()
+    {
+        if (_steps.Count == 0) return false;
+        for (int i = Current + 1; i < _steps.Count; i++)
+            if (!IsSkippable(i)) return false;
+        return true;
     }
 
     // step over zone-label headers (and hidden optionals) so manual next/prev lands only on visible objectives.

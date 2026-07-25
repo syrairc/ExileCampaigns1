@@ -24,8 +24,9 @@ public partial class ExileCampaigns
     private readonly DiagBuffer _diag = new();
 
     // separate flag snapshot from the dev harvester's, so recording works without "Log quest flags" on.
-    private HashSet<string>? _diagFlagSnapshot;
-    private DateTime _lastDiagFlagPoll;
+    // keyed by the enum, not the name: ToString() on ~2240 entries twice a second was pure allocation.
+    private HashSet<QuestFlag>? _diagFlagSnapshot;
+    private long _lastDiagFlagPoll;
 
     private bool DiagRecording => Settings.Diagnostics.RecordDiagnostics.Value;
 
@@ -52,22 +53,24 @@ public partial class ExileCampaigns
     private void RecordDiagFlagChanges()
     {
         if (!DiagRecording) return;
-        if ((DateTime.Now - _lastDiagFlagPoll).TotalSeconds < 0.5) return;
-        _lastDiagFlagPoll = DateTime.Now;
+        if (Environment.TickCount64 - _lastDiagFlagPoll < 500) return;
+        _lastDiagFlagPoll = Environment.TickCount64;
 
         var flags = ReadQuestFlags();
         if (flags == null || flags.Count == 0) return;
 
-        var nowTrue = new HashSet<string>();
+        var nowTrue = new HashSet<QuestFlag>();
         foreach (var kv in flags)
-            if (kv.Value) nowTrue.Add(kv.Key.ToString());
+            if (kv.Value) nowTrue.Add(kv.Key);
 
         if (_diagFlagSnapshot == null) { _diagFlagSnapshot = nowTrue; return; }   // seed silently
 
         var step = _route.CurrentStep?.DisplayText ?? "";
-        foreach (var name in nowTrue)
+        foreach (var f in nowTrue)
         {
-            if (_diagFlagSnapshot.Contains(name) || IsNoiseFlag(name)) continue;
+            if (_diagFlagSnapshot.Contains(f)) continue;
+            var name = f.ToString();   // only the handful of newly-true flags need naming
+            if (IsNoiseFlag(name)) continue;
             PushDiag("flag",
                 $"\"flag\":{Quote(name)}," +
                 $"\"area\":{Quote(_areaId)}," +
@@ -210,8 +213,8 @@ public partial class ExileCampaigns
     // + legacy + tutorials/UI). Campaign flags read under names like "G1_2.../VisitedG1_2/WaterLevelLoweredSeen"
     // but per-step flag isn't guessable, so when LogQuestFlags is on we snapshot and log every newly-true flag
     // with its area+step. A play session then yields raw (flag -> step) pairs to curate into a static map.
-    private HashSet<string>? _flagSnapshot;   // names true as of last poll (null = not seeded yet)
-    private DateTime _lastFlagPoll;
+    private HashSet<QuestFlag>? _flagSnapshot;   // flags true as of last poll (null = not seeded yet)
+    private long _lastFlagPoll;
     private string FlagLogPath => Path.Combine(ConfigDirectory, "quest-flag-harvest.jsonl");
 
     // recent flag flips with timestamps (newest last, cap 20) for the triage "broken auto-advance" report's
@@ -237,19 +240,79 @@ public partial class ExileCampaigns
         catch { return null; }
     }
 
+    // every Book of Skill (and the bandit kill-all bonus) quest, act order. flag name is the *UsedRewardBook
+    // pulse (point actually spent), not HaveRewardBook (book just dropped) - see poewiki "Book of Skill".
+    // parsed once at startup like WaypointFlagValue, so a renamed/missing flag just skips its row instead of
+    // failing to compile against a stale enum dump.
+    private static readonly (int Act, string Label, string FlagName)[] SkillPointQuests =
+    {
+        (1, "The Marooned Mariner", "A1Q6UsedRewardBook"),
+        (1, "The Dweller of the Deep", "A1Q7UsedRewardBook"),
+        (1, "The Way Forward", "A1Q9UsedRewardBook"),
+        (2, "Through Sacred Ground", "A2Q5UsedRewardBook"),
+        (2, "Deal with the Bandits (kill all)", "A2Q7EramirCombined"),
+        (3, "Piety's Pets", "A3Q9UsedRewardBook"),
+        (3, "Victario's Secrets", "A3Q11UsedRewardBook"),
+        (4, "An Indomitable Spirit", "A4Q6UsedRewardBook"),
+        (5, "In Service to Science", "A5Q3UsedRewardBook"),
+        (5, "Kitava's Torments", "A5Q7UsedRewardBook"),
+        (6, "The Father of War", "A6Q3UsedRewardBook"),
+        (6, "The Puppet Mistress", "A6Q6UsedRewardBook"),
+        (6, "The Cloven One", "A6Q7UsedRewardBook"),
+        (7, "The Master of a Million Faces", "A7Q1UsedRewardBook"),
+        (7, "Kishara's Star", "A7Q6UsedRewardBook"),
+        (7, "Queen of Despair", "A7Q9UsedRewardBook"),
+        (8, "Reflection of Terror", "A8Q4UsedRewardBook"),
+        (8, "Love is Dead", "A8Q6UsedRewardBook"),
+        (8, "The Gemling Legion", "A8Q7UsedRewardBook"),
+        (9, "The Ruler of Highgate", "A9Q2UsedRewardBook"),
+        (9, "Queen of the Sands", "A9Q5UsedRewardBook"),
+        (10, "An End to Hunger", "A10Q3UsedRewardBook"),
+        (10, "Vilenta's Vengeance", "A10Q6UsedRewardBook"),
+    };
+
+    private static readonly (int Act, string Label, QuestFlag? Flag)[] SkillPointChecklist =
+        Array.ConvertAll(SkillPointQuests, e =>
+            (e.Act, e.Label, Enum.TryParse<QuestFlag>(e.FlagName, out var v) ? v : (QuestFlag?)null));
+
+    // final-step checklist: one row per passive-point quest, ticked when its book was used. only meant to
+    // show on the last route step, so an empty route/step just yields an empty (hidden) panel.
+    private List<PanelLine> BuildChecklistLines(ChecklistOverlayStyle s)
+    {
+        var lines = new List<PanelLine>();
+        if (!_route.IsLastVisibleStep()) return lines;
+
+        var flags = ReadQuestFlags();
+        int done = 0, lastAct = -1;
+        foreach (var (act, label, flag) in SkillPointChecklist)
+        {
+            bool used = flag is { } f && flags != null && flags.TryGetValue(f, out var set) && set;
+            if (used) done++;
+            if (act != lastAct)
+            {
+                lines.Add(new PanelLine($"Act {act}", s.HeaderColor.Value, isHeader: true));
+                lastAct = act;
+            }
+            lines.Add(new PanelLine(label, used ? AxisSafeEdge : s.TextColor.Value, num: used ? "[x]" : "[ ]"));
+        }
+        lines.Insert(0, new PanelLine("Passive skill points", s.HeaderColor.Value, isHeader: true,
+            right: $"{done}/{SkillPointChecklist.Length}"));
+        return lines;
+    }
+
     // from Tick when LogQuestFlags on OR the triage panel is open. ~2Hz; first poll seeds snapshot. when only
     // the triage panel is open it maintains the in-memory flag rings only (no jsonl logging, no dump, no rescans).
     private void HarvestQuestFlags()
     {
-        if ((DateTime.Now - _lastFlagPoll).TotalSeconds < 0.5) return;
-        _lastFlagPoll = DateTime.Now;
+        if (Environment.TickCount64 - _lastFlagPoll < 500) return;
+        _lastFlagPoll = Environment.TickCount64;
 
         var flags = ReadQuestFlags();
         if (flags == null || flags.Count == 0) return;
 
-        var nowTrue = new HashSet<string>();
+        var nowTrue = new HashSet<QuestFlag>();
         foreach (var kv in flags)
-            if (kv.Value) nowTrue.Add(kv.Key.ToString());
+            if (kv.Value) nowTrue.Add(kv.Key);
 
         if (_flagSnapshot == null)
         {
@@ -262,10 +325,14 @@ public partial class ExileCampaigns
             return;
         }
 
-        // genuinely-new, non-noise flags this poll
+        // genuinely-new, non-noise flags this poll. only these get named
         var fresh = new List<string>();
-        foreach (var name in nowTrue)
-            if (!_flagSnapshot.Contains(name) && !IsNoiseFlag(name)) fresh.Add(name);
+        foreach (var f in nowTrue)
+        {
+            if (_flagSnapshot.Contains(f)) continue;
+            var name = f.ToString();
+            if (!IsNoiseFlag(name)) fresh.Add(name);
+        }
 
         if (fresh.Count > 0)
         {
@@ -568,13 +635,9 @@ public partial class ExileCampaigns
     }
 
     // --- editor live pickers ------------------------------------------------------------------------
-    // nearby entities (alive or dead), nearest-first, distinct by metadata path, as (path, name, dist, alive).
-    // feeds the editor's click-to-set objective entityPath / kill target list, plus the path/icon/indicator
-    // target pickers. dead included so you can bind a just-killed boss as a kill target; ground items (drops)
-    // included so you can point guidance at one.
-    internal List<(string Path, string Name, int Dist, bool Alive)> NearbyEntitiesList(float radius = 200f, int max = 5)
+    internal List<(string Path, string Name, int Dist)> NearbyEntitiesList(float radius = 200f, int max = 5)
     {
-        var found = new List<(float Dist, string Path, string Name, bool Alive)>();
+        var found = new List<(float Dist, string Path, string Name)>();
         try
         {
             var ents = GameController?.EntityListWrapper?.Entities;
@@ -583,10 +646,6 @@ public partial class ExileCampaigns
             {
                 if (e == null || !e.IsValid) continue;
                 var type = e.Type.ToString();
-                // interactables you might bind as an objective entityPath: mobs/npcs/chests plus on-ground
-                // quest objects and ingame icons (summon-ally portals, obelisks), ground items (drops you
-                // might point a path/icon/indicator at), and area transitions (zone exits) when loaded near you.
-                // terrain only when targetable (doors/levers/runes), to keep scenery out.
                 if (type is not ("Monster" or "Npc" or "Chest" or "IngameIcon" or "QuestObject" or "Terrain" or "WorldItem" or "AreaTransition")) continue;
                 if (type == "Terrain" && !(e.GetComponent<Targetable>()?.isTargetable ?? false)) continue;
                 var dist = e.DistancePlayer;
@@ -598,18 +657,18 @@ public partial class ExileCampaigns
                 // RenderName is the "Empty" sentinel for unresolved items; blank it so display falls back to path leaf
                 var name = named.RenderName ?? "";
                 if (name == "Empty") name = "";
-                found.Add((dist, path, name, e.IsAlive));
+                found.Add((dist, path, name));
             }
         }
         catch { return new(); }
 
         found.Sort((a, b) => a.Dist.CompareTo(b.Dist));
-        var outp = new List<(string, string, int, bool)>();
+        var outp = new List<(string, string, int)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var f in found)
         {
             if (!seen.Add(f.Path)) continue;
-            outp.Add((f.Path, f.Name, (int)f.Dist, f.Alive));
+            outp.Add((f.Path, f.Name, (int)f.Dist));
             if (outp.Count >= max) break;
         }
         return outp;
@@ -694,15 +753,26 @@ public partial class ExileCampaigns
     // AreaTransitions you aren't standing next to -- the live entity pickers can't surface those
     // (out-of-range exits are IsValid=false / unnamed). feeds the editor's click-to-set target picker.
     // parsing (kind mapping, strip "*", flatten Alternatives, merge the global block) is the pure Guide helper.
+    // parsed tree kept across area changes; re-read only when the file's timestamp moves. an edit to Radar's
+    // targets.json lands on the next area change, not instantly.
+    private JObject? _radarTargetsRoot;
+    private DateTime _radarTargetsStamp;
+
     internal List<RadarTargetsFile.Pick> RadarFileTargetsList()
     {
         try
         {
             var radarFile = Path.Combine(Path.GetDirectoryName(DirectoryFullName)!, "Radar", "targets.json");
             if (!File.Exists(radarFile)) return new();
-            return Guide.RadarTargetsFile.ParseArea(File.ReadAllText(radarFile), _areaId).ToList();
+            var stamp = File.GetLastWriteTimeUtc(radarFile);
+            if (_radarTargetsRoot == null || stamp != _radarTargetsStamp)
+            {
+                _radarTargetsRoot = JObject.Parse(File.ReadAllText(radarFile));
+                _radarTargetsStamp = stamp;
+            }
+            return Guide.RadarTargetsFile.ParseArea(_radarTargetsRoot, _areaId).ToList();
         }
-        catch { return new(); }
+        catch { _radarTargetsRoot = null; return new(); }
     }
 
     // last path segment minus a @NN spawn-variant suffix, e.g. ".../SummonAlly@3" -> "SummonAlly".

@@ -5,7 +5,7 @@ using ExileCampaigns.Build;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Enums;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Elements.InventoryElements;
@@ -15,12 +15,21 @@ using Vector4 = System.Numerics.Vector4;
 
 namespace ExileCampaigns;
 
-// polls worn gear and its sockets ~1 Hz, sticky-marks matching build entries Used, persists on change.
-// PoE1 gems live inside worn items, so one pass covers gear and gems both.
+// full recompute of Equipped/Used every recheck - never sticky. a recheck is triggered off area transitions
+// (delayed past the load stutter) with a slow periodic fallback for in-place gear swaps that never change zone.
+// PoE1 gems live inside worn items, so one pass covers gear and gems both. Have (Used) also picks up gems/gear
+// sitting loose in the main inventory - stash isn't scanned here (no memory access without the tab open; the
+// stash highlight pass opportunistically flags ManualHave-style instead, see DrawWindowItemHighlights).
 public partial class ExileCampaigns
 {
     private readonly BuildIndex _buildIndex = new();
     private DateTime _lastUsedScan;
+    private DateTime? _pendingBuildRecheckAt;   // set on area change; recheck fires once this passes
+    private const double BuildRecheckSafetyNetSeconds = 30.0;   // catches gear swaps that never change zone
+    private const double BuildRecheckAreaDelaySeconds = 2.0;    // let area load settle before scanning
+
+    // call after an area change to force a fresh Equipped/Have scan once the load stutter has passed.
+    private void RequestBuildRecheck() => _pendingBuildRecheckAt = DateTime.UtcNow.AddSeconds(BuildRecheckAreaDelaySeconds);
 
     // worn slots including weapon swap. flasks excluded.
     private static readonly HashSet<InventoryNameE> EquipSlots = new()
@@ -34,19 +43,30 @@ public partial class ExileCampaigns
     private IReadOnlyList<BuildMatch> MatchBuild(in ItemSnapshot s) =>
         _buildIndex.Match(s.Name, s.BaseType, s.ItemClass);
 
-    // claim the first unclaimed entry in the level set, so a spare copy of a gem still greys the right
-    // row out and gear worn at level 5 can't satisfy a pinned 31-55 set (pin is authoring-only, ignored here).
-    private static BuildEntry? ClaimUnused(IReadOnlyList<BuildMatch> matches, BuildSet? levelSet, Func<BuildEntry, bool> extra)
+    // claim the first not-yet-claimed-this-pass entry in the level set, so a spare copy of a gem still
+    // lands on the right row and gear worn at level 5 can't satisfy a pinned 31-55 set (pin is
+    // authoring-only, ignored here). claimed is scoped to one recompute pass, not persisted.
+    private static string? ClaimId(IReadOnlyList<BuildMatch> matches, BuildSet? levelSet, Func<BuildEntry, bool> extra, HashSet<string> claimed)
     {
         foreach (var m in matches)
-            if (m.Set == levelSet && !m.Entry.Used && extra(m.Entry)) return m.Entry;
+        {
+            if (m.Set != levelSet || claimed.Contains(m.Entry.Id) || !extra(m.Entry)) continue;
+            claimed.Add(m.Entry.Id);
+            return m.Entry.Id;
+        }
         return null;
     }
 
     private void DetectBuildUsed()
     {
-        if (!_build.AllSets.Any()) return;
-        if ((DateTime.UtcNow - _lastUsedScan).TotalSeconds < 1.0) return;
+        if (_build.IsEmpty) return;
+
+        if (_pendingBuildRecheckAt is { } due)
+        {
+            if (DateTime.UtcNow < due) return;
+            _pendingBuildRecheckAt = null;
+        }
+        else if ((DateTime.UtcNow - _lastUsedScan).TotalSeconds < BuildRecheckSafetyNetSeconds) return;
         _lastUsedScan = DateTime.UtcNow;
 
         var gearSet = LevelGearSet();
@@ -57,42 +77,73 @@ public partial class ExileCampaigns
             var holders = GameController?.IngameState?.ServerData?.PlayerInventories;
             if (holders == null) return;
 
-            bool changed = false;
+            var claimedEquipped = new HashSet<string>();
+            var claimedHave = new HashSet<string>();
+
             foreach (var holder in holders)
             {
-                if (holder == null || !EquipSlots.Contains(holder.TypeId)) continue;
+                if (holder == null) continue;
                 var items = holder.Inventory?.Items;
                 if (items == null) continue;
 
-                foreach (var e in items)
+                if (EquipSlots.Contains(holder.TypeId))
                 {
-                    if (e == null || e.Address == 0 || !e.IsValid) continue;
-                    changed |= MarkWornItem(e, gearSet);
-                    changed |= MarkSocketedGems(e, skillSet);
+                    foreach (var e in items)
+                    {
+                        if (e == null || e.Address == 0 || !e.IsValid) continue;
+                        MarkWornItem(e, gearSet, claimedEquipped);
+                        MarkSocketedGems(e, skillSet, claimedEquipped);
+                    }
+                }
+                else if (holder.TypeId == InventoryNameE.MainInventory1)
+                {
+                    foreach (var e in items)
+                    {
+                        if (e == null || e.Address == 0 || !e.IsValid) continue;
+                        MarkLooseItem(e, gearSet, skillSet, claimedHave);
+                    }
                 }
             }
 
+            bool changed = false;
+            foreach (var set in _build.AllSets)
+            foreach (var entry in set.Entries)
+            {
+                bool nowEquipped = claimedEquipped.Contains(entry.Id);
+                bool nowHave = entry.ManualHave || nowEquipped || claimedHave.Contains(entry.Id);
+                if (entry.Equipped != nowEquipped || entry.Used != nowHave) changed = true;
+                entry.Equipped = nowEquipped;
+                entry.Used = nowHave;
+            }
             if (changed) SaveProgress();
         }
         catch { /* server data not ready */ }
     }
 
-    private bool MarkWornItem(Entity item, BuildSet? levelSet)
+    private void MarkWornItem(Entity item, BuildSet? levelSet, HashSet<string> claimedEquipped)
     {
         var snap = ReadItemSnapshot(item);
-        if (!snap.Valid || snap.IsGem) return false;
+        if (!snap.Valid || snap.IsGem) return;
+        ClaimId(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Equipment, claimedEquipped);
+    }
 
-        var claim = ClaimUnused(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Equipment);
-        if (claim == null) return false;
-        claim.Used = claim.Equipped = true;
-        return true;
+    // a gear piece or loose gem sitting in the main bag, not worn/socketed - counts toward Have, not Equipped.
+    // no link-group check (nothing's linked to anything outside a socket), any matching entry by name will do.
+    private void MarkLooseItem(Entity item, BuildSet? gearSet, BuildSet? skillSet, HashSet<string> claimedHave)
+    {
+        var snap = ReadItemSnapshot(item);
+        if (!snap.Valid) return;
+        if (snap.IsGem)
+            ClaimId(MatchBuild(snap), skillSet, e => e.Kind == BuildItemKind.Gem, claimedHave);
+        else
+            ClaimId(MatchBuild(snap), gearSet, e => e.Kind == BuildItemKind.Equipment, claimedHave);
     }
 
     // gems socketed in this item, grouped by link group. a support only counts when it shares a group with
     // the skill its entry names: socketed-but-unlinked stays in the panel, which is the warning.
-    private bool MarkSocketedGems(Entity item, BuildSet? levelSet)
+    private void MarkSocketedGems(Entity item, BuildSet? levelSet, HashSet<string> claimedEquipped)
     {
-        if (!item.TryGetComponent<Sockets>(out var sockets) || sockets?.SocketInfo == null) return false;
+        if (!item.TryGetComponent<Sockets>(out var sockets) || sockets?.SocketInfo == null) return;
 
         var groups = new Dictionary<int, List<ItemSnapshot>>();
         foreach (var socket in sockets.SocketInfo)
@@ -107,7 +158,6 @@ public partial class ExileCampaigns
             list.Add(snap);
         }
 
-        bool changed = false;
         foreach (var group in groups.Values)
         {
             var skills = group.Where(g => !g.IsSupport).ToList();
@@ -116,34 +166,29 @@ public partial class ExileCampaigns
             {
                 if (!snap.IsSupport)
                 {
-                    var claim = ClaimUnused(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Gem && !e.IsSupport);
-                    if (claim != null) { claim.Used = claim.Equipped = true; changed = true; }
+                    ClaimId(MatchBuild(snap), levelSet, e => e.Kind == BuildItemKind.Gem && !e.IsSupport, claimedEquipped);
                     continue;
                 }
 
                 // support: needs an entry whose LinkedToId names a skill sitting in this same link group
                 var matches = MatchBuild(snap);
-                BuildEntry? support = null;
+                string? support = null;
                 foreach (var skill in skills)
                 {
                     var skillKey = BuildIndex.Normalize(skill.Name);
                     if (skillKey.Length == 0) continue; // empty name would false-match any unlinked support
-                    support = ClaimUnused(matches, levelSet, e =>
+                    support = ClaimId(matches, levelSet, e =>
                         e.Kind == BuildItemKind.Gem && e.IsSupport &&
-                        BuildIndex.Normalize(_build.FindEntry(e.LinkedToId)?.Name) == skillKey);
+                        BuildIndex.Normalize(_build.FindEntry(e.LinkedToId)?.Name) == skillKey, claimedEquipped);
                     if (support != null) break;
                 }
 
                 // unreachable from the editor, but hand-edited json and a future PoB import can leave a
-                // support unlinked or pointed at a deleted entry. an entry that can never grey out is worse
-                // than this fallback.
-                support ??= ClaimUnused(matches, levelSet, e => e.Kind == BuildItemKind.Gem && e.IsSupport && _build.FindEntry(e.LinkedToId) == null);
-
-                if (support != null) { support.Used = support.Equipped = true; changed = true; }
+                // support unlinked or pointed at a deleted entry. an entry that can never mark equipped is
+                // worse than this fallback.
+                support ??= ClaimId(matches, levelSet, e => e.Kind == BuildItemKind.Gem && e.IsSupport && _build.FindEntry(e.LinkedToId) == null, claimedEquipped);
             }
         }
-
-        return changed;
     }
 
     private string? _selectedGearSetId;
@@ -235,15 +280,21 @@ public partial class ExileCampaigns
         ImGui.EndCombo();
     }
 
-    private bool _notesDirty;
-    private DateTime _notesDirtySince;
+    private bool _buildDirty;
+    private DateTime _buildDirtySince;
 
-    // notes can be tens of KB and SaveBuild rewrites the whole profile, so edits are flushed on a debounce
-    // instead of per keystroke. _build.Notes is updated live; this only controls when it reaches disk.
-    private void FlushNotes()
+    // SaveBuild rewrites the whole profile (notes alone can be tens of KB), so text/number edits are flushed
+    // on a debounce instead of per keystroke. the plan is updated live; this only controls when it hits disk.
+    private void MarkBuildDirty()
     {
-        if (!_notesDirty) return;
-        _notesDirty = false;
+        _buildDirty = true;
+        _buildDirtySince = DateTime.UtcNow;
+    }
+
+    private void FlushBuild()
+    {
+        if (!_buildDirty) return;
+        _buildDirty = false;
         SaveBuild();
     }
 
@@ -251,22 +302,21 @@ public partial class ExileCampaigns
     // nothing parses them yet. saves on focus loss, not per keystroke - this field can run to tens of KB.
     private void DrawNotesSection()
     {
-        if (!ImGui.CollapsingHeader("Notes")) { FlushNotes(); return; }
+        if (!ImGui.CollapsingHeader("Notes")) { FlushBuild(); return; }
 
         var notes = _build.Notes;
         if (ImGui.InputTextMultiline("##ec_buildnotes", ref notes, 65536, new Vector2(-1f, 120f)))
         {
             _build.Notes = notes;
-            _notesDirty = true;
-            _notesDirtySince = DateTime.UtcNow;
+            MarkBuildDirty();
         }
-        if (ImGui.IsItemDeactivatedAfterEdit()) FlushNotes();
+        if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
 
         if (ImGui.Button("Strip colour codes") && _build.Notes.Length > 0)
         {
             _build.Notes = System.Text.RegularExpressions.Regex.Replace(
                 _build.Notes, @"\^(x[0-9a-fA-F]{6}|\d)", "");
-            _notesDirty = false;   // saving now, no debounced flush needed after
+            _buildDirty = false;   // saving now, no debounced flush needed after
             SaveBuild();
         }
         ImGui.SameLine();
@@ -280,7 +330,7 @@ public partial class ExileCampaigns
         var selectedId = (gear ? SelectedGearSet : SelectedSkillSet)?.Id;
 
         ImGui.BeginChild(gear ? "##ec_setlist_gear" : "##ec_setlist_skill",
-            new Vector2(220, 520), ImGuiChildFlags.Border);
+            new Vector2(220, 520), ImGuiChildFlags.Borders);
 
         if (ImGui.Button("Add set", new Vector2(-1, 0)))
         {
@@ -309,7 +359,7 @@ public partial class ExileCampaigns
         var sets = gear ? _build.GearSets : _build.SkillSets;
         var set = gear ? SelectedGearSet : SelectedSkillSet;
         ImGui.BeginChild(gear ? "##ec_setdetail_gear" : "##ec_setdetail_skill",
-            new Vector2(0, 520), ImGuiChildFlags.Border);
+            new Vector2(0, 520), ImGuiChildFlags.Borders);
 
         if (set == null)
         {
@@ -324,14 +374,17 @@ public partial class ExileCampaigns
 
         var name = set.Name;
         ImGui.SetNextItemWidth(200);
-        if (ImGui.InputText("Name", ref name, 64)) { set.Name = name; SaveBuild(); }
+        if (ImGui.InputText("Name", ref name, 64)) { set.Name = name; MarkBuildDirty(); }
+        if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
 
         int min = set.MinLevel, max = set.MaxLevel;
         ImGui.SetNextItemWidth(80);
-        if (ImGui.InputInt("Min level", ref min)) { set.MinLevel = Clamp(min); SaveBuild(); }
+        if (ImGui.InputInt("Min level", ref min)) { set.MinLevel = Clamp(min); MarkBuildDirty(); }
+        if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
         ImGui.SameLine();
         ImGui.SetNextItemWidth(80);
-        if (ImGui.InputInt("Max level", ref max)) { set.MaxLevel = Clamp(max); SaveBuild(); }
+        if (ImGui.InputInt("Max level", ref max)) { set.MaxLevel = Clamp(max); MarkBuildDirty(); }
+        if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
 
         ImGui.Separator();
 
@@ -681,20 +734,24 @@ public partial class ExileCampaigns
             ImGui.TextDisabled(e.IsSupport ? "support" : e.Kind == BuildItemKind.Gem ? "gem" : "item");
 
             ImGui.TableNextColumn();
+            // debounced like Notes: SaveBuild rewrites the whole profile, so don't do it per keystroke
             int lvl = e.TargetLevel;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputInt("##lvl", ref lvl, 0)) { e.TargetLevel = Clamp(lvl); SaveBuild(); }
+            if (ImGui.InputInt("##lvl", ref lvl, 0)) { e.TargetLevel = Clamp(lvl); MarkBuildDirty(); }
+            if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
 
             ImGui.TableNextColumn();
             var note = e.Note;
             ImGui.SetNextItemWidth(-1);
-            if (ImGui.InputText("##note", ref note, 128)) { e.Note = note; SaveBuild(); }
+            if (ImGui.InputText("##note", ref note, 128)) { e.Note = note; MarkBuildDirty(); }
+            if (ImGui.IsItemDeactivatedAfterEdit()) FlushBuild();
 
             ImGui.TableNextColumn();
             bool have = e.Used;
             // manual "I've got this" - hides it from the overlay, labelled "(have)" not "(equipped)".
-            // detector still re-marks anything actually worn, so unchecking a truly-equipped item won't stick.
-            if (ImGui.Checkbox("##have", ref have)) { e.Used = have; if (!have) e.Equipped = false; SaveBuild(); }
+            // ManualHave survives the recheck; Equipped doesn't - unchecking a truly-worn item won't stick,
+            // the next recheck (area change, or the periodic fallback) flips it back.
+            if (ImGui.Checkbox("##have", ref have)) { e.ManualHave = have; e.Used = have || e.Equipped; if (!have) e.Equipped = false; SaveBuild(); }
             if (ImGui.IsItemHovered()) ImGui.SetTooltip("mark as owned (have)");
 
             ImGui.TableNextColumn();
@@ -1258,21 +1315,26 @@ public partial class ExileCampaigns
         return s.LaterColor.Value;
     }
 
-    // one gem in the bag can serve several planned copies: the soonest need wins
+    // one gem in the bag can serve several planned copies: the soonest need wins. but the same skill
+    // often repeats across brackets as separate entries, and detection only flips Used on the bracket
+    // that's currently level-resolved - so if any duplicate is already claimed, the physical gem is
+    // accounted for and the others aren't a fresh "still need this" (was showing equippable-green for
+    // a gem already socketed, just because a different bracket's copy of it never got marked used).
     private static BuildEntry? Best(IReadOnlyList<BuildMatch> matches)
     {
+        if (matches.Count == 0) return null;
+        foreach (var m in matches)
+            if (m.Entry.Used) return m.Entry;
+
         BuildEntry? best = null;
         foreach (var m in matches)
-        {
-            if (m.Entry.Used) continue;
             if (best == null || m.Entry.TargetLevel < best.TargetLevel) best = m.Entry;
-        }
-        return best ?? (matches.Count > 0 ? matches[0].Entry : null);
+        return best;
     }
 
     private void DrawBuildIndicators()
     {
-        if (!Settings.BuildIndicators.Enable || !_build.AllSets.Any()) return;
+        if (!Settings.BuildIndicators.Enable || _build.IsEmpty) return;
         if (Settings.BuildIndicators.MarkInventory) DrawInventoryMarkers();
 
         if (Settings.BuildIndicators.HighlightQuestRewards)
@@ -1321,17 +1383,11 @@ public partial class ExileCampaigns
             float sz = Settings.BuildIndicators.Size.Value;
             uint outline = U32(new Color(10, 10, 12, 220));   // SharpDX.Color is RGBA
 
-            foreach (var item in items)
+            foreach (var (item, entry) in InventoryBuildHits(items))
             {
-                var e = item?.Item;
-                if (e == null || e.Address == 0 || !e.IsValid) continue;
+                if (item.Address == 0 || !item.IsVisibleLocal) continue;   // item left the bag since the last scan
 
-                var snap = ReadItemSnapshot(e);
-                if (!snap.Valid) continue;
-                var entry = Best(MatchBuild(snap));
-                if (entry == null) continue;
-
-                var rect = item!.GetClientRectCache;
+                var rect = item.GetClientRectCache;
                 float right = rect.X + rect.Width;
                 float top = rect.Y;
 
@@ -1344,6 +1400,30 @@ public partial class ExileCampaigns
             }
         }
         catch { /* inventory mid-teardown */ }
+    }
+
+    // same split as WindowBuildHits: which bag items are in the build is the expensive half (a dat translate
+    // plus component reads per item), so rescan ~10x/sec. rects still come off the elements every frame, so
+    // markers stay glued while you drag things around.
+    private long _invHitsAt;
+    private readonly List<(NormalInventoryItem El, BuildEntry Entry)> _invHits = new();
+
+    private List<(NormalInventoryItem El, BuildEntry Entry)> InventoryBuildHits(IList<NormalInventoryItem> items)
+    {
+        if (Environment.TickCount64 - _invHitsAt < 100) return _invHits;
+        _invHitsAt = Environment.TickCount64;
+        _invHits.Clear();
+        foreach (var item in items)
+        {
+            var e = item?.Item;
+            if (e == null || e.Address == 0 || !e.IsValid) continue;
+            var snap = ReadItemSnapshot(e);
+            if (!snap.Valid) continue;
+            var entry = Best(MatchBuild(snap));
+            if (entry == null) continue;
+            _invHits.Add((item!, entry));
+        }
+        return _invHits;
     }
 
     // outline in-build InventoryItem leaves under a window (quest reward, vendor, later stash). walk the
@@ -1371,7 +1451,7 @@ public partial class ExileCampaigns
                     break;
                 }
                 if (covered) continue;
-                dl.AddRect(min, max, U32(IndicatorColor(entry)), 0f, ImDrawFlags.None, 3f);
+                dl.AddRect(min, max, U32(IndicatorColor(entry)), 0f, 3f, ImDrawFlags.None);
             }
         }
         catch { /* window mid-teardown */ }
@@ -1487,9 +1567,10 @@ public partial class ExileCampaigns
     private BuildSet? ActiveSkillSet() =>
         _build.SkillSets.FirstOrDefault(s => s.Id == _build.PinnedSkillSetId) ?? LevelSkillSet();
 
-    // ctrl-click an overlay row to mark it equipped/owned, same one-way flag the editor checkbox sets.
+    // ctrl-click an overlay row to mark it have, same manual flag the editor checkbox sets.
     private void MarkEntryHave(BuildEntry e)
     {
+        e.ManualHave = true;
         e.Used = true;
         SaveBuild();
         ShowToast($"Marked {e.Name} as have", ToastLevel.Success);
@@ -1518,7 +1599,7 @@ public partial class ExileCampaigns
             new PanelLine(header, s.HeaderColor.Value, isHeader: true),
         };
 
-        if (!_build.AllSets.Any())
+        if (_build.IsEmpty)
         {
             lines.Add(new PanelLine("  (no build sets - add one in the Build tab)", s.OptionalColor.Value));
             return lines;
@@ -1554,12 +1635,25 @@ public partial class ExileCampaigns
         var supports = skillSet?.Entries.Where(e => e.Kind == BuildItemKind.Gem && e.IsSupport && InWindow(e)).ToList() ?? empty;
         var items = gearSet?.Entries.Where(e => e.Kind == BuildItemKind.Equipment && InWindow(e)).ToList() ?? empty;
 
+        // group the supports by parent once instead of re-filtering the whole list per skill, and collect
+        // every entry id once so the orphan test below isn't a FindEntry walk per support.
+        var byParent = new Dictionary<string, List<BuildEntry>>();
+        foreach (var su in supports)
+        {
+            if (su.LinkedToId is not { } pid) continue;
+            if (!byParent.TryGetValue(pid, out var list)) byParent[pid] = list = new List<BuildEntry>();
+            list.Add(su);
+        }
+        var allIds = new HashSet<string>();
+        foreach (var set in _build.AllSets)
+            foreach (var e in set.Entries) allIds.Add(e.Id);
+
         // each skill in declared order, then the supports that link to it (a support feeding several skills
         // repeats under each). a group whose skill and every support are already had is skipped entirely.
         int shown = 0;
         foreach (var skill in skills)
         {
-            var groupSupports = supports.Where(su => su.LinkedToId == skill.Id).ToList();
+            var groupSupports = byParent.TryGetValue(skill.Id, out var gs) ? gs : empty;
             if (skill.Used && groupSupports.All(su => su.Used)) continue;
             lines.Add(Row(skill, support: false));
             foreach (var sup in groupSupports)
@@ -1567,10 +1661,16 @@ public partial class ExileCampaigns
             shown++;
         }
         // orphan supports + gear: standalone rows, hidden once had (no group to give a had one context).
-        foreach (var sup in supports.Where(su => _build.FindEntry(su.LinkedToId) == null && !su.Used))
-        { lines.Add(Row(sup, support: true)); shown++; }
-        foreach (var it in items.Where(it => !it.Used))
-        { lines.Add(Row(it, support: false)); shown++; }
+        foreach (var sup in supports)
+        {
+            if (sup.Used || (sup.LinkedToId != null && allIds.Contains(sup.LinkedToId))) continue;
+            lines.Add(Row(sup, support: true)); shown++;
+        }
+        foreach (var it in items)
+        {
+            if (it.Used) continue;
+            lines.Add(Row(it, support: false)); shown++;
+        }
 
         int total = (gearSet?.Entries.Count ?? 0) + (skillSet?.Entries.Count ?? 0);
         int inWindow = skills.Count + supports.Count + items.Count;

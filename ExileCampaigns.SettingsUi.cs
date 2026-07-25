@@ -1,6 +1,6 @@
 using System;
 using ExileCore.Shared.Nodes;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
 using System.IO;
 using System.Linq;
@@ -59,6 +59,8 @@ public partial class ExileCampaigns
                 "Hide entries that need more than this many levels above yours (99 = show all)");
             SliderInt("Max lines##bp", Settings.BuildPanel.MaxLines,
                 "Cap the panel height; the rest collapse into a '+N more' row (0 = no cap)");
+            ImGui.SeparatorText("Checklist overlay");
+            DrawChecklistStyle(Settings.Checklist);
             ImGui.SeparatorText("Waypoint overlay");
             Toggle("Enabled##wp", Settings.WaypointOverlay.Enable,
                 "On a 'Waypoint to X' step, highlight which waypoint to click on the open World Map");
@@ -84,12 +86,12 @@ public partial class ExileCampaigns
             if (!radarLive && !eminiLive)
                 ImGui.TextColored(new Vector4(1f, 0.55f, 0.2f, 1f), "No guidance provider detected - install/enable Radar or ExileMinimap.");
             else if (radarLive && eminiLive)
-                Combo("Surface##guid", Settings.GuidanceProvider.Surface, GuidanceSurfaces, "where campaign guidance draws (path + minimap icons)");
+                Combo("Surface##guid", Settings.GuidanceProvider.Surface, GuidanceSurfaces, "where campaign guidance draws (path lines)");
             else
                 ImGui.TextDisabled(radarLive ? "Only Radar live -> drawing on the in-game map." : "Only ExileMinimap live -> drawing on its panel.");
 
             Toggle("Remember target locations", Settings.GuidanceProvider.RememberTargetLocations,
-                "Keep an entity path/icon at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.");
+                "Keep an entity path target at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.");
 
             ImGui.SeparatorText("Path to next step");
             var p = Settings.Path;
@@ -100,30 +102,6 @@ public partial class ExileCampaigns
             ColorEdit("Path color", p.PathColor);
             SliderFloat("Path thickness", p.PathThickness);
             SliderInt("Draw every Nth point", p.DrawEveryNthSegment, "Higher = sparser/faster");
-            Toggle("Flowing comets", p.ShowComets, "Slide comet sprites along the ground path toward the objective");
-            Toggle("Comets only (hide line)", p.CometsOnly, "When comets are on, don't draw the solid ground line");
-            ColorEdit("Comet color", p.CometColor);
-            SliderFloat("Comet spacing", p.CometSpacing, "Grid units between comets; count scales with path length");
-            SliderFloat("Comet size", p.CometSize, "Comet length in grid units");
-            SliderFloat("Comet speed", p.CometSpeed, "Flow speed in grid units per second");
-
-            ImGui.SeparatorText("Interaction indicator");
-            var ii = Settings.InteractIndicator;
-            Toggle("Enabled##ii", ii.Enable, "Draw a golden pulsing arrow above the NPC/chest/boss the step wants you to interact with");
-            ColorEdit("Arrow color##ii", ii.IconColor);
-            SliderFloat("Arrow size##ii", ii.IconSize, "Icon height in pixels");
-            SliderFloat("Bob speed##ii", ii.BobSpeed, "How fast the arrow bobs (0 = steady)");
-            SliderFloat("Bob distance##ii", ii.BobDistance, "How far it bobs, in pixels");
-            SliderFloat("Height offset##ii", ii.HeightOffset, "Extra world units above the entity's head");
-            SliderFloat("Target search distance##ii", ii.MaxDistance, "Only mark targets within this distance");
-            SliderFloat("Proximity advance distance##ii", ii.NearDistance, "For bosses / quest objects, auto-advance when this close");
-
-            ImGui.SeparatorText("Minimap icons");
-            var mi = Settings.MinimapIcons;
-            Toggle("Enabled##mmi", mi.Enable, "Draw authored minimap icons for the current area on the large map");
-            SliderInt("Icon size##mmi", mi.IconSize, "Icon size in pixels");
-            SliderInt("Lookahead steps##mmi", mi.Lookahead, "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only");
-            Toggle("Pulse current step##mmi", mi.PulseCurrent, "Animate the icons for the current objective so they stand out");
             ImGui.EndTabItem();
         }
 
@@ -200,10 +178,45 @@ public partial class ExileCampaigns
                 "Opt-in: record recent zone changes, flag flips and path-target changes so an export captures what led up to a bug");
             Hotkey("Export diagnostics (hotkey)", diag.ExportKey, "Write a diagnostic JSON report and open its folder");
             Button(diag.ExportNow, "Export diagnostics now", "Write the diagnostic JSON report now and open its folder");
+
+            ImGui.SeparatorText("Profiler");
+            DrawProfilerSettings();
+            ImGui.EndTabItem();
+        }
+
+        if (ImGui.BeginTabItem("Auto-Walk"))
+        {
+            DrawAutoWalkSettings();
             ImGui.EndTabItem();
         }
 
         ImGui.EndTabBar();
+    }
+
+    // profiler controls. non-static: needs Settings + the report writer on the plugin.
+    private void DrawProfilerSettings()
+    {
+        var p = Settings.Profiler;
+        Toggle("Enable profiler", p.Enable,
+            "Time each Tick/Render section in-process. Leave off in normal play.");
+        Toggle("Show profiler overlay", p.ShowOverlay, "Panel ranked by ms per second of wall clock");
+        SliderInt("Rows##perf", p.MaxRows, "How many sections to list, worst first");
+        SliderInt("Spike log threshold (ms)", p.SpikeLogMs,
+            "Append the per-section breakdown of any Render frame slower than this to 'perf-spikes.jsonl' " +
+            "in the config folder. 0 = off. This is what catches a one-off stall an average hides.");
+
+        Button(p.Reset, "Reset counters", "Zero every section and start a fresh measuring window");
+        ImGui.SameLine();
+        if (ImGui.Button("Write report")) PerfWriteReport();
+        Tip("Dump the current table to 'perf-report.txt' in the config folder");
+
+        ColorEdit("Text color##perf", p.TextColor);
+        ColorEdit("Header color##perf", p.HeaderColor);
+        ColorEdit("Background color##perf", p.BackgroundColor, "Alpha controls opacity");
+        ColorEdit("Border color##perf", p.BorderColor);
+        SliderFloat("Text size##perf", p.TextSize, "Font height in pixels");
+        SliderInt("Border thickness##perf", p.BorderThickness, "0 = no border");
+        SliderInt("Padding##perf", p.Padding);
     }
 
     // -- reused submenu renderers --
@@ -263,6 +276,19 @@ public partial class ExileCampaigns
         Toggle("Show XP to level##" + id, s.ShowXpToGo);
         Toggle("Show ETA to level##" + id, s.ShowEta);
         Combo("XP penalty display##" + id, s.PenaltyMode, PenaltyModes, "Bar = safe-zone axis + ticks; Text = just the % line; Off = hidden");
+    }
+
+    private static void DrawChecklistStyle(ChecklistOverlayStyle s)
+    {
+        const string id = "checklist";
+        Toggle("Enabled##" + id, s.Enable);
+        ColorEdit("Text color##" + id, s.TextColor);
+        ColorEdit("Header color##" + id, s.HeaderColor);
+        ColorEdit("Background color##" + id, s.BackgroundColor, "Alpha controls opacity; alpha 0 = no panel background");
+        ColorEdit("Border color##" + id, s.BorderColor);
+        SliderFloat("Text size##" + id, s.TextSize, "Font height in pixels");
+        SliderInt("Border thickness##" + id, s.BorderThickness, "0 = no border");
+        SliderInt("Padding##" + id, s.Padding);
     }
 
     // -- per-node control helpers --
@@ -375,6 +401,16 @@ public partial class ExileCampaigns
         n.DrawPickerButton($"{PadToWidth(KeyLabel(n))}##hk_{label}");
     }
 
+    // single-line text field bound to a TextNode, e.g. a file path.
+    private static void TextField(string label, TextNode n, string hint, string? tip = null)
+    {
+        ImGui.Text(label);
+        Tip(tip);
+        ImGui.SameLine();
+        string v = n.Value ?? "";
+        if (ImGui.InputTextWithHint($"##{label}", hint, ref v, 260)) n.Value = v;
+    }
+
     private static void Button(ButtonNode n, string label, string? tip = null)
     {
         if (ImGui.Button(label)) n.OnPressed?.Invoke();
@@ -389,6 +425,7 @@ public partial class ExileCampaigns
     private int _selectedProfileIdx = -1;
     private string? _confirmResetProfile;   // name pending reset confirmation (two-step button)
     private string? _confirmCopyFrom;        // source profile pending copy-into-current confirmation
+    private bool _confirmEnableAutoWalk;   // risk-warning pending confirmation before Enable flips true
 
     // display names = filenames (sans .json). PoE ids have no illegal chars so they survive SanitizeProfile, display == switch key
     private string[] ListProfiles()
@@ -584,6 +621,54 @@ public partial class ExileCampaigns
         }
     }
 
+    private void DrawAutoWalkSettings()
+    {
+        if (!Settings.AutoWalk.Enable)
+        {
+            // checkbox only arms the warning - Settings.AutoWalk.Enable itself stays off until "Yes" below
+            ImGui.Checkbox("Enable auto-walk", ref _confirmEnableAutoWalk);
+
+            if (_confirmEnableAutoWalk)
+            {
+                ImGui.TextColored(new Vector4(1f, 0.5f, 0.4f, 1f),
+                    "This automates real mouse input to move your character and click things (doors, " +
+                    "area transitions). That's outside normal play and carries ban risk under PoE's " +
+                    "terms - use it at your own risk.");
+                if (ImGui.Button("Yes, enable auto-walk"))
+                {
+                    Settings.AutoWalk.Enable.Value = true;
+                    _confirmEnableAutoWalk = false;
+                }
+                ImGui.SameLine();
+                if (ImGui.Button("Cancel##autowalkenable")) _confirmEnableAutoWalk = false;
+            }
+            return;
+        }
+
+        _autoWalkEnableCheckboxState = true;
+        if (ImGui.Checkbox("Enable auto-walk", ref _autoWalkEnableCheckboxState))
+            if (!_autoWalkEnableCheckboxState) Settings.AutoWalk.Enable.Value = false;
+
+        ImGui.Separator();
+        Hotkey("Toggle auto-walk", Settings.AutoWalk.ToggleKey,
+            "Start/stop auto-walk. Either this or the hold key running is enough to walk.");
+        Hotkey("Hold to auto-walk", Settings.AutoWalk.HoldKey,
+            "Auto-walk runs only while this is held down (in addition to the toggle key)");
+        SliderFloat("Lookahead distance", Settings.AutoWalk.LookaheadDistance,
+            "How far ahead on the path (grid units) the cursor aims while walking");
+        SliderFloat("Door scan range", Settings.AutoWalk.DoorScanRange,
+            "How far ahead (grid units) to look for a closed door blocking the path");
+        SliderFloat("Arrival radius", Settings.AutoWalk.ArrivalRadius,
+            "How close (grid units) counts as 'reached' for the path end / a transition / a door");
+        ImGui.Separator();
+        Toggle("Play sound when stopped for you", Settings.AutoWalk.NotifySoundEnable,
+            "Notify when auto-walk stops because the next step needs a manual click (NPC, waypoint, pickup...)");
+        TextField("Notification .wav path", Settings.AutoWalk.NotifySoundPath, "C:\\path\\to\\sound.wav",
+            "Absolute path to a .wav file. Empty = no sound even if enabled above.");
+    }
+
+    private bool _autoWalkEnableCheckboxState = true;   // mirrors Settings.AutoWalk.Enable while the tab is drawn once already-on
+
     // one-shot dialog offered the first time a profile is created (manual Create or auto-switch on a new
     // character). lets the user flip the global Show-league-start setting without digging through settings.
     private bool _leagueStartPromptPending;   // set in SwitchProfile on a brand-new profile; cleared on answer
@@ -715,7 +800,7 @@ public partial class ExileCampaigns
         }
 
         // one box per toast; returns the y for the next one below it.
-        float DrawBox(string text, ToastLevel level, float alpha, float top)
+        unsafe float DrawBox(string text, ToastLevel level, float alpha, float top)
         {
             var (boxSize, rows) = MeasureBox(text);
             var min = new Vector2(anchorX - boxSize.X / 2f, top);
@@ -727,7 +812,7 @@ public partial class ExileCampaigns
             if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
             dl.AddRectFilled(min, new Vector2(min.X + ToastAccentW, max.Y), U32(Fade(ToastAccent(level), alpha)));
             if (t.BorderThickness.Value > 0)
-                dl.AddRect(min, max, U32(Fade(t.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, t.BorderThickness.Value);
+                dl.AddRect(min, max, U32(Fade(t.BorderColor.Value, alpha)), 0f, t.BorderThickness.Value, ImDrawFlags.None);
 
             uint textCol = U32(Fade(t.TextColor.Value, alpha));
             var p = new Vector2(min.X + ToastAccentW + pad, min.Y + pad);

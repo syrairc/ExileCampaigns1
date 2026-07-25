@@ -10,27 +10,10 @@ using ExileCampaigns.Guide;
 
 namespace ExileCampaigns.Tracking;
 
-// how the interaction completes. drives indicator kind + auto-advance trigger.
-public enum InteractKind
-{
-    Dialog,     // NPC: advance when conversation UI opens
-    ChestOpen,  // chest: advance when opened
-    Proximity,  // quest object/shrine: advance on getting near
-    Kill,       // hostile boss: advance only when it dies, never on proximity
-}
-
-// live entity the step wants the player to interact with, plus how to detect it.
-public sealed class InteractTarget
-{
-    public required Entity Entity { get; init; }
-    public required InteractKind Kind { get; init; }
-    public required string MatchedName { get; init; }
-}
-
 // resolves the current step to one grid-space target coord for the path to aim at. path target is driven
 // SOLELY by the objective's explicit Paths children (Tile/Entity/Room) -- step text, objective type, and
 // advance entities have no effect. null when nothing explicit resolves yet (tiles not in instance, entity
-// not loaded); caller retries. the indicator resolves its entities via ResolveIndicatorEntities.
+// not loaded); caller retries.
 public sealed class StepTargetResolver
 {
     // tile pattern -> Radar's ExpectedCount for the current area (only the >1 ones). set on area change from
@@ -42,7 +25,29 @@ public sealed class StepTargetResolver
         !string.IsNullOrEmpty(pattern) && RadarTileCounts != null
         && RadarTileCounts.TryGetValue(pattern!, out var c) && c > 1 ? c : 1;
 
-    // remember last-seen grid pos of entities resolved as path/icon targets, so the path/icon survives the
+    // Radar/ExileMinimap answer ClusterTarget by running KMeans over the area's terrain tiles - it is the most
+    // expensive thing this resolver can do, and the answer is static for the area instance (it even jitters
+    // slightly per call, which is why the All-mode path caches its own baseline). so resolve each pattern once.
+    // a HIT is kept for the area's lifetime; a MISS expires, because early in a zone the provider may simply
+    // not have processed terrain yet - but bounded, so a genuinely-absent tile isn't re-clustered every poll.
+    private readonly Dictionary<string, (long At, Vector2[] Coords)> _tileClusters = new();
+    private const long TileClusterMissMs = 1000;
+
+    private Vector2[] Clusters(string? pattern, Func<string, int, Vector2[]>? clusterTarget)
+    {
+        if (clusterTarget == null || string.IsNullOrEmpty(pattern)) return Array.Empty<Vector2>();
+        if (_tileClusters.TryGetValue(pattern!, out var hit) &&
+            (hit.Coords.Length > 0 || Environment.TickCount64 - hit.At < TileClusterMissMs))
+            return hit.Coords;
+
+        Vector2[] res;
+        try { res = clusterTarget(pattern!, ClusterCount(pattern)) ?? Array.Empty<Vector2>(); }
+        catch { res = Array.Empty<Vector2>(); }   // tile not in this instance
+        _tileClusters[pattern!] = (Environment.TickCount64, res);
+        return res;
+    }
+
+    // remember last-seen grid pos of entities resolved as path targets, so the path survives the
     // entity leaving load range. keyed by entity address (stable per area instance), cleared on area change via
     // ResetSeenCache. a cached entry is only re-served when its stored identity still matches the live query, so
     // a step advance (different patterns) drops old entries on its own. off -> exact old live-only behavior.
@@ -51,7 +56,7 @@ public sealed class StepTargetResolver
     private readonly Dictionary<long, SeenEntity> _seen = new();
     private readonly record struct SeenEntity(Vector2 Grid, string? Path, string? RenderName);
 
-    public void ResetSeenCache() => _seen.Clear();
+    public void ResetSeenCache() { _seen.Clear(); _tileClusters.Clear(); }
 
     public Vector2? Resolve(GameController gc, RouteStep step, Func<string, int, Vector2[]>? clusterTarget,
         string? effectiveAreaId = null)
@@ -135,9 +140,11 @@ public sealed class StepTargetResolver
         if (entities != null)
             foreach (var e in entities)
             {
-                if (e == null || !e.IsValid || !HasGrid(e)) continue;
+                // pattern test before the component fetches, so far/unrelated entities cost the least
+                if (e == null || !e.IsValid) continue;
                 var mp = MatchPath(e);
                 if (!Match(mp)) continue;
+                if (!HasGrid(e)) continue;
                 // WorldItems vanish when looted; isTargetable doesn't flip. skip the interactable check for them.
                 if (liveOnly && e.Type != EntityType.WorldItem && !IsInteractable(e)) continue;
                 var g = SnapToWalkable(gc, GridOf(e));
@@ -187,35 +194,6 @@ public sealed class StepTargetResolver
         return list;
     }
 
-    // nearest AreaGraphs room center (grid units) whose name satisfies the predicate, or null.
-    private static Vector2? NearestRoomCenter(GameController gc, Vector2? playerGrid, Func<string, bool> nameMatch)
-    {
-        try
-        {
-            var graphs = gc.IngameState?.Data?.AreaGraphs;
-            if (graphs == null) return null;
-            Vector2? best = null;
-            float bestD = float.MaxValue;
-            foreach (var g in graphs)
-            {
-                var rooms = g?.Rooms;
-                if (rooms == null) continue;
-                foreach (var r in rooms)
-                {
-                    var name = r.Name;
-                    if (string.IsNullOrEmpty(name) || !nameMatch(name)) continue;
-                    var c = SnapToWalkable(gc, new Vector2(
-                        (r.MinCoord.X + r.MaxCoord.X) * 0.5f * TileToGrid,
-                        (r.MinCoord.Y + r.MaxCoord.Y) * 0.5f * TileToGrid));
-                    float d = playerGrid is { } p ? Vector2.DistanceSquared(c, p) : 0f;
-                    if (d < bestD) { bestD = d; best = c; }
-                }
-            }
-            return best;
-        }
-        catch { return null; }
-    }
-
     // a room's geometric center can land on a blocked tile (the obelisk, water, decoration); Radar's pathfinder
     // (RunFirstScan) can't reach a target it can't expand from, so the route silently never appears. snap to the
     // nearest pathable tile using the same grid Radar uses (Data.RawPathfindingData, values 1..5 pathable, 0
@@ -231,112 +209,25 @@ public sealed class StepTargetResolver
                 y >= 0 && y < data.Length && data[y] != null && x >= 0 && x < data[y].Length
                 && data[y][x] is >= 1 and <= 5;
             if (Pathable(gx, gy)) return grid;
+            // walk the ring perimeter directly instead of scanning the whole square and skipping the inside.
+            // same order, same first hit, but O(r) per ring - the old form was ~288k iterations at radius 60.
             for (int radius = 1; radius <= 60; radius++)   // expanding ring; obelisk centers sit within a few tiles
                 for (int dy = -radius; dy <= radius; dy++)
-                    for (int dx = -radius; dx <= radius; dx++)
+                {
+                    if (dy == -radius || dy == radius)
                     {
-                        if (Math.Abs(dx) != radius && Math.Abs(dy) != radius) continue;   // ring perimeter only
-                        if (Pathable(gx + dx, gy + dy)) return new Vector2(gx + dx, gy + dy);
+                        for (int dx = -radius; dx <= radius; dx++)
+                            if (Pathable(gx + dx, gy + dy)) return new Vector2(gx + dx, gy + dy);
                     }
+                    else
+                    {
+                        if (Pathable(gx - radius, gy + dy)) return new Vector2(gx - radius, gy + dy);
+                        if (Pathable(gx + radius, gy + dy)) return new Vector2(gx + radius, gy + dy);
+                    }
+                }
             return grid;
         }
         catch { return grid; }
-    }
-
-    // EVERY still-interactable entity matching any Indicator Entity target, nearest-first. one
-    // arrow per match, so multiple authored targets (or one pattern matching several live drops) all draw.
-    // IsInteractable already drops inactive NPC duplicates (non-targetable), so a single talk target doesn't
-    // spawn an arrow on each of a story NPC's idle copies.
-    public IReadOnlyList<InteractTarget> ResolveIndicatorEntities(GameController gc, IEnumerable<Target> targets, float maxDistance)
-    {
-        var res = new List<InteractTarget>();
-        if (gc == null || targets == null) return res;
-        var entities = gc.EntityListWrapper?.Entities;
-        if (entities == null) return res;
-
-        var matchers = targets
-            .Where(t => t != null && t.Kind == TargetKind.Entity)
-            .Select(t => (m: PatternMatcher.For(t.Match), byPath: t.MatchBy == MatchKind.Path, living: t.LivingOnly))
-            .ToList();
-        if (matchers.Count == 0) return res;
-
-        foreach (var e in entities
-            .Where(e => e != null && e.IsValid && HasGrid(e))
-            .Where(e => e.DistancePlayer <= maxDistance)
-            .Where(IsInteractable)
-            // a LivingOnly matcher only counts when the entity is alive, so a corpse/prop sharing the name
-            // doesn't draw an arrow. a non-living matcher matching is enough.
-            .Where(e => matchers.Any(x => x.m.IsMatch(x.byPath ? MatchPath(e) : e.RenderName) && (!x.living || IsLiving(e))))
-            .OrderBy(e => e.DistancePlayer))
-            res.Add(new InteractTarget { Entity = e, Kind = InteractKind.Proximity, MatchedName = e.RenderName ?? "" });
-        return res;
-    }
-
-    // grid coords of every live entity matching an Entity target (nearest-first), for drawing a minimap icon at
-    // each. plural form of the Entity case in ResolveTargetCoord.
-    public IReadOnlyList<Vector2> ResolveEntityCoords(GameController gc, Target t)
-    {
-        var res = new List<Vector2>();
-        if (gc == null || t == null || t.Kind != TargetKind.Entity) return res;
-        var em = PatternMatcher.For(t.Match);
-        bool byPath = t.MatchBy == MatchKind.Path;
-        bool Match(string? path, string? name) => em.IsMatch(byPath ? path : name);
-        // living targets (bosses/monsters) can die out of range, so never cache them -- a lingering icon over a
-        // dead boss is wrong. non-living matches (chests, transitions, NPCs, drops) persist at last-seen.
-        var live = CacheLocations && !t.LivingOnly ? new HashSet<long>() : null;
-        var entities = gc.EntityListWrapper?.Entities;
-        if (entities != null)
-            foreach (var e in entities
-                .Where(e => e != null && e.IsValid && HasGrid(e))
-                .Where(e => !t.LivingOnly || IsLiving(e))
-                .Where(e => Match(MatchPath(e), e.RenderName))
-                .OrderBy(e => e.DistancePlayer))
-            {
-                var g = GridOf(e);
-                res.Add(g);
-                if (live != null) { _seen[e.Address] = new SeenEntity(g, MatchPath(e) ?? "", e.RenderName ?? ""); live.Add(e.Address); }
-            }
-        if (live != null)
-            foreach (var kv in _seen)
-                if (!live.Contains(kv.Key) && Match(kv.Value.Path, kv.Value.RenderName))
-                    res.Add(kv.Value.Grid);
-        return res;
-    }
-
-    // resolve any guidance Target to one grid coord, for drawing a minimap icon. Tile -> Radar ClusterTarget;
-    // Room -> nearest matching AreaGraph room center; Entity -> nearest live matching entity. null = unresolved.
-    public Vector2? ResolveTargetCoord(GameController gc, Target t, Func<string, int, Vector2[]>? clusterTarget)
-    {
-        if (gc == null || t == null) return null;
-        var playerGrid = PlayerGrid(gc);
-        switch (t.Kind)
-        {
-            case TargetKind.Tile:
-                if (clusterTarget == null) return null;
-                try { return NearestCluster(clusterTarget(t.Match.Value, ClusterCount(t.Match.Value)), playerGrid); }
-                catch { return null; }
-            case TargetKind.Room:
-            {
-                var rm = PatternMatcher.For(t.Match);
-                return NearestRoomCenter(gc, playerGrid, name => rm.IsMatch(name));
-            }
-            case TargetKind.Entity:
-            {
-                var entities = gc.EntityListWrapper?.Entities;
-                if (entities == null) return null;
-                var em = PatternMatcher.For(t.Match);
-                bool byPath = t.MatchBy == MatchKind.Path;
-                var hit = entities
-                    .Where(e => e != null && e.IsValid && HasGrid(e))
-                    .Where(e => !t.LivingOnly || IsLiving(e))
-                    .Where(e => em.IsMatch(byPath ? MatchPath(e) : e.RenderName))
-                    .OrderBy(e => e.DistancePlayer)
-                    .FirstOrDefault();
-                return hit != null ? GridOf(hit) : (Vector2?)null;
-            }
-            default:
-                return null;
-        }
     }
 
     // nearest Radar cluster across SEVERAL authored tile patterns (e.g. two staircase variants), or null. lets a
@@ -349,14 +240,9 @@ public sealed class StepTargetResolver
         float bestD = float.MaxValue;
         foreach (var p in patterns)
         {
-            if (string.IsNullOrEmpty(p)) continue;
-            try
-            {
-                if (NearestCluster(clusterTarget(p, ClusterCount(p)), playerGrid) is not { } c) continue;
-                float d = playerGrid is { } pg ? Vector2.DistanceSquared(c, pg) : 0f;
-                if (d < bestD) { bestD = d; best = c; }
-            }
-            catch { /* tile not in this instance, try next */ }
+            if (NearestCluster(Clusters(p, clusterTarget), playerGrid) is not { } c) continue;
+            float d = playerGrid is { } pg ? Vector2.DistanceSquared(c, pg) : 0f;
+            if (d < bestD) { bestD = d; best = c; }
         }
         return best;
     }
@@ -370,11 +256,7 @@ public sealed class StepTargetResolver
         var res = new List<Vector2>();
         if (gc == null || clusterTarget == null || patterns == null) return res;
         foreach (var p in patterns)
-        {
-            if (string.IsNullOrEmpty(p)) continue;
-            try { var cs = clusterTarget(p, ClusterCount(p)); if (cs != null) res.AddRange(cs); }
-            catch { /* tile not in this instance, try next */ }
-        }
+            res.AddRange(Clusters(p, clusterTarget));
         return res;
     }
 
@@ -385,17 +267,9 @@ public sealed class StepTargetResolver
         return coords.OrderBy(c => Vector2.DistanceSquared(c, p)).First();
     }
 
-    // the LivingOnly gate for guidance Entity targets: entity is actually alive (Life present, CurrentHP > 0).
-    // Entity.IsAlive is null-Life-safe (no Life -> false), so a corpse or a lifeless prop sharing the name fails.
-    private static bool IsLiving(Entity e)
-        => e.IsAlive;
-
     private static bool HasGrid(Entity e)
         => e.GetComponent<Positioned>() != null;
 
-    // the path to identity-match an entity on. a ground item is a WorldItem shell whose own Path is generic;
-    // its base-type identity (what the editor picker captured) lives on the held item entity. position still
-    // comes from the shell via GridOf, so the arrow/path/icon lands on the drop.
     private static string? MatchPath(Entity e)
         => e.Type == EntityType.WorldItem
             ? (e.GetComponent<WorldItem>()?.ItemEntity?.Path ?? e.Path)

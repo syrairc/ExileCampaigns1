@@ -10,9 +10,8 @@ using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.MemoryObjects;
 using GameOffsets.Native;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
-using ExileCampaigns.Rendering;
 using ExileCore.PoEMemory;
 using Vector2 = System.Numerics.Vector2;
 using Vector3 = System.Numerics.Vector3;
@@ -42,13 +41,13 @@ public partial class ExileCampaigns
     private Func<string, int, Vector2[]>? _eminimapClusterTarget;
     // the cluster delegate the resolver should use this frame: Radar's (in-game) or ExileMinimap's (panel).
     private Func<string, int, Vector2[]>? _clusterTarget;
-    private DateTime _lastProviderProbe;
+    // throttles are TickCount64, not DateTime.Now - Now does a timezone conversion on every read
+    private long _lastProviderProbe;
 
     // where guidance draws this frame. resolved from live availability + the surface selector.
     private GuidanceMode _guidanceMode = GuidanceMode.None;
 
     // None = no provider live (notice in settings). InGame = Radar routes + in-game self-draw (today's path).
-    // Panel = ExileMinimap pathfinds + draws on its panel; we export targets/icons and skip self-draw.
     private enum GuidanceMode { None, InGame, Panel }
 
     private StepTargetResolver _targetResolver = new();
@@ -79,7 +78,7 @@ public partial class ExileCampaigns
     // per-area terrain, read on AreaChange (needed to project grid points to screen)
     private float[][]? _heightData;
 
-    private DateTime _lastPathPoll;
+    private long _lastPathPoll;
 
     private bool PathsEnabled => Settings.Path.ShowPathOnGround || Settings.Path.ShowPathOnMinimap;
 
@@ -88,8 +87,8 @@ public partial class ExileCampaigns
     // (unlike the old cache-once EnsureRadarBridge). called each Tick + forced on area change.
     private void EnsureGuidanceProviders()
     {
-        if ((DateTime.Now - _lastProviderProbe).TotalSeconds < 1.0) return;
-        _lastProviderProbe = DateTime.Now;
+        if (Environment.TickCount64 - _lastProviderProbe < 1000) return;
+        _lastProviderProbe = Environment.TickCount64;
         var b = GameController?.PluginBridge;
         if (b == null) { _radarLookForRoute = null; _radarClusterTarget = null; _eminimapClusterTarget = null; return; }
         try { _radarLookForRoute = b.GetMethod<Func<Vector2, Action<List<Vector2i>>, CancellationToken, Task>>("Radar.LookForRoute"); }
@@ -108,8 +107,6 @@ public partial class ExileCampaigns
         if (b == null) return;
         b.SaveMethod("ExileCampaigns.CurrentPathTargets",
             (Func<List<(Vector2i, bool)>>)(() => _exportPathTargets ?? new List<(Vector2i, bool)>()));
-        b.SaveMethod("ExileCampaigns.CurrentMinimapIcons",
-            (Func<List<(Vector2, int, uint, float, bool)>>)(() => _exportIcons ?? new List<(Vector2, int, uint, float, bool)>()));
     }
 
     // radar => in-game only; exileminimap => panel only; both => selector (default in-game); neither => none.
@@ -130,8 +127,8 @@ public partial class ExileCampaigns
     private void UpdatePathTarget()
     {
         if (!PathsEnabled) { CancelPath(); CancelObjectivePaths(); _lastStepForTarget = -1; _currentTarget = null; return; }
-        if ((DateTime.Now - _lastPathPoll).TotalSeconds < 0.25) return;
-        _lastPathPoll = DateTime.Now;
+        if (Environment.TickCount64 - _lastPathPoll < 250) return;
+        _lastPathPoll = Environment.TickCount64;
 
         if (_radarLookForRoute == null) return;   // Radar not installed/enabled, no path, no errors
 
@@ -334,8 +331,11 @@ public partial class ExileCampaigns
         var qf = ReadQuestFlags();
         if (qf == null) return;
 
+        // only resolve the step's own progress flags. this used to ToString the whole ~2240-entry dict every
+        // poll just to test a handful of names.
         var trueNow = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var kv in qf) if (kv.Value) trueNow.Add(kv.Key.ToString());
+        foreach (var f in flags)
+            if (ProgressFlagValue(f) is { } q && qf.TryGetValue(q, out var set) && set) trueNow.Add(f);
 
         if (_objectiveFlagSnapshot == null) { _objectiveFlagSnapshot = trueNow; return; }   // seed, no retro-mark
 
@@ -462,8 +462,7 @@ public partial class ExileCampaigns
         CancelPath();
         ResetObjectiveProgress();
         _exportPathTargets = null;
-        _exportIcons = null;
-        _lastProviderProbe = DateTime.MinValue;   // force an immediate re-probe next Tick
+        _lastProviderProbe = 0;   // force an immediate re-probe next Tick
     }
 
     // --- drawing (called from Render) ---
@@ -527,7 +526,15 @@ public partial class ExileCampaigns
     }
 
     // path length in grid units (Radar hands back grid points). only used to pick the shortest of several.
-    private static float PathLength(List<Vector2i> path)
+    // memoized per list instance: the length can't change without Radar's callback allocating a new list,
+    // and this is asked for every live path every frame. weak keys so a dropped path isn't pinned.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<List<Vector2i>,
+        System.Runtime.CompilerServices.StrongBox<float>> PathLengths = new();
+
+    private static float PathLength(List<Vector2i> path) =>
+        PathLengths.GetValue(path, static p => new System.Runtime.CompilerServices.StrongBox<float>(MeasurePath(p))).Value;
+
+    private static float MeasurePath(List<Vector2i> path)
     {
         float d = 0f;
         for (int i = 1; i < path.Count; i++)
@@ -547,13 +554,7 @@ public partial class ExileCampaigns
             DrawPathMinimap(path, hd, largeMap, color);
 
         if (Settings.Path.ShowPathOnGround && (!mapVisible || !Settings.Path.ShowGroundPathOnlyWithClosedMap))
-        {
-            bool comets = Settings.Path.ShowComets;
-            if (!(comets && Settings.Path.CometsOnly))
-                DrawPathGround(path, hd, color);
-            if (comets)
-                DrawPathGroundComets(path, hd);
-        }
+            DrawPathGround(path, hd, color);
     }
 
     private void DrawPathGround(List<Vector2i> path, float[][] hd, Color color)
@@ -617,161 +618,18 @@ public partial class ExileCampaigns
     private static bool InBounds(Vector2i e, float[][] hd)
         => e.Y >= 0 && e.Y < hd.Length && e.X >= 0 && e.X < hd[e.Y].Length;
 
-    // --- flowing comets ---
-
-    private const string CometTexture = "ExileCampaigns_Comet";
-    private bool _cometTexLoaded;
-
-    // load the comet sprite once. white/grayscale png, head pointing +X, tinted at draw time
-    private void InitCometTexture()
-    {
-        if (_cometTexLoaded) return;
-        try
-        {
-            var path = Path.Combine(DirectoryFullName, "textures", "comet_decal.png");
-            if (File.Exists(path))
-            {
-                Graphics.InitImage(CometTexture, path);
-                _cometTexLoaded = true;
-            }
-            else LogError($"ExileCampaigns -> comet texture not found: {path}");
-        }
-        catch (Exception ex) { LogError($"ExileCampaigns -> comet texture init failed: {ex.Message}"); }
-    }
-
-    // slide N comet sprites along the path toward the objective. resample by arc length so spacing is even
-    // (Radar points are dense + uneven), then place an oriented quad at each comet's animated distance.
-    private void DrawPathGroundComets(List<Vector2i> path, float[][] hd)
-    {
-        if (!_cometTexLoaded) return;
-        int n = path.Count;
-        if (n < 2) return;
-
-        // order from the player end -> objective end so comets flow toward the goal
-        var player = PlayerGridXY();
-        bool rev = player is { } pg &&
-            Vector2.DistanceSquared(new Vector2(path[0].X, path[0].Y), pg) >
-            Vector2.DistanceSquared(new Vector2(path[n - 1].X, path[n - 1].Y), pg);
-
-        var pts = new Vector2[n];
-        for (int i = 0; i < n; i++)
-        {
-            var e = rev ? path[n - 1 - i] : path[i];
-            pts[i] = new Vector2(e.X, e.Y);
-        }
-        var cum = new float[n];
-        for (int i = 1; i < n; i++) cum[i] = cum[i - 1] + Vector2.Distance(pts[i], pts[i - 1]);
-        float total = cum[n - 1];
-        if (total < 1f) return;
-
-        // fixed grid spacing -> comet count scales with path length.
-        float spacing = Math.Max(1f, Settings.Path.CometSpacing.Value);
-        float speed = Settings.Path.CometSpeed.Value;
-        float size = Settings.Path.CometSize.Value;
-
-        var cam = GameController.IngameState.Camera;
-        var texId = Graphics.GetTextureId(CometTexture);
-        var color = Settings.Path.CometColor.Value;
-        // near-plane guard: a quad edge can't sanely exceed half the screen height. catches the WorldToScreen
-        // blowup when a corner falls near/behind the camera (foreground comets near the bottom of the screen).
-        float maxEdge = GameController.Window.GetWindowRectangle().Height * 0.5f;
-
-        // anchor the comet grid to the objective (fixed) end, not the player end. Radar keeps re-cutting the
-        // path behind you as you walk, so measuring distance from the player end makes every comet jump on each
-        // update. d here is arc-from-player but the spacing is laid out from `total` (the objective), so each
-        // comet stays glued to the same ground spot; they only spawn/despawn at the player end.
-        float off = (float)(ImGui.GetTime() * speed) % spacing;
-        for (float d = total - spacing + off; d > 0f; d -= spacing)
-            DrawOneComet(pts, cum, d, size, hd, cam, texId, color, maxEdge);
-    }
-
-    private void DrawOneComet(Vector2[] pts, float[] cum, float d, float size,
-        float[][] hd, Camera cam, nint texId, Color color, float maxEdge)
-    {
-        int seg = 1;
-        while (seg < cum.Length - 1 && cum[seg] < d) seg++;
-        float segLen = cum[seg] - cum[seg - 1];
-        float t = segLen > 0.001f ? (d - cum[seg - 1]) / segLen : 0f;
-        Vector2 a = pts[seg - 1], b = pts[seg];
-        Vector2 fwd = b - a;
-        if (fwd.LengthSquared() < 1e-4f) return;
-        fwd = Vector2.Normalize(fwd);
-        var right = new Vector2(-fwd.Y, fwd.X);
-        Vector2 pos = Vector2.Lerp(a, b, t);
-
-        // head sits at pos; quad runs 0.6 back (tail) + 0.4 forward, half-width each side. matches the sprite
-        // layout (head ~60% to the right). corner order a,b,c,d = uv (0,0)(1,0)(1,1)(0,1)
-        Vector2 baseB = pos - 0.6f * size * fwd;
-        Vector2 g00 = baseB + 0.5f * size * right;
-        Vector2 g10 = baseB + size * fwd + 0.5f * size * right;
-        Vector2 g11 = baseB + size * fwd - 0.5f * size * right;
-        Vector2 g01 = baseB - 0.5f * size * right;
-
-        if (!ProjectGrid(g00, hd, cam, out var s00)) return;
-        if (!ProjectGrid(g10, hd, cam, out var s10)) return;
-        if (!ProjectGrid(g11, hd, cam, out var s11)) return;
-        if (!ProjectGrid(g01, hd, cam, out var s01)) return;
-
-        // drop the comet if projection blew up (corner near/behind camera) -> giant or non-finite quad
-        float e0 = Vector2.Distance(s00, s10), e1 = Vector2.Distance(s10, s11);
-        float e2 = Vector2.Distance(s11, s01), e3 = Vector2.Distance(s01, s00);
-        if (!float.IsFinite(e0) || !float.IsFinite(e1) || !float.IsFinite(e2) || !float.IsFinite(e3)) return;
-        if (e0 > maxEdge || e1 > maxEdge || e2 > maxEdge || e3 > maxEdge) return;
-
-        // hide under an open side panel
-        if (PointInSidePanel(s00) || PointInSidePanel(s10) || PointInSidePanel(s11) || PointInSidePanel(s01)) return;
-
-        Graphics.DrawQuad(texId, s00, s10, s11, s01, color);
-    }
-
-    // grid (float) -> screen, sampling terrain height at the nearest cell. false if out of bounds
-    private bool ProjectGrid(Vector2 g, float[][] hd, Camera cam, out Vector2 screen)
-    {
-        screen = default;
-        int gx = (int)MathF.Round(g.X), gy = (int)MathF.Round(g.Y);
-        if (gy < 0 || gy >= hd.Length || gx < 0 || gx >= hd[gy].Length) return false;
-        screen = cam.WorldToScreen(
-            new Vector3(g.X * GridToWorldMultiplier, g.Y * GridToWorldMultiplier, hd[gy][gx]));
-        return true;
-    }
-
-    // draws authored MinimapIcons on the large map for every step in the current area.
-    // anchors are resolved once and cached per area instance; entity anchors are resolved live each frame.
-    private string? _mmiCacheKey;
-    // Size is the per-icon override (null = global default), applied at draw so the global slider stays live;
-    // StepId is the owning step, so the renderer can pulse the current objective's icons each frame.
-    private readonly List<(Vector2 Coord, SpriteIcon Icon, uint Tint, float? Size, string StepId)> _mmiStatic = new();
-
     // export snapshot (panel mode): rebuilt on a throttle, returned as-is by the published getters.
     // rebuilt as fresh lists each time (never mutated in place) so a same-thread consumer reads a stable set.
     private List<(Vector2i Grid, bool Current)>? _exportPathTargets;
-    private List<(Vector2 Grid, int IconIndex, uint Tint, float Size, bool Current)>? _exportIcons;
-    private DateTime _lastSnapshot;
+    private long _lastSnapshot;
 
-    // fill the per-area static-anchor icon cache (non-entity anchors). map-open-independent so both the
-    // in-game draw and the panel export can use it. entity anchors resolve live per frame, not here.
-    private void EnsureMmiCache()
-    {
-        if (!Settings.MinimapIcons.Enable || _routeStore == null) return;
-        var areaKey = AreaInstanceKey();
-        if (areaKey == _mmiCacheKey) return;
-        _mmiStatic.Clear();
-        foreach (var s in GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId))
-        {
-            if (s.Anchor.Kind == TargetKind.Entity) continue;
-            if (_targetResolver.ResolveTargetCoord(GameController, s.Anchor, _clusterTarget) is { } c)
-                _mmiStatic.Add((c, SpriteAtlas.Parse(s.IconKey), s.Tint, s.Size, s.StepId));
-        }
-        _mmiCacheKey = areaKey;
-    }
-
-    // build the panel-export snapshot: current-step path targets + visible minimap icons, grid space,
+    // build the panel-export snapshot: current-step path targets, grid space,
     // independent of whether the in-game map is open. targets are exported wholesale (every resolved cluster/
     // entity/room); ExileMinimap keeps the shortest + dedups on its side. throttled; getters read the last build.
     private void BuildExportSnapshot()
     {
-        if ((DateTime.Now - _lastSnapshot).TotalSeconds < 0.25) return;
-        _lastSnapshot = DateTime.Now;
+        if (Environment.TickCount64 - _lastSnapshot < 250) return;
+        _lastSnapshot = Environment.TickCount64;
         try
         {
             // --- path targets ---
@@ -782,15 +640,19 @@ public partial class ExileCampaigns
                 var targets = new List<Vector2>();
                 var tilePats = GuidanceView.PathTilePatterns(step);
                 if (tilePats.Count > 0 && _clusterTarget != null)
-                    targets.AddRange(_targetResolver.ResolveTileClusters(GameController, tilePats, _clusterTarget));
+                    using (Perf("Export.Tiles"))
+                        targets.AddRange(_targetResolver.ResolveTileClusters(GameController, tilePats, _clusterTarget));
                 var entPats = GuidanceView.PathEntityPatterns(step).ToList();
                 if (entPats.Count > 0)
-                    targets.AddRange(_targetResolver.ObjectiveEntityPositions(GameController, entPats, liveOnly: false));
+                    using (Perf("Export.Entities"))
+                        targets.AddRange(_targetResolver.ObjectiveEntityPositions(GameController, entPats, liveOnly: false));
                 var roomPats = GuidanceView.PathRoomPatterns(step);
                 if (roomPats.Count > 0)
-                    targets.AddRange(_targetResolver.ResolveRoomCenters(GameController, roomPats));
+                    using (Perf("Export.Rooms"))
+                        targets.AddRange(_targetResolver.ResolveRoomCenters(GameController, roomPats));
                 if (targets.Count == 0)
                 {
+                    using var _p = Perf("Export.Single");
                     var single = _targetResolver.Resolve(GameController, step, _clusterTarget, _route.CurrentAreaId);
                     if (single is { } sv) targets.Add(sv);
                 }
@@ -798,136 +660,8 @@ public partial class ExileCampaigns
                     pts.Add((new Vector2i((int)t.X, (int)t.Y), true));   // current step -> Current = true
             }
             _exportPathTargets = pts;
-
-            // --- icons ---
-            var icons = new List<(Vector2, int, uint, float, bool)>();
-            if (Settings.MinimapIcons.Enable && _routeStore != null)
-            {
-                EnsureMmiCache();
-                float globalSize = Settings.MinimapIcons.IconSize.Value;
-                var currentId = _route.CurrentStep?.Model?.Id;
-                var visibleIds = LookaheadStepIds(Settings.MinimapIcons.Lookahead.Value);
-                foreach (var (coord, icon, tint, size, stepId) in _mmiStatic)
-                {
-                    if (!visibleIds.Contains(stepId)) continue;
-                    icons.Add((coord, (int)icon, tint, size ?? globalSize, stepId == currentId));
-                }
-                foreach (var s in GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId))
-                {
-                    if (s.Anchor.Kind != TargetKind.Entity) continue;
-                    if (!visibleIds.Contains(s.StepId)) continue;
-                    int idx = (int)SpriteAtlas.Parse(s.IconKey);
-                    foreach (var c in _targetResolver.ResolveEntityCoords(GameController, s.Anchor))
-                        icons.Add((c, idx, s.Tint, s.Size ?? globalSize, s.StepId == currentId));
-                }
-            }
-            _exportIcons = icons;
         }
         catch (Exception ex) { LogError($"ExileCampaigns -> export snapshot failed: {ex.Message}"); }
-    }
-
-    private void DrawMinimapIcons()
-    {
-        if (_guidanceMode != GuidanceMode.InGame) return;   // panel mode exports instead of self-drawing
-        if (!Settings.MinimapIcons.Enable || _routeStore == null) return;
-
-        SubMap? largeMap = null;
-        try { largeMap = GameController.Game.IngameState.IngameUi.Map?.LargeMap?.AsObject<SubMap>(); }
-        catch { }
-        if (largeMap is not { IsVisible: true }) return;
-
-        var playerPos = GameController.Player?.GetComponent<Positioned>();
-        var playerRender = GameController.Player?.GetComponent<Render>();
-        if (playerPos == null || playerRender == null) return;
-
-        var playerGrid = new Vector2(playerPos.GridX, playerPos.GridY);
-        var playerHeight = -playerRender.UnclampedHeight;
-        var mapCenter = largeMap.MapCenter;
-        var mapScale = largeMap.MapScale;
-        float globalSize = Settings.MinimapIcons.IconSize.Value;   // per-icon Size overrides this when set
-
-        var specs = GuidanceView.MinimapIconsForArea(_routeStore.Steps, _areaId);
-        var currentId = _route.CurrentStep?.Model?.Id;   // icons of this step pulse
-        var visibleIds = LookaheadStepIds(Settings.MinimapIcons.Lookahead.Value);   // only current + next N steps draw
-
-        EnsureMmiCache();
-
-        foreach (var (coord, icon, tint, size, stepId) in _mmiStatic)
-        {
-            if (!visibleIds.Contains(stepId)) continue;   // outside the lookahead window
-            var (ds, dt) = Pulse(stepId == currentId, size ?? globalSize, tint);
-            DrawMinimapIcon(coord, icon, dt, ds, playerGrid, playerHeight, mapCenter, mapScale);
-        }
-
-        foreach (var s in specs)
-        {
-            if (s.Anchor.Kind != TargetKind.Entity) continue;
-            if (!visibleIds.Contains(s.StepId)) continue;   // outside the lookahead window
-            // an entity target can match several live entities (distinct drops / duplicate objects) -- icon each
-            var icon = SpriteAtlas.Parse(s.IconKey);
-            var (ds, dt) = Pulse(s.StepId == currentId, s.Size ?? globalSize, s.Tint);
-            foreach (var c in _targetResolver.ResolveEntityCoords(GameController, s.Anchor))
-                DrawMinimapIcon(c, icon, dt, ds, playerGrid, playerHeight, mapCenter, mapScale);
-        }
-    }
-
-    // step ids whose icons may draw: the current step plus the next `lookahead` real (non-header) steps in
-    // sequence. headers are skipped, not counted. combined with the area filter on specs this means an icon
-    // shows only when its step is in the current area AND within the lookahead window.
-    private HashSet<string> LookaheadStepIds(int lookahead)
-    {
-        var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var steps = _route.Steps;
-        if (steps == null || steps.Count == 0) return ids;
-        int taken = 0;
-        for (int i = _route.Current; i < steps.Count; i++)
-        {
-            var id = steps[i].Model?.Id;
-            if (id == null) continue;   // header row
-            ids.Add(id);
-            if (++taken > lookahead) break;   // current + lookahead more
-        }
-        return ids;
-    }
-
-    // pulse the current objective's icons: a gentle scale + alpha breathe so they read as "active". returns
-    // the (size, tint) to draw with; identity when the icon isn't current or pulsing is disabled.
-    private (float Size, uint Tint) Pulse(bool current, float size, uint tint)
-    {
-        if (!current || !Settings.MinimapIcons.PulseCurrent) return (size, tint);
-        float s = MathF.Sin((float)ImGui.GetTime() * 4.5f);       // ~0.7 Hz, -1..1
-        float scale = 1f + 0.20f * s;                             // 0.80 .. 1.20
-        float alphaMul = 0.6f + 0.4f * (0.5f + 0.5f * s);         // 0.60 .. 1.00
-        uint a = (uint)Math.Clamp((int)(((tint >> 24) & 0xFF) * alphaMul), 0, 255);
-        return (size * scale, (tint & 0x00FFFFFFu) | (a << 24));
-    }
-
-    private void DrawMinimapIcon(Vector2 gridCoord, SpriteIcon icon, uint tint, float size,
-        Vector2 playerGrid, float playerHeight, Vector2 mapCenter, float mapScale)
-    {
-        float z = 0f;
-        var hd = _heightData;
-        if (hd != null)
-        {
-            int gy = (int)gridCoord.Y, gx = (int)gridCoord.X;
-            if (gy >= 0 && gy < hd.Length && gx >= 0 && gx < hd[gy].Length) z = hd[gy][gx];
-        }
-        var screen = mapCenter + GridDeltaToMapDelta(gridCoord - playerGrid, playerHeight + z, mapScale);
-        float half = size / 2f;
-        var rect = new RectangleF(screen.X - half, screen.Y - half, size, size);
-        if (OverlapsSidePanel(rect)) return;   // hide under an open side panel
-        Graphics.DrawImage(IndicatorTexture, rect, SpriteAtlas.GetUVRect(icon), TintColor(tint));
-    }
-
-    // packed ARGB (0xAARRGGBB) -> SharpDX.Color.
-    private static Color TintColor(uint argb) =>
-        new Color((byte)(argb >> 16), (byte)(argb >> 8), (byte)argb, (byte)(argb >> 24));
-
-    // area-instance identity so revisiting the same area id rebuilds the static cache.
-    private string AreaInstanceKey()
-    {
-        try { return GameController?.Area?.CurrentArea?.Hash.ToString() ?? ""; }
-        catch { return ""; }
     }
 
     // Guides the player to a "Waypoint to X" step's destination on the open World Map panel.
@@ -957,7 +691,7 @@ public partial class ExileCampaigns
     // deeper than Part 1) and WaypointsRoot only ever aliases act 1. so find the holder generically: the
     // element with the most VISIBLE icon children is whichever act tab is open. null when nothing's shown.
     private Element? _wpHolder;
-    private DateTime _wpHolderAt;
+    private long _wpHolderAt;
 
     private Element? WaypointNodeHolder()
     {
@@ -967,10 +701,12 @@ public partial class ExileCampaigns
 
         // the generic search walks up to 4000 elements reading a texture name + rect off each, way too heavy
         // to redo every frame. re-search twice a second; in between, keep it only while it's still showing.
-        if (_wpHolder != null && (DateTime.UtcNow - _wpHolderAt).TotalMilliseconds < 500)
-            return HolderStillShown(_wpHolder) ? _wpHolder : null;
+        // gate on the clock and NOT on the result - a miss has to stick for the same 500ms, or a failed
+        // search (panel mid-open, act tab unresolved) re-runs the whole walk on every single frame.
+        if (Environment.TickCount64 - _wpHolderAt < 500)
+            return _wpHolder != null && HolderStillShown(_wpHolder) ? _wpHolder : null;
 
-        _wpHolderAt = DateTime.UtcNow;
+        _wpHolderAt = Environment.TickCount64;
         _wpHolder = SearchVisibleIconHolder();
         return _wpHolder;
     }
@@ -1136,7 +872,7 @@ public partial class ExileCampaigns
     // authoring aid: draw each visible waypoint node's slot index + suspected area name, so slots can be
     // mapped by eye. gated on the dev overlay toggle. parked (undiscovered) nodes stack at one offscreen
     // point and read IsVisible=false, so they're skipped - they get mapped later once unlocked.
-    private void DrawWaypointNodeIds()
+    private unsafe void DrawWaypointNodeIds()
     {
         if (!Settings.Dev.ShowDevOverlay) return;
         var holder = WaypointNodeHolder();
@@ -1200,16 +936,12 @@ public partial class ExileCampaigns
         catch { return null; }
     }
 
-    // 0..1 pulse for the highlight (alpha + radius). wall-clock driven, no per-frame state.
-    private static float WpPulse()
-    {
-        double t = (Math.Sin(DateTime.Now.TimeOfDay.TotalSeconds * 3.0) + 1.0) / 2.0;
-        return (float)t;
-    }
+    // 0..1 pulse for the highlight (alpha + radius). clock driven, no per-frame state.
+    private static float WpPulse() => (float)((Math.Sin(ImGui.GetTime() * 3.0) + 1.0) / 2.0);
 
     // user-facing: on a "Waypoint to X" step with the world map open, highlight the destination node,
     // or glow the correct Part/Act tab first when that tab isn't the one shown.
-    private void DrawWaypointDestination()
+    private unsafe void DrawWaypointDestination()
     {
         if (!Settings.WaypointOverlay.Enable) return;
         var target = CurrentWaypointTarget();
@@ -1288,7 +1020,7 @@ public partial class ExileCampaigns
         float pad = 2f + 3f * p;
         dl.AddRect(new Vector2(r.X - pad, r.Y - pad),
                    new Vector2(r.X + r.Width + pad, r.Y + r.Height + pad),
-                   col, 4f, ImDrawFlags.None, 3f);
+                   col, 4f, 3f, ImDrawFlags.None);
     }
 
     // the world map's Part-tab container (3 tabs), stable path. reused by the viewed-part check.
@@ -1301,106 +1033,6 @@ public partial class ExileCampaigns
         }
         catch { return null; }
     }
-
-    // in-world interaction indicator: golden pulsing down-arrow over the step's resolved target.
-    // target = ONLY the objective's explicit Indicators[] entity children, decoupled from the ground path
-    // (Paths[]): an arrow needs no path, a path needs no arrow, and no Indicator means no arrow (no text-pass
-    // inference). advance is handled by EvaluateAdvance (AdvanceEngine); this file only drives the arrow.
-    private const string IndicatorTexture = "ExileCampaigns_Icons";
-    private bool _indicatorTexLoaded;
-
-    // current step's resolved interaction targets, refreshed (throttled) in Tick, reused by Render. a list so
-    // multiple authored Indicators[] (or one pattern matching several live entities) each get an arrow.
-    private IReadOnlyList<InteractTarget> _interactTargets = System.Array.Empty<InteractTarget>();
-    private DateTime _lastInteractResolve;
-
-
-    // load the icon atlas once. DirectoryFullName = Plugins\Temp output dir where csproj Content lands
-    private void InitIndicatorTexture()
-    {
-        if (_indicatorTexLoaded) return;
-        try
-        {
-            var path = Path.Combine(DirectoryFullName, "textures", SpriteAtlas.FileName);
-            if (File.Exists(path))
-            {
-                Graphics.InitImage(IndicatorTexture, path);
-                _indicatorTexLoaded = true;
-            }
-            else LogError($"ExileCampaigns -> indicator texture not found: {path}");
-        }
-        catch (Exception ex) { LogError($"ExileCampaigns -> indicator texture init failed: {ex.Message}"); }
-    }
-
-    private bool InteractFeatureActive => Settings.InteractIndicator.Enable.Value;
-
-    // throttled resolve of the current step's interaction target. called from Tick
-    private void UpdateInteractTarget()
-    {
-        if (!InteractFeatureActive) { _interactTargets = System.Array.Empty<InteractTarget>(); return; }
-        if ((DateTime.Now - _lastInteractResolve).TotalSeconds < 0.15) return;
-        _lastInteractResolve = DateTime.Now;
-
-        var flat = _route.CurrentStep;
-        if (flat?.Model == null) { _interactTargets = System.Array.Empty<InteractTarget>(); return; }
-
-        try
-        {
-            float maxDist = Settings.InteractIndicator.MaxDistance.Value;
-            // arrow source = ONLY the objective's explicit Indicators[] entity children (ALL matching
-            // entities, one arrow each). no text-pass fallback: a step with no authored Indicator shows no
-            // arrow. advance is unaffected (it runs through AdvanceEngine), so this is purely cosmetic.
-            var indTargets = GuidanceView.IndicatorEntityTargets(flat.Model);
-            _interactTargets = indTargets.Count > 0
-                ? _targetResolver.ResolveIndicatorEntities(GameController, indTargets, maxDist)
-                : System.Array.Empty<InteractTarget>();
-        }
-        catch { _interactTargets = System.Array.Empty<InteractTarget>(); }
-    }
-
-    // draw the pulsing golden down-arrow above the resolved target. called from Render after the
-    // fullscreen-panel hide guard, so it inherits that suppression
-    private void DrawInteractIndicators()
-    {
-        if (!Settings.InteractIndicator.Enable || !_indicatorTexLoaded) return;
-        foreach (var target in _interactTargets)
-            DrawOneIndicator(target);
-    }
-
-    private void DrawOneIndicator(InteractTarget target)
-    {
-        var e = target?.Entity;
-        if (e == null || !e.IsValid) return;
-
-        // don't keep pointing at an already-opened chest
-        if (target!.Kind == InteractKind.ChestOpen && (e.GetComponent<Chest>()?.IsOpened ?? false)) return;
-
-        Vector2 screen;
-        try
-        {
-            var pos = e.Pos;                                   // world-space, at the feet
-            var boundsZ = e.GetComponent<Render>()?.Bounds.Z ?? 0f;
-            pos.Z -= boundsZ * 2f + Settings.InteractIndicator.HeightOffset.Value;  // lift above the head
-            var raw = GameController.IngameState.Camera.WorldToScreen(pos);
-            screen = new Vector2(raw.X, raw.Y);
-        }
-        catch { return; }
-        if (screen == Vector2.Zero) return;                   // off-screen / behind camera
-
-        // bob up/down so it reads as nudging at the object below it
-        float t = (float)ImGui.GetTime();
-        float bob = MathF.Sin(t * Settings.InteractIndicator.BobSpeed.Value) * Settings.InteractIndicator.BobDistance.Value;
-
-        float size = Settings.InteractIndicator.IconSize.Value;
-        float half = size / 2f;
-        var col = Settings.InteractIndicator.IconColor.Value;
-
-        var dest = new RectangleF(screen.X - half, screen.Y - half + bob, size, size);
-        if (OverlapsSidePanel(dest)) return;   // hide under an open side panel
-        var uv = SpriteAtlas.GetUVRectFlippedV(SpriteIcon.Arrow);   // up-arrow flipped to point down
-        Graphics.DrawImage(IndicatorTexture, dest, uv, col);
-    }
-
 
     // Dev/authoring overlay: annotated layers on the large minimap to help author routes.
     // All guarded on Settings.Dev.ShowDevOverlay (off by default, zero overhead in production).

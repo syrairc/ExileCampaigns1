@@ -60,70 +60,6 @@ public class PathRenderSettings
 
     [Menu("Draw every Nth point", "Thin the path by drawing only every Nth grid point (higher = sparser/faster)")]
     public RangeNode<int> DrawEveryNthSegment { get; set; } = new RangeNode<int>(10, 1, 10);
-
-    [Menu("Flowing comets", "Slide comet sprites along the ground path toward the objective (in addition to / instead of the line)")]
-    public ToggleNode ShowComets { get; set; } = new ToggleNode(true);
-
-    [Menu("Comets only (hide line)", "When comets are on, don't draw the solid ground line")]
-    public ToggleNode CometsOnly { get; set; } = new ToggleNode(true);
-
-    [Menu("Comet color")]
-    public ColorNode CometColor { get; set; } = new ColorNode(new Color(36, 255, 0, 255));
-
-    [Menu("Comet spacing", "Grid units between comets; count scales with path length (smaller = denser)")]
-    public RangeNode<float> CometSpacing { get; set; } = new RangeNode<float>(25f, 10f, 400f);
-
-    [Menu("Comet size", "Comet length in grid units")]
-    public RangeNode<float> CometSize { get; set; } = new RangeNode<float>(5f, 1f, 80f);
-
-    [Menu("Comet speed", "Flow speed in grid units per second")]
-    public RangeNode<float> CometSpeed { get; set; } = new RangeNode<float>(36.8f, 5f, 300f);
-}
-
-// golden arrow over the step's interact target, plus the interaction auto-advance thresholds
-[Submenu]
-public class InteractIndicatorSettings
-{
-    [Menu("Enabled", "Draw a golden pulsing arrow above the NPC/chest/boss the current step wants you to interact with")]
-    public ToggleNode Enable { get; set; } = new ToggleNode(true);
-
-    [Menu("Arrow color")]
-    public ColorNode IconColor { get; set; } = new ColorNode(new Color(255, 200, 60, 255));
-
-    [Menu("Arrow size", "Icon height in pixels")]
-    public RangeNode<float> IconSize { get; set; } = new RangeNode<float>(70f, 8f, 400f);
-
-    [Menu("Bob speed", "How fast the arrow bobs up and down (0 = steady)")]
-    public RangeNode<float> BobSpeed { get; set; } = new RangeNode<float>(5f, 0f, 15f);
-
-    [Menu("Bob distance", "How far the arrow travels up/down while bobbing, in pixels")]
-    public RangeNode<float> BobDistance { get; set; } = new RangeNode<float>(20f, 0f, 100f);
-
-    [Menu("Height offset", "Extra world units to lift the arrow above the entity's head")]
-    public RangeNode<float> HeightOffset { get; set; } = new RangeNode<float>(100f, 0f, 600f);
-
-    [Menu("Target search distance", "Only mark target entities within this distance of the player")]
-    public RangeNode<float> MaxDistance { get; set; } = new RangeNode<float>(150f, 20f, 500f);
-
-    [Menu("Proximity advance distance", "For bosses / quest objects, auto-advance when you get this close")]
-    public RangeNode<float> NearDistance { get; set; } = new RangeNode<float>(40f, 5f, 200f);
-}
-
-// minimap icons drawn on the large map for the current area's authored MinimapIcons
-[Submenu]
-public class MinimapIconSettings
-{
-    [Menu("Enabled", "Draw authored minimap icons for the current area's steps on the large map")]
-    public ToggleNode Enable { get; set; } = new ToggleNode(true);
-
-    [Menu("Icon size", "Icon size in pixels on the large map")]
-    public RangeNode<int> IconSize { get; set; } = new RangeNode<int>(36, 8, 128);
-
-    [Menu("Lookahead steps", "Only show icons for the current step plus this many upcoming steps (same area). 0 = current step only")]
-    public RangeNode<int> Lookahead { get; set; } = new RangeNode<int>(3, 0, 12);
-
-    [Menu("Pulse current step", "Animate the icons belonging to the current objective so they stand out")]
-    public ToggleNode PulseCurrent { get; set; } = new ToggleNode(true);
 }
 
 // per-overlay placement + styling, one instance each so they move/style/toggle independently.
@@ -195,6 +131,31 @@ public class CharStatsOverlayStyle
     [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(40, 0, 4000);
     [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(60, 0, 2160);
     [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(400, 0, 2000);
+}
+
+// final-step checklist: every Book of Skill quest, ticked off as its UsedRewardBook flag sets. no per-row
+// toggles (nothing to configure per row), same minimal shape as CharStatsOverlayStyle.
+[Submenu]
+public class ChecklistOverlayStyle
+{
+    [Menu("Enabled")]
+    public ToggleNode Enable { get; set; } = new ToggleNode(true);
+
+    [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
+    [Menu("Header color")] public ColorNode HeaderColor { get; set; } = new ColorNode(new Color(235, 200, 110, 255));
+    [Menu("Background color", "Alpha controls opacity; alpha 0 = no panel background")]
+    public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 140));
+    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(90, 90, 110, 180));
+
+    [Menu("Text size", "Font height in pixels")]
+    public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(16f, 8f, 48f);
+    [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(0, 0, 8);
+    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(6, 0, 40);
+
+    // -- Hidden: set by drag-to-move / right-edge resize, persisted but not in the menu --
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(400, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(300, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(0, 0, 2000);
 }
 
 // corner markers on inventory items and outlines on quest rewards that are part of the build.
@@ -396,11 +357,75 @@ public class GuidanceProviderSettings
     // 0 = in-game map (Radar), 1 = ExileMinimap panel. only consulted when both providers are live.
     public RangeNode<int> Surface { get; set; } = new RangeNode<int>(0, 0, 1);
 
-    // remember an entity target/icon's last-seen grid spot so its path/icon survives the entity leaving load
-    // range. per-area (cleared on area change). town/hideout objects never move, so it's effectively permanent
-    // there; in combat zones the marker sits at last-seen until you re-approach or the step advances.
-    [Menu("Remember target locations", "Keep an entity path/icon at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.")]
+    [Menu("Remember target locations", "Keep an entity path target at its last-seen spot when it leaves load range (per area). Great for towns where nothing moves.")]
     public ToggleNode RememberTargetLocations { get; set; } = new ToggleNode(true);
+}
+
+[Submenu]
+public class AutoWalkSettings
+{
+    [Menu("Enabled", "Automate character movement along the guided path (ban risk - use at your own risk)")]
+    public ToggleNode Enable { get; set; } = new ToggleNode(false);
+
+    [Menu("Toggle key", "Start/stop auto-walk")]
+    public HotkeyNodeV2 ToggleKey { get; set; } = new HotkeyNodeV2(System.Windows.Forms.Keys.None);
+
+    [Menu("Hold key", "Auto-walk only while held")]
+    public HotkeyNodeV2 HoldKey { get; set; } = new HotkeyNodeV2(System.Windows.Forms.Keys.None);
+
+    [Menu("Lookahead distance", "How far ahead on the path (grid units) the cursor aims while walking")]
+    public RangeNode<float> LookaheadDistance { get; set; } = new RangeNode<float>(30f, 1f, 100f);
+
+    [Menu("Door scan range", "How far ahead (grid units) to look for a closed door blocking the path")]
+    public RangeNode<float> DoorScanRange { get; set; } = new RangeNode<float>(40f, 1f, 150f);
+
+    [Menu("Arrival radius", "How close (grid units) counts as 'reached' for the path end / a transition / a door")]
+    public RangeNode<float> ArrivalRadius { get; set; } = new RangeNode<float>(15f, 1f, 100f);
+
+    [Menu("Notification sound enabled", "Play a sound when auto-walk stops because the next step needs manual input")]
+    public ToggleNode NotifySoundEnable { get; set; } = new ToggleNode(true);
+
+    [IgnoreMenu] public TextNode NotifySoundPath { get; set; } = new TextNode("");
+}
+
+// in-process section timing for Tick/Render, plus a spike log. off by default; when off a timed section
+// costs one null check. see ExileCampaigns.Profiler.cs.
+[Submenu]
+public class ProfilerSettings
+{
+    [Menu("Enabled", "Time each Tick/Render section in-process. Leave off in normal play.")]
+    public ToggleNode Enable { get; set; } = new ToggleNode(false);
+
+    [Menu("Show overlay", "Draw the profiler panel (ranked by ms per second of wall clock)")]
+    public ToggleNode ShowOverlay { get; set; } = new ToggleNode(true);
+
+    [Menu("Rows", "How many sections to list, worst first")]
+    public RangeNode<int> MaxRows { get; set; } = new RangeNode<int>(14, 3, 40);
+
+    [Menu("Spike log threshold (ms)", "Append the per-section breakdown of any Render frame slower than this " +
+        "to 'perf-spikes.jsonl' in the config folder. 0 = off. This is what catches a one-off stall that a " +
+        "rolling average hides.")]
+    public RangeNode<int> SpikeLogMs { get; set; } = new RangeNode<int>(50, 0, 500);
+
+    [Menu("Reset counters")]
+    [JsonIgnore]
+    public ButtonNode Reset { get; set; } = new ButtonNode();
+
+    [Menu("Text color")] public ColorNode TextColor { get; set; } = new ColorNode(Color.White);
+    [Menu("Header color")] public ColorNode HeaderColor { get; set; } = new ColorNode(new Color(235, 200, 110, 255));
+    [Menu("Background color", "Alpha controls opacity; alpha 0 = no panel background")]
+    public ColorNode BackgroundColor { get; set; } = new ColorNode(new Color(8, 8, 12, 200));
+    [Menu("Border color")] public ColorNode BorderColor { get; set; } = new ColorNode(new Color(90, 90, 110, 180));
+
+    [Menu("Text size", "Font height in pixels")]
+    public RangeNode<float> TextSize { get; set; } = new RangeNode<float>(14f, 8f, 48f);
+    [Menu("Border thickness", "0 = no border")] public RangeNode<int> BorderThickness { get; set; } = new RangeNode<int>(0, 0, 8);
+    [Menu("Padding")] public RangeNode<int> Padding { get; set; } = new RangeNode<int>(8, 0, 40);
+
+    // -- Hidden: set by drag-to-move / right-edge resize --
+    [IgnoreMenu] public RangeNode<int> PosX { get; set; } = new RangeNode<int>(900, 0, 4000);
+    [IgnoreMenu] public RangeNode<int> PosY { get; set; } = new RangeNode<int>(60, 0, 2160);
+    [IgnoreMenu] public RangeNode<int> MaxWidth { get; set; } = new RangeNode<int>(460, 0, 2000);
 }
 
 public class ExileCampaignsSettings : ISettings
@@ -438,6 +463,9 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Build indicators", "Inventory corner markers and quest-reward highlighting for build items")]
     public BuildIndicatorStyle BuildIndicators { get; set; } = new BuildIndicatorStyle();
 
+    [Menu("Checklist", "On the final route step: every Book of Skill quest, ticked off as it's used")]
+    public ChecklistOverlayStyle Checklist { get; set; } = new ChecklistOverlayStyle();
+
     [Menu("XP rate window (min)", "Minutes of recent XP to average the xp/hour + time-to-level estimate over")]
     public RangeNode<int> XpRateWindowMinutes { get; set; } = new RangeNode<int>(5, 1, 30);
 
@@ -469,15 +497,10 @@ public class ExileCampaignsSettings : ISettings
     [Menu("Path to next step", "Render a guided path to the current step's objective on the ground / minimap")]
     public PathRenderSettings Path { get; set; } = new PathRenderSettings();
 
-    // ---- In-world interaction indicator ----
-    [Menu("Interaction indicator", "Golden arrow over the entity the current step wants you to interact with")]
-    public InteractIndicatorSettings InteractIndicator { get; set; } = new InteractIndicatorSettings();
-
-    [Menu("Minimap icons", "Authored minimap icons drawn on the large map for the current area")]
-    public MinimapIconSettings MinimapIcons { get; set; } = new MinimapIconSettings();
-
     [Menu("Guidance provider")]
     public GuidanceProviderSettings GuidanceProvider { get; set; } = new GuidanceProviderSettings();
+
+    [IgnoreMenu] public AutoWalkSettings AutoWalk { get; set; } = new AutoWalkSettings();
 
     // ---- Dev / route authoring ----
     [Menu("Dev overlay", "Minimap overlays for route authoring: room tile names, entity paths, step target marker")]
@@ -488,6 +511,9 @@ public class ExileCampaignsSettings : ISettings
 
     [Menu("Diagnostics", "Record recent events and export a diagnostic report for bug reports")]
     public DiagnosticsSettings Diagnostics { get; set; } = new DiagnosticsSettings();
+
+    [Menu("Profiler", "In-process Tick/Render section timing + spike log")]
+    public ProfilerSettings Profiler { get; set; } = new ProfilerSettings();
 
     // ---- Hotkeys ----
     [Menu("Sync to character", "Set the tracker to your character's real progress (from quest flags + current area)")]

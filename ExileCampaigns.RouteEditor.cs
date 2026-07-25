@@ -4,8 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using ExileCampaigns.Guide;
-using ExileCampaigns.Rendering;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace ExileCampaigns;
 
@@ -55,16 +54,6 @@ public partial class ExileCampaigns
     private int _addPathKind;
     private bool _addPathRegex;
     private int _addPathMatchBy;
-    private readonly byte[] _bufAddInd = new byte[256];
-    private int _addIndKind;
-    private bool _addIndRegex;
-    private int _addIndMatchBy;
-    private bool _addIndLiving;
-    private readonly byte[] _bufMmiPat = new byte[256];
-    private int _mmiKind;
-    private int _mmiMatchBy;
-    private bool _mmiRegex;
-    private bool _mmiLiving;
     // flag-search picker: substring query + state filter (0 any / 1 set / 2 unset), over all live quest flags
     private readonly byte[] _bufFlagSearch = new byte[128];
     private int _flagSearchState;
@@ -124,13 +113,13 @@ public partial class ExileCampaigns
             return;
         }
 
-        ImGui.BeginChild("##ec_tree", new Vector2(330f, 0f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_tree", new Vector2(330f, 0f), ImGuiChildFlags.Borders);
         DrawStepTree();
         ImGui.EndChild();
 
         ImGui.SameLine();
 
-        ImGui.BeginChild("##ec_detail", new Vector2(0f, 0f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_detail", new Vector2(0f, 0f), ImGuiChildFlags.Borders);
         DrawStepDetail();
         ImGui.EndChild();
     }
@@ -216,7 +205,7 @@ public partial class ExileCampaigns
         ImGui.TextDisabled($"id {step.Id[..Math.Min(8, step.Id.Length)]}");
         ImGui.SameLine();
         ImGui.Checkbox("Preview target on map", ref _editorPreviewTarget);
-        HelpMarker("Draw a crosshair on this step's resolved guidance target on the large minimap, to confirm a path/indicator pick. Open the large map to see it.");
+        HelpMarker("Draw a crosshair on this step's resolved guidance target on the large minimap, to confirm a path pick. Open the large map to see it.");
 
         ImGui.Text("Text");
         ImGui.InputTextMultiline("##step_text", ref _strStepText, 1024, new Vector2(-1f, 50f));
@@ -385,9 +374,7 @@ public partial class ExileCampaigns
         ImGui.SameLine(); HelpMarker("Nearest: one path line to the closest target. All: a line to every target (e.g. all 3 Ancient Seals). Default Nearest.");
         ImGui.Spacing();
 
-        if (ImGui.CollapsingHeader("Paths (ground / minimap route lines)")) DrawTargetList(step, idx, o, ChildKind.Path);
-        if (ImGui.CollapsingHeader("Indicators (on-screen arrows)")) DrawTargetList(step, idx, o, ChildKind.Indicator);
-        if (ImGui.CollapsingHeader("Minimap icon")) DrawMinimapSection(step, idx, o);
+        if (ImGui.CollapsingHeader("Paths (ground / minimap route lines)")) DrawTargetList(step, idx, o);
     }
 
     private void DrawEntityList(RouteStep step, int idx, Objective o)
@@ -421,7 +408,7 @@ public partial class ExileCampaigns
         }
 
         var rows = new List<(string Label, (string Text, Action Do)[] Buttons)>();
-        foreach (var (path, name, dist, alive) in NearbyEntitiesList(200f, 30))
+        foreach (var (path, name, dist) in NearbyEntitiesList(200f, 30))
         {
             var disp = string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})";
             rows.Add((disp, new (string, Action)[]
@@ -579,7 +566,7 @@ public partial class ExileCampaigns
             matches.Sort((a, b) => string.Compare(a.Flag, b.Flag, StringComparison.OrdinalIgnoreCase));
 
             ImGui.TextDisabled(capped ? $"  {cap}+ matches (refine search)" : $"  {matches.Count} matches");
-            ImGui.BeginChild("##flagsearch_list", new Vector2(-1f, 160f), ImGuiChildFlags.Border);
+            ImGui.BeginChild("##flagsearch_list", new Vector2(-1f, 160f), ImGuiChildFlags.Borders);
             for (int i = 0; i < matches.Count; i++)
             {
                 var (flag, state) = matches[i];
@@ -599,87 +586,52 @@ public partial class ExileCampaigns
         finally { ImGui.Unindent(12f); }
     }
 
-    // shared Paths / Indicators editor (both are lists of Target wrapped in GuidePath / Indicator).
-    private void DrawTargetList(RouteStep step, int idx, Objective o, ChildKind kind)
+    private void DrawTargetList(RouteStep step, int idx, Objective o)
     {
-        var targets = (kind == ChildKind.Path
-            ? (o.Paths ?? new List<GuidePath>()).Select(p => p.Target)
-            : (o.Indicators ?? new List<Indicator>()).Select(p => p.Target)).ToList();
-
-        // LivingOnly is honored on the Indicator channel only (the arrow); the Paths channel ignores it.
-        bool indKind = kind == ChildKind.Indicator;
+        var targets = (o.Paths ?? new List<GuidePath>()).Select(p => p.Target).ToList();
 
         for (int i = 0; i < targets.Count; i++)
         {
             var t = targets[i];
-            ImGui.TextUnformatted($"  [{t.Kind}] {t.Match.Value}{(t.Kind == TargetKind.Entity ? $" ({t.MatchBy})" : "")}{(t.LivingOnly ? " (alive)" : "")}{(t.Match.Regex ? " (re)" : "")}");
+            ImGui.TextUnformatted($"  [{t.Kind}] {t.Match.Value}{(t.Kind == TargetKind.Entity ? $" ({t.MatchBy})" : "")}{(t.Match.Regex ? " (re)" : "")}");
             ImGui.SameLine();
-            if (ImGui.SmallButton($"^##t{kind}{i}") && i > 0) { UpdateObjective(step, idx, RouteEditing.MoveChild(o, kind, i, -1)); return; }
+            if (ImGui.SmallButton($"^##tPath{i}") && i > 0) { UpdateObjective(step, idx, RouteEditing.MovePath(o, i, -1)); return; }
             ImGui.SameLine();
-            if (ImGui.SmallButton($"v##t{kind}{i}") && i < targets.Count - 1) { UpdateObjective(step, idx, RouteEditing.MoveChild(o, kind, i, +1)); return; }
+            if (ImGui.SmallButton($"v##tPath{i}") && i < targets.Count - 1) { UpdateObjective(step, idx, RouteEditing.MovePath(o, i, +1)); return; }
             ImGui.SameLine();
             PushDanger();
-            bool rm = ImGui.SmallButton($"x##t{kind}{i}");
+            bool rm = ImGui.SmallButton($"x##tPath{i}");
             ImGui.PopStyleColor();
-            if (rm) { UpdateObjective(step, idx, RouteEditing.RemoveAt(o, kind, i)); return; }
-            // toggle "alive" (LivingOnly) on an indicator Entity target in place
-            if (indKind && t.Kind == TargetKind.Entity)
-            {
-                ImGui.SameLine();
-                if (ImGui.SmallButton($"{(t.LivingOnly ? "alive*" : "alive")}##tliv{kind}{i}"))
-                { UpdateObjective(step, idx, RouteEditing.ReplaceTarget(o, kind, i, t with { LivingOnly = !t.LivingOnly })); return; }
-            }
+            if (rm) { UpdateObjective(step, idx, RouteEditing.RemovePath(o, i)); return; }
         }
-
-        // add row (per-kind scratch)
-        bool isPath = kind == ChildKind.Path;
-        ref int akind = ref (isPath ? ref _addPathKind : ref _addIndKind);
-        ref int amb = ref (isPath ? ref _addPathMatchBy : ref _addIndMatchBy);
-        ref bool are = ref (isPath ? ref _addPathRegex : ref _addIndRegex);
-        var abuf = isPath ? _bufAddPath : _bufAddInd;
 
         ImGui.SetNextItemWidth(80f);
-        ImGui.Combo($"##tk{kind}", ref akind, TargetKindLabels, TargetKindLabels.Length);
+        ImGui.Combo("##tkPath", ref _addPathKind, TargetKindLabels, TargetKindLabels.Length);
         ImGui.SameLine(); ImGui.SetNextItemWidth(80f);
-        ImGui.Combo($"##tmb{kind}", ref amb, MatchByLabels, MatchByLabels.Length);
-        ImGui.SameLine(); ImGui.Checkbox($"re##tre{kind}", ref are);
-        // alive (LivingOnly): only meaningful for indicator Entity targets, so only shown there
-        if (indKind) { ImGui.SameLine(); ImGui.Checkbox($"alive##tliv{kind}", ref _addIndLiving); }
+        ImGui.Combo("##tmbPath", ref _addPathMatchBy, MatchByLabels, MatchByLabels.Length);
+        ImGui.SameLine(); ImGui.Checkbox("re##trePath", ref _addPathRegex);
         ImGui.SameLine(); ImGui.SetNextItemWidth(-60f);
-        InputHint($"##tadd{kind}", isPath ? "tile / entity / room pattern" : "indicator target pattern", abuf);
+        InputHint("##taddPath", "tile / entity / room pattern", _bufAddPath);
         ImGui.SameLine();
-        if (ImGui.Button($"Add##tadd{kind}"))
+        if (ImGui.Button("Add##taddPath"))
         {
-            var v = ReadBuffer(abuf);
+            var v = ReadBuffer(_bufAddPath);
             if (v.Length > 0)
             {
-                AddTarget(step, idx, o, kind, new Target((TargetKind)akind, new Pattern(v, are), (MatchKind)amb, indKind && _addIndLiving));
-                WriteBuffer(abuf, "");
+                var t = new Target((TargetKind)_addPathKind, new Pattern(v, _addPathRegex), (MatchKind)_addPathMatchBy);
+                UpdateObjective(step, idx, RouteEditing.AddPath(o, new GuidePath(t)));
+                WriteBuffer(_bufAddPath, "");
             }
         }
 
-        // live target pickers (room tiles / Radar targets / nearby entities), shared with the MinimapIcon target.
-        // each button populates THIS add row (value + kind + matchBy + regex + living); the user edits then Adds.
-        DrawTargetPickers(kind.ToString(), indKind && _addIndLiving, t =>
+        DrawTargetPickers("Path", t =>
         {
-            WriteBuffer(abuf, t.Match.Value);
-            if (isPath) { _addPathKind = (int)t.Kind; _addPathMatchBy = (int)t.MatchBy; _addPathRegex = t.Match.Regex; }
-            else { _addIndKind = (int)t.Kind; _addIndMatchBy = (int)t.MatchBy; _addIndRegex = t.Match.Regex; _addIndLiving = t.LivingOnly; }
+            WriteBuffer(_bufAddPath, t.Match.Value);
+            _addPathKind = (int)t.Kind; _addPathMatchBy = (int)t.MatchBy; _addPathRegex = t.Match.Regex;
         });
     }
 
-    private void AddTarget(RouteStep step, int idx, Objective o, ChildKind kind, Target t)
-    {
-        var updated = kind == ChildKind.Path
-            ? RouteEditing.AddPath(o, new GuidePath(t))
-            : RouteEditing.AddIndicator(o, new Indicator(t));
-        UpdateObjective(step, idx, updated);
-    }
-
-    // the three live target pickers (nearby room tiles -> Room; Radar targets -> Tile/Entity; nearby
-    // entities -> Entity). shared by the Paths/Indicators list editor and the MinimapIcon target; each
-    // button populates the caller's add row (value + kind + matchBy + regex + living), the user edits + Adds.
-    private void DrawTargetPickers(string scope, bool living, Action<Target> populate)
+    private void DrawTargetPickers(string scope, Action<Target> populate)
     {
         var roomRows = new List<(string, (string, Action)[])>();
         foreach (var name in NearbyRoomTilesList(30))
@@ -694,7 +646,7 @@ public partial class ExileCampaigns
             radarRows.Add(($"[{rkind}] {disp} ({dist})", new (string, Action)[]
             {
                 ("Tile", () => populate(new Target(TargetKind.Tile, new Pattern(fullPath)))),
-                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(fullPath), MatchKind.Path, living))),
+                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(fullPath), MatchKind.Path))),
             }));
         }
         DrawPickerSection($"Radar targets -> {scope} (Tile / Entity)", radarRows, 140f,
@@ -709,8 +661,7 @@ public partial class ExileCampaigns
             var pick = p;
             fileRows.Add(($"[{pick.Kind}] {pick.Label}", new (string, Action)[]
             {
-                (pick.Kind.ToString(), () => populate(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy,
-                    pick.Kind == TargetKind.Entity && living))),
+                (pick.Kind.ToString(), () => populate(new Target(pick.Kind, new Pattern(pick.Match), pick.MatchBy))),
             }));
         }
         DrawPickerSection($"Radar targets.json (zone-wide) -> {scope} (Tile / Room / Entity)", fileRows, 140f,
@@ -718,156 +669,17 @@ public partial class ExileCampaigns
             "no Radar targets.json entry for this area");
 
         var entRows = new List<(string, (string, Action)[])>();
-        foreach (var (path, name, dist, alive) in NearbyEntitiesList(200f, 30))
+        foreach (var (path, name, dist) in NearbyEntitiesList(200f, 30))
         {
             var disp = string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})";
             entRows.Add((disp, new (string, Action)[]
             {
-                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path, living))),
+                ("Entity", () => populate(new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path))),
             }));
         }
-        DrawPickerSection($"Nearby entities -> {scope} (Entity){(living ? " [alive]" : "")}", entRows, 140f,
+        DrawPickerSection($"Nearby entities -> {scope} (Entity)", entRows, 140f,
             "Populates the add row above with the full metadata path. Edit to a partial match or regex, then click Add.");
     }
-
-    // list editor for an objective's MinimapIcons (multiple, like Paths/Indicators). each row edits one icon's
-    // sprite/tint/size/target inline; the add area appends a new default-sprite icon carrying the picked target.
-    private void DrawMinimapSection(RouteStep step, int idx, Objective o)
-    {
-        var icons = o.MinimapIcons ?? new List<MinimapIcon>();
-        if (icons.Count == 0) ImGui.TextDisabled("(no icons)");
-
-        for (int i = 0; i < icons.Count; i++)
-        {
-            var mmi = icons[i];
-            var icon = SpriteAtlas.Parse(mmi.IconKey);
-
-            // row: sprite picker + target summary + reorder / remove / clear-target
-            IconPicker($"{step.Id}_{idx}_{i}", icon, ic =>
-                UpdateObjective(step, idx, RouteEditing.UpdateMinimapIcon(o, i, mmi with { IconKey = ic.ToString() })));
-            ImGui.SameLine();
-            ImGui.TextUnformatted(mmi.Target != null
-                ? $"[{mmi.Target.Kind}] {mmi.Target.Match.Value}{(mmi.Target.Kind == TargetKind.Entity ? $" ({mmi.Target.MatchBy})" : "")}{(mmi.Target.LivingOnly ? " (alive)" : "")}{(mmi.Target.Match.Regex ? " (re)" : "")}"
-                : "(no target -> 1st indicator/path)");
-            ImGui.SameLine();
-            if (ImGui.SmallButton($"^##mmi{i}") && i > 0) { UpdateObjective(step, idx, RouteEditing.MoveChild(o, ChildKind.MinimapIcon, i, -1)); return; }
-            ImGui.SameLine();
-            if (ImGui.SmallButton($"v##mmi{i}") && i < icons.Count - 1) { UpdateObjective(step, idx, RouteEditing.MoveChild(o, ChildKind.MinimapIcon, i, +1)); return; }
-            ImGui.SameLine();
-            PushDanger();
-            bool rm = ImGui.SmallButton($"x##mmi{i}");
-            ImGui.PopStyleColor();
-            if (rm) { UpdateObjective(step, idx, RouteEditing.RemoveAt(o, ChildKind.MinimapIcon, i)); return; }
-            if (mmi.Target != null)
-            {
-                ImGui.SameLine();
-                if (ImGui.SmallButton($"clear target##mmi{i}"))
-                    UpdateObjective(step, idx, RouteEditing.UpdateMinimapIcon(o, i, mmi with { Target = null }));
-                // toggle "alive" (LivingOnly) on an Entity icon target in place
-                if (mmi.Target.Kind == TargetKind.Entity)
-                {
-                    ImGui.SameLine();
-                    if (ImGui.SmallButton($"{(mmi.Target.LivingOnly ? "alive*" : "alive")}##mmiliv{i}"))
-                        UpdateObjective(step, idx, RouteEditing.UpdateMinimapIcon(o, i,
-                            mmi with { Target = mmi.Target with { LivingOnly = !mmi.Target.LivingOnly } }));
-                }
-            }
-
-            // tint - commit on any change (the ColorEdit popup doesn't reliably fire IsItemDeactivatedAfterEdit;
-            // the per-frame save during a drag coalesces through the editor's deferred-save drain)
-            var col = UnpackTint(mmi.Tint);
-            ImGui.SetNextItemWidth(200f);
-            if (ImGui.ColorEdit4($"Tint##mmitint{i}", ref col))
-            {
-                var packed = PackTint(col);
-                if (packed != mmi.Tint)
-                    UpdateObjective(step, idx, RouteEditing.UpdateMinimapIcon(o, i, mmi with { Tint = packed }));
-            }
-
-            // size - per-icon override; 0 = use the global MinimapIcons.IconSize default
-            float sizeVal = mmi.Size ?? 0f;
-            ImGui.SetNextItemWidth(200f);
-            if (ImGui.SliderFloat($"Size (0=default)##mmisize{i}", ref sizeVal, 0f, 128f))
-            {
-                float? newSize = sizeVal >= 1f ? sizeVal : null;
-                if (newSize != mmi.Size)
-                    UpdateObjective(step, idx, RouteEditing.UpdateMinimapIcon(o, i, mmi with { Size = newSize }));
-            }
-            ImGui.Separator();
-        }
-
-        // add a new icon: manual target row + the shared pickers, each appends a default-sprite icon
-        ImGui.TextDisabled("Add icon (default sprite + gold; tweak inline above):");
-        ImGui.SetNextItemWidth(80f);
-        ImGui.Combo("##mmik2", ref _mmiKind, TargetKindLabels, TargetKindLabels.Length);
-        ImGui.SameLine(); ImGui.SetNextItemWidth(80f);
-        ImGui.Combo("##mmimb", ref _mmiMatchBy, MatchByLabels, MatchByLabels.Length);
-        ImGui.SameLine(); ImGui.Checkbox("re##mmi", ref _mmiRegex);
-        ImGui.SameLine(); ImGui.Checkbox("alive##mmiliv", ref _mmiLiving);
-        ImGui.SameLine(); ImGui.SetNextItemWidth(-90f);
-        InputHint("##mmipat", "target pattern (blank = anchor to 1st indicator/path)", _bufMmiPat);
-        ImGui.SameLine();
-        if (ImGui.Button("Add icon##mmi"))
-        {
-            var pat = ReadBuffer(_bufMmiPat);
-            Target? t = pat.Length > 0 ? new Target((TargetKind)_mmiKind, new Pattern(pat, _mmiRegex), (MatchKind)_mmiMatchBy, _mmiLiving) : null;
-            UpdateObjective(step, idx, RouteEditing.AddMinimapIcon(o, NewMinimapIcon(t)));
-            WriteBuffer(_bufMmiPat, "");
-        }
-
-        DrawTargetPickers("MinimapIcon", _mmiLiving, t =>
-        {
-            WriteBuffer(_bufMmiPat, t.Match.Value);
-            _mmiKind = (int)t.Kind;
-            _mmiMatchBy = (int)t.MatchBy;
-            _mmiRegex = t.Match.Regex;
-            _mmiLiving = t.LivingOnly;
-        });
-    }
-
-    // a freshly-added icon: default sprite, gold tint, global size, carrying the picked target (null = fallback anchor).
-    private static MinimapIcon NewMinimapIcon(Target? t) =>
-        new(SpriteIcon.Exclamation.ToString(), t, MinimapIcon.GoldDefault, null);
-
-    // popup grid icon picker over the desaturated atlas (already loaded as IndicatorTexture).
-    private void IconPicker(string id, SpriteIcon current, Action<SpriteIcon> set)
-    {
-        var tex = Graphics.GetTextureId(IndicatorTexture);
-        var white = new Vector4(1, 1, 1, 1);
-        var (cu0, cu1) = SpriteAtlas.GetUVPair(current);
-        string popup = $"mmipick_{id}";
-        if (tex != IntPtr.Zero)
-        {
-            if (ImGui.ImageButton($"##mmibtn_{id}", tex, new Vector2(20, 20), cu0, cu1, Vector4.Zero, white))
-                ImGui.OpenPopup(popup);
-        }
-        else if (ImGui.Button($"{(int)current}##mmibtn_{id}", new Vector2(24, 20)))
-            ImGui.OpenPopup(popup);
-
-        if (ImGui.BeginPopup(popup))
-        {
-            for (int i = 0; i < 48; i++)
-            {
-                var ic = (SpriteIcon)i;
-                var (u0, u1) = SpriteAtlas.GetUVPair(ic);
-                bool cur = ic == current;
-                if (cur) ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(1, 0, 1, 1));
-                bool clicked = tex != IntPtr.Zero
-                    ? ImGui.ImageButton($"##mmip_{id}_{i}", tex, new Vector2(32, 32), u0, u1, Vector4.Zero, white)
-                    : ImGui.Button($"{i}##mmip_{id}_{i}", new Vector2(36, 36));
-                if (cur) ImGui.PopStyleColor();
-                if (clicked) { set(ic); ImGui.CloseCurrentPopup(); }
-                if (i % SpriteAtlas.Columns != SpriteAtlas.Columns - 1) ImGui.SameLine();
-            }
-            ImGui.EndPopup();
-        }
-    }
-
-    // packed ARGB (0xAARRGGBB) <-> ImGui RGBA Vector4.
-    private static Vector4 UnpackTint(uint argb) =>
-        new Vector4(((argb >> 16) & 0xFF) / 255f, ((argb >> 8) & 0xFF) / 255f, (argb & 0xFF) / 255f, ((argb >> 24) & 0xFF) / 255f);
-    private static uint PackTint(Vector4 c) =>
-        ((uint)(c.W * 255) << 24) | ((uint)(c.X * 255) << 16) | ((uint)(c.Y * 255) << 8) | (uint)(c.Z * 255);
 
     // --- commit helpers -----------------------------------------------------------------------------------
 
@@ -995,7 +807,7 @@ public partial class ExileCampaigns
     private static bool InputHint(string label, string hint, byte[] buf)
     {
         var pos = ImGui.GetCursorScreenPos();
-        bool changed = ImGui.InputText(label, buf, (uint)buf.Length);
+        bool changed = ImGui.InputText(label, ref buf[0], (nuint)buf.Length);
         if (buf[0] == 0 && !ImGui.IsItemActive())
         {
             var pad = ImGui.GetStyle().FramePadding;
@@ -1044,7 +856,7 @@ public partial class ExileCampaigns
             ImGui.PopStyleColor(4);
             if (help != null && ImGui.IsItemHovered()) ShowTooltip(help);
             if (!open) return;
-            ImGui.BeginChild("##picker_" + title, new Vector2(-1f, height), ImGuiChildFlags.Border);
+            ImGui.BeginChild("##picker_" + title, new Vector2(-1f, height), ImGuiChildFlags.Borders);
             for (int i = 0; i < rows.Count; i++)
             {
                 var btns = rows[i].Buttons;
@@ -1203,7 +1015,7 @@ public partial class ExileCampaigns
             + "currently selected objective (editor); 'Set' replaces all its Paths.");
 
         var picks = RadarFileTargetsList();
-        ImGui.BeginChild("##ec_triage_radar", new Vector2(0f, 120f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_radar", new Vector2(0f, 120f), ImGuiChildFlags.Borders);
         if (picks.Count == 0)
         {
             ImGui.TextDisabled("(no Radar targets for this area)");
@@ -1270,7 +1082,7 @@ public partial class ExileCampaigns
         HelpMarker("Quest flags that flipped recently (newest first). Set appends a QuestFlag advance objective "
             + "to the current step and switches it to CompleteWhen Any, keeping existing guidance.");
 
-        ImGui.BeginChild("##ec_triage_flags", new Vector2(0f, 118f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_flags", new Vector2(0f, 118f), ImGuiChildFlags.Borders);
         if (_recentFlagsTimed.Count == 0)
         {
             ImGui.TextDisabled("(no flags seen yet)");
@@ -1294,20 +1106,16 @@ public partial class ExileCampaigns
 
     // --- nearby-entities quick guidance -------------------------------------------------------------------
 
-    // live nearby entities with a one-click Set/Add that writes the entity into BOTH the current objective's
-    // indicator and its minimap icon. matched by metadata path, LivingOnly off. acts on the editor's selected
-    // objective of the current step, same as the radar/flags panels.
     private void DrawNearbyEntitiesPanel(string? curId, bool hasStep)
     {
         ImGui.Separator();
         ImGui.TextDisabled("Nearby entities");
         ImGui.SameLine();
-        HelpMarker("Live entities near you. Set replaces the current objective's indicator + minimap icon with "
-            + "this entity; Add appends them. Path+ appends a Path to this entity; Path= replaces all Paths. "
+        HelpMarker("Live entities near you. Path+ appends a Path to this entity; Path= replaces all Paths. "
             + "Prox makes the objective a Proximity gate on this entity, radius = your current distance plus 20%. "
             + "Matched by metadata path.");
 
-        ImGui.BeginChild("##ec_triage_ents", new Vector2(0f, 118f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_ents", new Vector2(0f, 118f), ImGuiChildFlags.Borders);
         var ents = NearbyEntitiesList(200f, 15);
         if (ents.Count == 0)
         {
@@ -1318,11 +1126,7 @@ public partial class ExileCampaigns
             if (!hasStep) ImGui.BeginDisabled();
             for (int i = 0; i < ents.Count; i++)
             {
-                var (path, name, dist, _) = ents[i];
-                bool set = ImGui.SmallButton($"Set##nea_s{i}");
-                ImGui.SameLine();
-                bool add = ImGui.SmallButton($"Add##nea_a{i}");
-                ImGui.SameLine();
+                var (path, name, dist) = ents[i];
                 bool pathAdd = ImGui.SmallButton($"Path+##nea_p{i}");
                 ImGui.SameLine();
                 bool pathSet = ImGui.SmallButton($"Path=##nea_ps{i}");
@@ -1330,8 +1134,6 @@ public partial class ExileCampaigns
                 bool prox = ImGui.SmallButton($"Prox##nea_px{i}");
                 ImGui.SameLine();
                 ImGui.TextUnformatted(string.IsNullOrEmpty(name) ? PathLeaf(path) : $"{name} ({dist})");
-                if (set && curId != null) SetEntityGuidance(curId, path, name, replace: true);
-                if (add && curId != null) SetEntityGuidance(curId, path, name, replace: false);
                 if (pathAdd && curId != null) AddEntityPathToObjective(curId, path, name, replace: false);
                 if (pathSet && curId != null) AddEntityPathToObjective(curId, path, name, replace: true);
                 if (prox && curId != null) SetProximityGuidance(curId, path, name, dist);
@@ -1341,32 +1143,6 @@ public partial class ExileCampaigns
         ImGui.EndChild();
     }
 
-    // write the picked entity into the current objective's indicator + minimap icon. replace=Set (sole entry
-    // on each channel), replace=false=Add (append). entity matched by path, default sprite for the icon.
-    private void SetEntityGuidance(string curId, string path, string name, bool replace)
-    {
-        if (_routeStore == null) return;
-        var step = _routeStore.Steps.FirstOrDefault(s => s.Id == curId);
-        if (step == null) return;
-        var (objs, objIdx) = SelectedObjectiveList(step, _editorSelectedObjIndex);
-        var o = objs[objIdx];
-
-        var t = new Target(TargetKind.Entity, new Pattern(path), MatchKind.Path, false);
-        var updated = replace
-            ? o with { Indicators = new List<Indicator> { new(t) }, MinimapIcons = new List<MinimapIcon> { NewMinimapIcon(t) } }
-            : RouteEditing.AddMinimapIcon(RouteEditing.AddIndicator(o, new Indicator(t)), NewMinimapIcon(t));
-
-        objs[objIdx] = updated;
-        _routeStore.Update(step with { Objectives = objs });
-        SaveUserRoute();
-        ReloadRouteFromStore(curId);
-        _bufForStepId = null;
-        var lbl = string.IsNullOrEmpty(name) ? PathLeaf(path) : name;
-        ShowToast(replace ? $"Indicator+icon set: {Trunc(lbl, 20)}" : $"Indicator+icon added: {Trunc(lbl, 20)}");
-    }
-
-    // write the picked entity into the current objective's Paths. replace=Path= (sole path), false=Path+ (append).
-    // entity matched by path, LivingOnly off. mirrors AddRadarPathToObjective but for a live entity.
     private void AddEntityPathToObjective(string curId, string path, string name, bool replace)
     {
         if (_routeStore == null) return;
@@ -1387,8 +1163,6 @@ public partial class ExileCampaigns
         ShowToast(replace ? $"Path set: {Trunc(lbl, 22)}" : $"Path added: {Trunc(lbl, 20)}");
     }
 
-    // turn the current objective into a Proximity gate on the picked entity, radius = current distance + 20%.
-    // entity matched by path (consistent with Set/Path), replaces existing entities + distance.
     private void SetProximityGuidance(string curId, string path, string name, int dist)
     {
         if (_routeStore == null) return;

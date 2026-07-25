@@ -133,6 +133,13 @@ public partial class ExileCampaigns
         });
     }
 
+    // an authored progress-flag string -> its enum, parsed once. exact (case-insensitive) name match, same as
+    // the old compare against the live flag names - deliberately NOT PatternMatcher, which does substring.
+    private static readonly ConcurrentDictionary<string, QuestFlag?> ProgressFlagValues = new();
+
+    private static QuestFlag? ProgressFlagValue(string name) =>
+        ProgressFlagValues.GetOrAdd(name, static n => Enum.TryParse<QuestFlag>(n, true, out var v) ? v : (QuestFlag?)null);
+
     // live IWorldState bound to the current frame + the progress tracker.
     private sealed class WorldState : IWorldState
     {

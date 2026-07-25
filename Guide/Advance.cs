@@ -97,30 +97,11 @@ public static class AdvanceHold
     }
 }
 
-// one resolved minimap-icon request: which sprite, its tint, where to anchor it, an optional per-icon pixel
-// size (null = use the global default), and the owning step's Id (so the renderer can pulse the current one).
-public sealed record MinimapIconSpec(string IconKey, uint Tint, Target Anchor, float? Size = null, string StepId = "");
-
-// reads a step's decoupled guidance. the on-screen arrow comes from objectives' Indicators[], the ground
-// path from Paths[] - independently, so an indicator can exist with no path and a path with no arrow. keeps
-// the indicator resolver off the Paths channel (the old LegacyView synth conflated them).
+// reads a step's guidance from its objectives' Paths[].
 public static partial class GuidanceView
 {
-    // entity targets for the golden arrow, gathered from every objective's Indicators[]. Entity kind only -
-    // Tile/Room indicators are stored but not drawn yet (no world entity to anchor an arrow).
-    public static IReadOnlyList<Target> IndicatorEntityTargets(RouteStep step)
-    {
-        if (step?.Objectives == null) return new List<Target>();
-        return step.Objectives
-            .SelectMany(o => o.Indicators ?? new List<Indicator>())
-            .Select(i => i.Target)
-            .Where(t => t != null && t.Kind == TargetKind.Entity)
-            .ToList();
-    }
-
     // every Entity-by-path Path child pattern across the step's objectives (distinct, in order). drives the
-    // ground path to each authored entity target, so multiple distinct entities each get a route. parallel to
-    // IndicatorEntityTargets but for the Paths[] channel.
+    // ground path to each authored entity target, so multiple distinct entities each get a route.
     public static IReadOnlyList<string> PathEntityPatterns(RouteStep step)
     {
         var res = new List<string>();
@@ -181,37 +162,6 @@ public static partial class GuidanceView
         return false;
     }
 
-    // kill entity names the step targets: the first entity of each Kill objective (priority order),
-    // matching the single KillFragment LegacyView emitted per kill objective.
-    public static IReadOnlyList<string> KillTargets(RouteStep step)
-    {
-        var res = new List<string>();
-        if (step?.Objectives == null) return res;
-        foreach (var o in step.Objectives)
-            if (o.Type == ObjectiveType.Kill)
-            {
-                var name = o.Entities != null && o.Entities.Count > 0 ? o.Entities[0].Match.Value : null;
-                if (!string.IsNullOrWhiteSpace(name)) res.Add(name!);
-            }
-        return res;
-    }
-
-    // the step's interact-kind label (dialog|chest|proximity|kill), from the first objective whose type
-    // implies one. mirrors LegacyView's first-wins mapping.
-    public static string? InteractKind(RouteStep step)
-    {
-        if (step?.Objectives == null) return null;
-        foreach (var o in step.Objectives)
-            switch (o.Type)
-            {
-                case ObjectiveType.Kill: return "kill";
-                case ObjectiveType.Talk: return "dialog";
-                case ObjectiveType.Proximity: return "proximity";
-                case ObjectiveType.Interact: return "chest";
-            }
-        return null;
-    }
-
     // ordered per-sub-objective progress flags from the first objective that declares any. drives the
     // pathing's "drop the line to the room nearest the player when one flips".
     public static IReadOnlyList<string> ProgressFlags(RouteStep step)
@@ -221,29 +171,6 @@ public static partial class GuidanceView
             if (o.ProgressFlags is { Count: > 0 })
                 return o.ProgressFlags.Select(p => p.Value).ToList();
         return System.Array.Empty<string>();
-    }
-
-    // every objective MinimapIcon for steps in the given area. anchor = the icon's own Target, else the
-    // objective's first Indicator target, else its first Path target; skipped when none exist. an objective
-    // may carry several icons (each its own sprite/tint/size/target).
-    public static IReadOnlyList<MinimapIconSpec> MinimapIconsForArea(IReadOnlyList<RouteStep> steps, string areaId)
-    {
-        var res = new List<MinimapIconSpec>();
-        if (steps == null) return res;
-        foreach (var step in steps)
-        {
-            if (!string.Equals(step.AreaId, areaId, StringComparison.OrdinalIgnoreCase)) continue;
-            foreach (var o in step.Objectives ?? new List<Objective>())
-                foreach (var mi in o.MinimapIcons ?? new List<MinimapIcon>())
-                {
-                    var anchor = mi.Target
-                        ?? o.Indicators?.FirstOrDefault()?.Target
-                        ?? o.Paths?.FirstOrDefault()?.Target;
-                    if (anchor == null) continue;
-                    res.Add(new MinimapIconSpec(mi.IconKey, mi.Tint, anchor, mi.Size, step.Id));
-                }
-        }
-        return res;
     }
 }
 
@@ -265,11 +192,16 @@ public static class RadarTargetsFile
 
     public static IReadOnlyList<Pick> ParseArea(string json, string areaId)
     {
-        var outp = new List<Pick>();
-        if (string.IsNullOrEmpty(json) || string.IsNullOrEmpty(areaId)) return outp;
+        if (string.IsNullOrEmpty(json)) return new List<Pick>();
+        try { return ParseArea(JObject.Parse(json), areaId); } catch { return new List<Pick>(); }
+    }
 
-        JObject root;
-        try { root = JObject.Parse(json); } catch { return outp; }
+    // takes an already-parsed tree so the caller can keep it: targets.json is hundreds of KB and this runs
+    // on every area change.
+    public static IReadOnlyList<Pick> ParseArea(JObject? root, string areaId)
+    {
+        var outp = new List<Pick>();
+        if (root == null || string.IsNullOrEmpty(areaId)) return outp;
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         void AddRow(string? label, TargetKind kind, string? match, MatchKind matchBy, int count = 1)

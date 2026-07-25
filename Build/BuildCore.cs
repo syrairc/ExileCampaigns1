@@ -30,8 +30,9 @@ public sealed class BuildEntry
     public int RequiredLevel { get; set; }
     public string Note { get; set; } = "";
     public bool Optional { get; set; }        // pob socket-group flagged optional
-    public bool Used { get; set; }            // "had": set by auto-detect OR a manual mark. sticky once set
-    public bool Equipped { get; set; }        // set ONLY by auto-detect (actually worn/socketed), not manual mark
+    public bool ManualHave { get; set; }      // hand-marked have (editor checkbox / ctrl-click overlay). sticky - only a recheck's Equipped/inventory find, or unchecking it, changes it
+    public bool Used { get; set; }            // "have": recomputed every recheck as ManualHave || Equipped || found loose in inventory. not itself sticky
+    public bool Equipped { get; set; }        // currently worn/socketed. recomputed fresh every recheck, not sticky
 }
 
 // one level bracket's whole loadout. gear carried across brackets is duplicated per set on purpose.
@@ -58,6 +59,11 @@ public sealed class BuildPlan
     // computed, not a real list - keep it out of the saved json or it just doubles the file
     [JsonIgnore]
     public IEnumerable<BuildSet> AllSets => GearSets.Concat(SkillSets);
+
+    // the per-frame draw paths only want to know "is there a plan at all"; AllSets.Any() allocates a Concat
+    // enumerator every time they ask.
+    [JsonIgnore]
+    public bool IsEmpty => GearSets.Count == 0 && SkillSets.Count == 0;
 
     public BuildSet? FindSet(string? id) =>
         string.IsNullOrEmpty(id) ? null : AllSets.FirstOrDefault(s => s.Id == id);

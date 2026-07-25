@@ -13,7 +13,7 @@ using ExileCore;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Nodes;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace ExileCampaigns;
 
@@ -149,6 +149,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         Settings.SyncToCharacter.OnPressed += SyncToCharacter;
         Settings.ReloadRoutes.OnPressed += LoadRoutes;
         Settings.Diagnostics.ExportNow.OnPressed += ExportDiagnostics;
+        Settings.Profiler.Reset.OnPressed += PerfReset;
         Settings.LogQuestFlags.OnValueChanged += (_, _) => _flagSnapshot = null;   // re-seed on next enable
         Settings.Diagnostics.RecordDiagnostics.OnValueChanged += (_, _) => _diagFlagSnapshot = null;   // re-seed so toggling on doesn't dump a stale flag burst
 
@@ -171,8 +172,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         catch { /* not in an area yet */ }
 
         InitStats();
-        InitIndicatorTexture();
-        InitCometTexture();
         RegisterGuidanceBridge();
         EnsureGuidanceProviders();   // initial detection; Tick re-probes on a throttle
         return true;
@@ -201,7 +200,6 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (_routeStore == null) return;
         int prevCurrent = _route.Current;
         _route.LoadFromDocument(_routeStore.ToDocument());
-        _mmiCacheKey = null;
         _lastStepForTarget = -1;   // editing the current step keeps its index, force the path to re-resolve
         if (_route.Steps.Count > 0)
             _route.SetCurrent(Math.Min(prevCurrent, _route.Steps.Count - 1));
@@ -211,11 +209,12 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override void AreaChange(AreaInstance area)
     {
+        using var _perfScope = Perf("AreaChange");
         try
         {
             CaptureArea(area);
-            _mmiCacheKey = null;
             _holdAutoAdvanceUntilZone = false;   // a real zone change resumes auto-advance
+            RequestBuildRecheck();
             RecordDiagArea();
             OnActChangedStats(_act);
             var before = _route.Current;
@@ -291,19 +290,31 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override Job Tick()
     {
+        if (!PerfOn) return TickBody();
+        using var _perfScope = Perf("Tick (total)");
+        return TickBody();
+    }
+
+    private Job TickBody()
+    {
         // keep nav-skip in sync with the overlay's optional + league-start visibility before any advance (key or auto).
         _route.IncludeOptional = Settings.ShowOptional;
         _route.IncludeLeagueStart = Settings.ShowLeagueStart;
 
-        if (Settings.ToggleKey.PressedOnce()) _visible = !_visible;
-        if (Settings.SyncKey.PressedOnce()) SyncToCharacter();
-        if (Settings.NextStepKey.PressedOnce()) _route.Next();
-        if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
-        if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
-        if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
+        using (Perf("Tick.Keys"))
+        {
+            if (Settings.ToggleKey.PressedOnce()) _visible = !_visible;
+            if (Settings.SyncKey.PressedOnce()) SyncToCharacter();
+            if (Settings.NextStepKey.PressedOnce()) _route.Next();
+            if (Settings.PrevStepKey.PressedOnce()) { _route.Prev(); _holdAutoAdvanceUntilZone = true; }
+            if (Settings.Diagnostics.ExportKey.PressedOnce()) ExportDiagnostics();
+            if (Settings.AddBuildItemKey.PressedOnce()) OnAddBuildItemPressed();
+        }
 
-        DrainPendingRouteFile();   // pick up a finished export/import file dialog (runs off the render thread)
+        using (Perf("Tick.RouteFile"))
+            DrainPendingRouteFile();   // pick up a finished export/import file dialog (runs off the render thread)
 
+        using (Perf("Tick.Player"))
         try
         {
             var pc = GameController?.Player?.GetComponent<Player>();
@@ -333,18 +344,21 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         }
         catch { /* server data not ready */ }
 
-        RecordXpSample();
+        using (Perf("Tick.XpSample")) RecordXpSample();
 
         // harvest when logging, or just maintain the in-memory flag rings when the triage panel is open
-        if (Settings.LogQuestFlags || Settings.Dev.ShowTriageButtons) HarvestQuestFlags();
-        RecordDiagFlagChanges();
+        using (Perf("Tick.HarvestFlags"))
+            if (Settings.LogQuestFlags || Settings.Dev.ShowTriageButtons) HarvestQuestFlags();
+        using (Perf("Tick.DiagFlags")) RecordDiagFlagChanges();
 
-        EnsureGuidanceProviders();
+        using (Perf("Tick.GuidanceProbe")) EnsureGuidanceProviders();
         _targetResolver.CacheLocations = Settings.GuidanceProvider.RememberTargetLocations.Value;
         _guidanceMode = ActiveMode();
         _clusterTarget = ActiveClusterTarget(_guidanceMode);
         if (_guidanceMode == GuidanceMode.InGame)
-            UpdatePathTarget();
+        {
+            using (Perf("Tick.PathTarget")) UpdatePathTarget();
+        }
         else if (_currentTarget != null || _currentPath != null || _objectiveTargets != null || _tileCandidateMode)
         {
             // leaving in-game mode: drop the running routes AND clear the "already routing" guard so a later
@@ -356,18 +370,18 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             _lastStepForTarget = -1;
         }
         if (_guidanceMode == GuidanceMode.Panel)
-            BuildExportSnapshot();
-        else { _exportPathTargets = null; _exportIcons = null; }
-        UpdateWaypointPulse();
-        UpdateLoginPulse();
-        UpdateInteractTarget();
+        {
+            using (Perf("Tick.ExportSnapshot")) BuildExportSnapshot();
+        }
+        else { _exportPathTargets = null; }
+        using (Perf("Tick.Pulses")) { UpdateWaypointPulse(); UpdateLoginPulse(); }
         // runs after profile switch resolves above, so a swap window never scans the new char against the old build
-        DetectBuildUsed();
-        // safety net for a dirty notes edit that never got its deactivated-after-edit frame (tab switch, header collapse click)
-        if (_notesDirty && (DateTime.UtcNow - _notesDirtySince).TotalSeconds > 2) FlushNotes();
-        EvaluateAdvance();
+        using (Perf("Tick.DetectBuild")) DetectBuildUsed();
+        // safety net for a dirty build edit that never got its deactivated-after-edit frame (tab switch, header collapse click)
+        if (_buildDirty && (DateTime.UtcNow - _buildDirtySince).TotalSeconds > 2) FlushBuild();
+        using (Perf("Tick.Advance")) EvaluateAdvance();
 
-        MaybeSaveProgress();
+        using (Perf("Tick.SaveProgress")) MaybeSaveProgress();
         return null!;
     }
 
@@ -397,39 +411,50 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override void Render()
     {
+        if (!PerfOn) { RenderBody(); return; }
+        PerfBeginFrame();
+        try { RenderBody(); }
+        finally { PerfEndFrame(); }
+    }
+
+    private void RenderBody()
+    {
         if (!Settings.Enable || GameController is not { InGame: true })
             return;
 
         var ui = GameController.IngameState.IngameUi;
         // MTX shop or any full-screen panel (atlas, world map, character/skills fullscreen, etc.) hides
         // everything we draw - gear dialog, toasts, overlays, triage. MTX shop isn't in FullscreenPanels.
-        if (ui.MicrotransactionShopWindow.IsVisible || ui.FullscreenPanels.Any(p => p.IsVisible))
-            return;
+        using (Perf("Render.FullscreenCheck"))
+            if (ui.MicrotransactionShopWindow.IsVisible || AnyVisible(ui.FullscreenPanels))
+                return;
 
-        DrawToasts();       // transient messages, shown regardless of overlay toggle
-        DrawLeagueStartPrompt();   // new-profile dialog, shown even when the overlay is toggled off
-        DrawBuildDialog();  // add-by-name popup lives in settings, needs to draw even when overlay is off
+        using (Perf("Render.Toasts")) DrawToasts();       // transient messages, shown regardless of overlay toggle
+        using (Perf("Render.Prompt")) DrawLeagueStartPrompt();   // new-profile dialog, shown even when the overlay is toggled off
+        using (Perf("Render.BuildDialog")) DrawBuildDialog();  // add-by-name popup lives in settings, needs to draw even when overlay is off
 
         if (!_visible)
             return;
 
         // cache the open panel rects once per frame; every overlay hides (or slides clear) where it overlaps one.
-        _leftPanelRect = ui.OpenLeftPanel.IsVisible ? SafeClientRect(ui.OpenLeftPanel) : null;
-        _rightPanelRect = ui.OpenRightPanel.IsVisible ? SafeClientRect(ui.OpenRightPanel) : null;
-        _leftPanelRect = UnionStashTabList(ui, _leftPanelRect);
-        CacheLargePanelRects(ui);
+        using (Perf("Render.PanelRects"))
+        {
+            _leftPanelRect = ui.OpenLeftPanel.IsVisible ? SafeClientRect(ui.OpenLeftPanel) : null;
+            _rightPanelRect = ui.OpenRightPanel.IsVisible ? SafeClientRect(ui.OpenRightPanel) : null;
+            _leftPanelRect = UnionStashTabList(ui, _leftPanelRect);
+            CacheLargePanelRects(ui);
+        }
 
-        DrawStepPath();
-        DrawInteractIndicators();
-        DrawDevOverlay();
-        DrawWaypointNodeIds();
-        DrawWaypointDestination();
-        DrawMinimapIcons();
-        DrawBanner();
-        DrawBuildIndicators();
+        using (Perf("Render.StepPath")) DrawStepPath();
+        using (Perf("Render.DevOverlay")) DrawDevOverlay();
+        using (Perf("Render.WaypointIds")) DrawWaypointNodeIds();
+        using (Perf("Render.WaypointDest")) DrawWaypointDestination();
+        using (Perf("Render.Banner")) DrawBanner();
+        using (Perf("Render.BuildIndicators")) DrawBuildIndicators();
 
         if (Settings.Steps.Enable)
         {
+            using var _p = Perf("Render.StepsPanel");
             var s = Settings.Steps;
             DrawOverlay("steps", BuildStepsLines(), s.PosX, s.PosY, s.TextSize.Value, s.MaxWidth,
                 s.Padding.Value, s.BackgroundColor.Value, s.BorderColor.Value, s.BorderThickness.Value);
@@ -437,16 +462,36 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         if (Settings.CharStats.Enable)
         {
+            using var _p = Perf("Render.StatsPanel");
             var cs = Settings.CharStats;
             DrawOverlay("char", BuildCharStatsLines(cs), cs.PosX, cs.PosY, cs.TextSize.Value, cs.MaxWidth,
                 cs.Padding.Value, cs.BackgroundColor.Value, cs.BorderColor.Value, cs.BorderThickness.Value);
         }
 
         if (Settings.BuildPanel.Enable)
+        {
+            using var _p = Perf("Render.BuildPanel");
             DrawOverlay("build", BuildPanelLines(Settings.BuildPanel), Settings.BuildPanel);
+        }
 
-        DrawRouteEditor();
-        DrawTriageOverlay();
+        if (Settings.Checklist.Enable)
+        {
+            using var _p = Perf("Render.ChecklistPanel");
+            var cl = Settings.Checklist;
+            DrawOverlay("checklist", BuildChecklistLines(cl), cl.PosX, cl.PosY, cl.TextSize.Value, cl.MaxWidth,
+                cl.Padding.Value, cl.BackgroundColor.Value, cl.BorderColor.Value, cl.BorderThickness.Value);
+        }
+
+        using (Perf("Render.RouteEditor")) DrawRouteEditor();
+        using (Perf("Render.Triage")) DrawTriageOverlay();
+
+        // last, and outside its own timer on purpose: the panel reads the numbers the sections above just wrote
+        if (PerfOn && Settings.Profiler.ShowOverlay)
+        {
+            var pf = Settings.Profiler;
+            DrawOverlay("perf", BuildProfilerLines(pf), pf.PosX, pf.PosY, pf.TextSize.Value, pf.MaxWidth,
+                pf.Padding.Value, pf.BackgroundColor.Value, pf.BorderColor.Value, pf.BorderThickness.Value);
+        }
     }
 
     // stage label for the steps tracker header. poe1 is acts 1-10, no interludes.
@@ -606,11 +651,23 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         return left;
     }
 
-    // open large windows (stash, vendor, crafting, ritual, ...). refreshed each frame in Render.
+    // plain loop: FullscreenPanels allocates a fresh list per access, no need for a closure on top of that
+    private static bool AnyVisible(List<ExileCore.PoEMemory.Element> panels)
+    {
+        foreach (var p in panels) if (p is { IsVisible: true }) return true;
+        return false;
+    }
+
+    // open large windows (stash, vendor, crafting, ritual, ...). refreshed in Render, on a throttle.
     private readonly List<RectangleF> _largePanelRects = new();
+    private long _largePanelsAt;
 
     private void CacheLargePanelRects(ExileCore.PoEMemory.MemoryObjects.IngameUIElements ui)
     {
+        // LargePanels builds a 26-element list per access and each IsVisible/GetClientRect walks the parent
+        // chain. 30Hz is plenty for an "is the overlay under a big window" test.
+        if (Environment.TickCount64 - _largePanelsAt < 33) return;
+        _largePanelsAt = Environment.TickCount64;
         _largePanelRects.Clear();
         try
         {
@@ -647,7 +704,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         return dx != 0f && OverlapsSidePanel(new RectangleF(r.X + dx, r.Y, r.Width, r.Height)) ? 0f : dx;
     }
 
-    // point-test variant for per-vertex world draws (path segments, comets).
+    // point-test variant for per-vertex world draws (path segments).
     private bool PointInSidePanel(Vector2 p) =>
         (_leftPanelRect is { } l && l.Contains(p.X, p.Y)) || (_rightPanelRect is { } rp && rp.Contains(p.X, p.Y));
 
@@ -693,7 +750,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         float indentW = textSize * 1.25f;   // one support-gem indent step (~20px at 16px font)
         const int sepMinDashes = 3;         // shortest dash run each side of an area-divider label
 
-        Vector2 Measure(string t) => ImGui.CalcTextSize(t) * scale;
+        // the same strings get measured from several loops below and CalcTextSize marshals a utf8 copy each call
+        var measured = new Dictionary<string, Vector2>();
+        Vector2 Measure(string t)
+        {
+            if (measured.TryGetValue(t, out var v)) return v;
+            return measured[t] = ImGui.CalcTextSize(t) * scale;
+        }
         string SepLabel(string name) => " " + name + " ";
         float dashW = Measure("-").X;
 
@@ -751,17 +814,28 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             return maxWidth.Value > 0 && w > 10f && Measure(t).X > w ? WrapText(t, w, scale) : new List<string> { t };
         }
 
-        // per-row height (drawn kinds are taller than one text line).
-        float RowH(in PanelLine r) => r.Kind switch
-        {
-            PanelRowKind.Bar or PanelRowKind.Segmented => r.BarHeight + 6f,
-            PanelRowKind.Axis => r.BarHeight + 10f,
-            PanelRowKind.Pinned => (PinnedTitle(r.Text).Count + 1) * lineH + 8f,
-            _ => lineH,
-        };
-
+        // per-row height + the wrapped pinned title, computed once. these used to be recomputed from four
+        // separate loops, and a Pinned row re-ran the word wrap (a CalcTextSize per word) every time.
+        var rowH = new float[rows.Count];
+        var pinnedTitles = new List<string>?[rows.Count];
         float totalH = pad * 2;
-        foreach (var r in rows) totalH += RowH(r);
+        for (int i = 0; i < rows.Count; i++)
+        {
+            var r = rows[i];
+            if (r.Kind == PanelRowKind.Pinned)
+            {
+                var title = PinnedTitle(r.Text);
+                pinnedTitles[i] = title;
+                rowH[i] = (title.Count + 1) * lineH + 8f;
+            }
+            else rowH[i] = r.Kind switch
+            {
+                PanelRowKind.Bar or PanelRowKind.Segmented => r.BarHeight + 6f,
+                PanelRowKind.Axis => r.BarHeight + 10f,
+                _ => lineH,
+            };
+            totalH += rowH[i];
+        }
         var panelSize = new Vector2(contentW + pad * 2, totalH);
         var origin = new Vector2(posX.Value, posY.Value);
 
@@ -791,7 +865,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var rowTop = new float[rows.Count];
         {
             float acc = origin.Y + pad;
-            for (int i = 0; i < rows.Count; i++) { rowTop[i] = acc; acc += RowH(rows[i]); }
+            for (int i = 0; i < rows.Count; i++) { rowTop[i] = acc; acc += rowH[i]; }
         }
 
         // ctrl-hover a clickable row (build "have", route re-pin) to arm a one-click action. works locked too.
@@ -803,7 +877,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             var m = ImGui.GetMousePos();
             if (ctrl && m.X >= min.X && m.X <= max.X)
                 for (int i = 0; i < rows.Count; i++)
-                    if (rows[i].OnCtrlClick != null && m.Y >= rowTop[i] && m.Y < rowTop[i] + RowH(rows[i]))
+                    if (rows[i].OnCtrlClick != null && m.Y >= rowTop[i] && m.Y < rowTop[i] + rowH[i])
                     { hoverRow = i; break; }
         }
 
@@ -813,13 +887,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             DrawClickBlocker(id, origin, panelSize);
 
         if (background.A > 0) dl.AddRectFilled(min, max, U32(background));
-        if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, ImDrawFlags.None, borderThickness);
+        if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, borderThickness, ImDrawFlags.None);
         // drag/resize affordance. unlocked: outline every panel (faint, bright on hover). locked but Alt held:
         // only the panel you're actually over, so Alt (common in-game) doesn't light up the whole screen.
         if (OverlaysMovable && (!Settings.LockOverlays.Value || hovered || active))
         {
             var hint = (active || hovered) ? new Color(120, 220, 255, 220) : new Color(120, 220, 255, 120);
-            dl.AddRect(min, max, U32(hint), 0f, ImDrawFlags.None, 1.5f);
+            dl.AddRect(min, max, U32(hint), 0f, 1.5f, ImDrawFlags.None);
             if (onEdge || _resizeId == id)
                 dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
         }
@@ -828,7 +902,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         if (hoverRow >= 0)
         {
             float ry = rowTop[hoverRow];
-            dl.AddRectFilled(new Vector2(min.X + 1, ry), new Vector2(max.X - 1, ry + RowH(rows[hoverRow])),
+            dl.AddRectFilled(new Vector2(min.X + 1, ry), new Vector2(max.X - 1, ry + rowH[hoverRow]),
                 U32(new Color(120, 220, 255, 55)));
         }
 
@@ -840,10 +914,10 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             float y = rowTop[i];
             switch (r.Kind)
             {
-                case PanelRowKind.Bar: DrawBarRow(dl, r, innerL, innerR, y, RowH(r)); break;
-                case PanelRowKind.Segmented: DrawSegmentedRow(dl, r, innerL, innerR, y, RowH(r)); break;
-                case PanelRowKind.Axis: DrawAxisRow(dl, r, innerL, innerR, y, RowH(r)); break;
-                case PanelRowKind.Pinned: DrawPinnedRow(dl, font, textSize, r, min, max, innerL, textX, y, lineH, RowH(r), PinnedTitle(r.Text)); break;
+                case PanelRowKind.Bar: DrawBarRow(dl, r, innerL, innerR, y, rowH[i]); break;
+                case PanelRowKind.Segmented: DrawSegmentedRow(dl, r, innerL, innerR, y, rowH[i]); break;
+                case PanelRowKind.Axis: DrawAxisRow(dl, r, innerL, innerR, y, rowH[i]); break;
+                case PanelRowKind.Pinned: DrawPinnedRow(dl, font, textSize, r, min, max, innerL, textX, y, lineH, rowH[i], pinnedTitles[i]!); break;
                 default: DrawTextRow(dl, font, textSize, r, Measure, SepLabel, dashW, sepMinDashes, contentW,
                     innerL, y, textX, indentW); break;
             }
@@ -855,7 +929,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     }
 
     // one plain text / header / separator row.
-    private void DrawTextRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+    private unsafe void DrawTextRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
         Func<string, Vector2> measure, Func<string, string> sepLabel, float dashW, int sepMinDashes,
         float contentW, float innerL, float y, float textX, float indentW)
     {
@@ -882,7 +956,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     }
 
     // highlighted current-objective row: bg box + 2px left accent bar + (wrapped) title + dim zone sub-line.
-    private void DrawPinnedRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+    private unsafe void DrawPinnedRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
         Vector2 min, Vector2 max, float innerL, float textX, float y, float lineH, float rowH, List<string> titleLines)
     {
         var boxMin = new Vector2(min.X + 1, y);
@@ -912,7 +986,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             if (r.FillA == r.FillB) dl.AddRectFilled(a, fb, U32(r.FillA));
             else dl.AddRectFilledMultiColor(a, fb, U32(r.FillA), U32(r.FillB), U32(r.FillB), U32(r.FillA));
         }
-        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, 1f, ImDrawFlags.None);
     }
 
     // N equal cells with 2px gaps, one fill each (the 10-act campaign bar).
@@ -962,7 +1036,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         dl.AddRectFilled(sa, sb, U32(AxisSafeBand));
         dl.AddLine(new Vector2(sa.X, a.Y), new Vector2(sa.X, b.Y), U32(AxisSafeEdge), 1f);
         dl.AddLine(new Vector2(sb.X, a.Y), new Vector2(sb.X, b.Y), U32(AxisSafeEdge), 1f);
-        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, 1f, ImDrawFlags.None);
 
         float markerPct = Math.Clamp(0.5f + (al - cl) / half * 0.5f, 0.03f, 0.97f);
         float mx = innerL + w * markerPct;
@@ -1004,7 +1078,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
                     && mouse.Y >= origin.Y && mouse.Y <= origin.Y + size.Y;
         bool onEdge = hovered && mouse.X >= origin.X + size.X - edge;
 
-        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEW);
+        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
 
         if (_dragId == null && _resizeId == null && hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
@@ -1051,7 +1125,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         bool hovered = mouse.X >= min.X && mouse.X <= min.X + size.X
                     && mouse.Y >= min.Y && mouse.Y <= min.Y + size.Y;
         bool onEdge = hovered && mouse.X >= min.X + size.X - edge;
-        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEW);
+        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
 
         if (_dragId == null && _resizeId == null && hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
@@ -1085,7 +1159,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     {
         var hint = (active || hovered) ? new Color(120, 220, 255, 220) : new Color(120, 220, 255, 120);
         var dl = ImGui.GetForegroundDrawList();
-        dl.AddRect(min, max, U32(hint), 0f, ImDrawFlags.None, 1.5f);
+        dl.AddRect(min, max, U32(hint), 0f, 1.5f, ImDrawFlags.None);
         if (onEdge || resizing)
             dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
     }
@@ -1115,7 +1189,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     // top-centre banner shown on auto-advance (fades out over the last 0.5s). Preview keeps it up with
     // sample text for positioning/resizing; draggable when overlays are unlocked.
-    private void DrawBanner()
+    private unsafe void DrawBanner()
     {
         if (!Settings.Banner.Enable) return;
         var b = Settings.Banner;
@@ -1193,7 +1267,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var bg = Fade(b.BackgroundColor.Value, alpha);
         if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
         if (b.BorderThickness.Value > 0)
-            dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, b.BorderThickness.Value);
+            dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, b.BorderThickness.Value, ImDrawFlags.None);
         if (draggable)
             DrawDragHint(min, max, active, hovered, onEdge, _resizeId == "banner");
 
@@ -1235,6 +1309,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
     public override void DrawSettings()
     {
+        // timed too: this runs every frame the settings window is open, and the route tree inside it is big
+        using var _p = Perf("DrawSettings");
         DrawSettingsTabs();   // custom tabbed panel; profiles live in the first tab now
     }
 }
