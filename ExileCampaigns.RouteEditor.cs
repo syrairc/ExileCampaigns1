@@ -5,7 +5,7 @@ using System.Numerics;
 using System.Text;
 using ExileCampaigns.Guide;
 using ExileCampaigns.Rendering;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace ExileCampaigns;
 
@@ -124,13 +124,13 @@ public partial class ExileCampaigns
             return;
         }
 
-        ImGui.BeginChild("##ec_tree", new Vector2(330f, 0f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_tree", new Vector2(330f, 0f), ImGuiChildFlags.Borders);
         DrawStepTree();
         ImGui.EndChild();
 
         ImGui.SameLine();
 
-        ImGui.BeginChild("##ec_detail", new Vector2(0f, 0f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_detail", new Vector2(0f, 0f), ImGuiChildFlags.Borders);
         DrawStepDetail();
         ImGui.EndChild();
     }
@@ -579,7 +579,7 @@ public partial class ExileCampaigns
             matches.Sort((a, b) => string.Compare(a.Flag, b.Flag, StringComparison.OrdinalIgnoreCase));
 
             ImGui.TextDisabled(capped ? $"  {cap}+ matches (refine search)" : $"  {matches.Count} matches");
-            ImGui.BeginChild("##flagsearch_list", new Vector2(-1f, 160f), ImGuiChildFlags.Border);
+            ImGui.BeginChild("##flagsearch_list", new Vector2(-1f, 160f), ImGuiChildFlags.Borders);
             for (int i = 0; i < matches.Count; i++)
             {
                 var (flag, state) = matches[i];
@@ -833,12 +833,13 @@ public partial class ExileCampaigns
     private void IconPicker(string id, SpriteIcon current, Action<SpriteIcon> set)
     {
         var tex = Graphics.GetTextureId(IndicatorTexture);
+        var texture = new ImTextureRef { TexID = tex };
         var white = new Vector4(1, 1, 1, 1);
         var (cu0, cu1) = SpriteAtlas.GetUVPair(current);
         string popup = $"mmipick_{id}";
         if (tex != IntPtr.Zero)
         {
-            if (ImGui.ImageButton($"##mmibtn_{id}", tex, new Vector2(20, 20), cu0, cu1, Vector4.Zero, white))
+            if (ImGui.ImageButton($"##mmibtn_{id}", texture, new Vector2(20, 20), cu0, cu1, Vector4.Zero, white))
                 ImGui.OpenPopup(popup);
         }
         else if (ImGui.Button($"{(int)current}##mmibtn_{id}", new Vector2(24, 20)))
@@ -853,7 +854,7 @@ public partial class ExileCampaigns
                 bool cur = ic == current;
                 if (cur) ImGui.PushStyleColor(ImGuiCol.Button, new Vector4(1, 0, 1, 1));
                 bool clicked = tex != IntPtr.Zero
-                    ? ImGui.ImageButton($"##mmip_{id}_{i}", tex, new Vector2(32, 32), u0, u1, Vector4.Zero, white)
+                    ? ImGui.ImageButton($"##mmip_{id}_{i}", texture, new Vector2(32, 32), u0, u1, Vector4.Zero, white)
                     : ImGui.Button($"{i}##mmip_{id}_{i}", new Vector2(36, 36));
                 if (cur) ImGui.PopStyleColor();
                 if (clicked) { set(ic); ImGui.CloseCurrentPopup(); }
@@ -990,20 +991,8 @@ public partial class ExileCampaigns
         return Encoding.UTF8.GetString(buf, 0, end).Trim();
     }
 
-    // ghost-text placeholder for our byte[] inputs. ImGui.NET 1.90's InputTextWithHint only takes a
-    // ref string, so we keep the buffer model and paint the hint ourselves when the field is empty + idle.
-    private static bool InputHint(string label, string hint, byte[] buf)
-    {
-        var pos = ImGui.GetCursorScreenPos();
-        bool changed = ImGui.InputText(label, buf, (uint)buf.Length);
-        if (buf[0] == 0 && !ImGui.IsItemActive())
-        {
-            var pad = ImGui.GetStyle().FramePadding;
-            ImGui.GetWindowDrawList().AddText(new Vector2(pos.X + pad.X, pos.Y + pad.Y),
-                ImGui.GetColorU32(ImGuiCol.TextDisabled), hint);
-        }
-        return changed;
-    }
+    private static bool InputHint(string label, string hint, byte[] buf) =>
+        ImGui.InputTextWithHint(label, hint, ref buf[0], (nuint)buf.Length);
 
     private static void ShowTooltip(string desc)
     {
@@ -1044,7 +1033,7 @@ public partial class ExileCampaigns
             ImGui.PopStyleColor(4);
             if (help != null && ImGui.IsItemHovered()) ShowTooltip(help);
             if (!open) return;
-            ImGui.BeginChild("##picker_" + title, new Vector2(-1f, height), ImGuiChildFlags.Border);
+            ImGui.BeginChild("##picker_" + title, new Vector2(-1f, height), ImGuiChildFlags.Borders);
             for (int i = 0; i < rows.Count; i++)
             {
                 var btns = rows[i].Buttons;
@@ -1203,7 +1192,7 @@ public partial class ExileCampaigns
             + "currently selected objective (editor); 'Set' replaces all its Paths.");
 
         var picks = RadarFileTargetsList();
-        ImGui.BeginChild("##ec_triage_radar", new Vector2(0f, 120f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_radar", new Vector2(0f, 120f), ImGuiChildFlags.Borders);
         if (picks.Count == 0)
         {
             ImGui.TextDisabled("(no Radar targets for this area)");
@@ -1270,7 +1259,7 @@ public partial class ExileCampaigns
         HelpMarker("Quest flags that flipped recently (newest first). Set appends a QuestFlag advance objective "
             + "to the current step and switches it to CompleteWhen Any, keeping existing guidance.");
 
-        ImGui.BeginChild("##ec_triage_flags", new Vector2(0f, 118f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_flags", new Vector2(0f, 118f), ImGuiChildFlags.Borders);
         if (_recentFlagsTimed.Count == 0)
         {
             ImGui.TextDisabled("(no flags seen yet)");
@@ -1307,7 +1296,7 @@ public partial class ExileCampaigns
             + "Prox makes the objective a Proximity gate on this entity, radius = your current distance plus 20%. "
             + "Matched by metadata path.");
 
-        ImGui.BeginChild("##ec_triage_ents", new Vector2(0f, 118f), ImGuiChildFlags.Border);
+        ImGui.BeginChild("##ec_triage_ents", new Vector2(0f, 118f), ImGuiChildFlags.Borders);
         var ents = NearbyEntitiesList(200f, 15);
         if (ents.Count == 0)
         {

@@ -10,7 +10,7 @@ using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.Elements;
 using ExileCore.PoEMemory.MemoryObjects;
 using GameOffsets.Native;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
 using ExileCampaigns.Rendering;
 using ExileCore.PoEMemory;
@@ -1149,16 +1149,16 @@ public partial class ExileCampaigns
         var mapped = Guide.WaypointSlots.NamesByAct.TryGetValue(act, out var m) ? m : null;
         var names = act > 0 ? ActAreaNames(act) : new List<string>();
 
-        // ImGui foreground list so the text scales - Graphics.DrawText's height arg is a no-op in this
+        // ImGui background list so the text scales - Graphics.DrawText's height arg is a no-op in this
         // ExileAPI build. ~70% of default, since a lot of node labels sit close and overlap at full size.
-        var dl = ImGui.GetForegroundDrawList();
-        var font = ImGui.GetFont();
+        var dl = ImGui.GetBackgroundDrawList();
         float baseSize = ImGui.GetFontSize();
         if (baseSize <= 0) baseSize = 16f;
         const float scale = 0.7f;
         float textSize = baseSize * scale;
         uint fg = U32(Color.Yellow), bg = U32(new Color(0, 0, 0, 210));
 
+        PushOverlayFont(textSize);
         for (int i = 0; i < kids.Count; i++)
         {
             var node = kids[i];
@@ -1172,11 +1172,12 @@ public partial class ExileCampaigns
             var name = mapped != null && i < mapped.Length ? mapped[i]
                      : i < names.Count ? names[i] : "?";
             var label = $"{i}  {name}";
-            var sz = ImGui.CalcTextSize(label) * scale;
+            var sz = ImGui.CalcTextSize(label);
             var pos = new Vector2(rect.X, rect.Y - sz.Y - 3f);   // sit just above the icon
             dl.AddRectFilled(pos - new Vector2(3, 1), pos + sz + new Vector2(3, 1), bg);
-            dl.AddText(font, textSize, pos, fg, label);
+            dl.AddText(pos, fg, label);
         }
+        ImGui.PopFont();
     }
 
     // the current step's "Waypoint to X" destination as (act, slot), or null when this isn't a waypoint
@@ -1222,7 +1223,7 @@ public partial class ExileCampaigns
         int viewedPart = SelectedChildIndex(PartsContainer());
         int viewedAct = ViewedActFromPanel(holder);
 
-        var dl = ImGui.GetForegroundDrawList();
+        var dl = ImGui.GetBackgroundDrawList();
         float p = WpPulse();
         uint col = U32(new Color(255, 200, 60, (int)(120 + 135 * p)));   // gold, pulsing alpha
 
@@ -1267,14 +1268,15 @@ public partial class ExileCampaigns
         var label = _route.CurrentStep?.Model?.Text;
         if (!string.IsNullOrEmpty(label))
         {
-            var font = ImGui.GetFont();
             float baseSize = ImGui.GetFontSize();
             if (baseSize <= 0) baseSize = 16f;
             float ts = Math.Clamp(baseR * 0.85f, 11f, 44f);
             var tsz = ImGui.CalcTextSize(label) * (ts / baseSize);
             var tp = new Vector2(center.X + baseR * 1.15f + baseR * 0.4f, center.Y - tsz.Y / 2f);
             dl.AddRectFilled(tp - new Vector2(4, 2), tp + tsz + new Vector2(4, 2), U32(new Color(0, 0, 0, 180)));
-            dl.AddText(font, ts, tp, col, label);
+            PushOverlayFont(ts);
+            dl.AddText(tp, col, label);
+            ImGui.PopFont();
         }
     }
 
@@ -1288,7 +1290,7 @@ public partial class ExileCampaigns
         float pad = 2f + 3f * p;
         dl.AddRect(new Vector2(r.X - pad, r.Y - pad),
                    new Vector2(r.X + r.Width + pad, r.Y + r.Height + pad),
-                   col, 4f, ImDrawFlags.None, 3f);
+                   col, 4f, 3f);
     }
 
     // the world map's Part-tab container (3 tabs), stable path. reused by the viewed-part check.

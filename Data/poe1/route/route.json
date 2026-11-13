@@ -1422,29 +1422,65 @@
       ]
     },
     {
-      "id": "imp-a1-37",
+      "id": "imp-a1-43",
       "act": 1,
       "areaId": "1_1_9",
       "areaName": "The Ship Graveyard",
-      "text": "Place a portal at the Ship Graveyard Cave",
+      "text": "Kill Captain Fairgraves and pick up the Allflame",
       "optional": false,
-      "completeWhen": "All",
+      "completeWhen": "Any",
       "objectives": [
         {
-          "type": "TownPortal",
+          "type": "QuestFlag",
+          "flag": {
+            "value": "A1Q6HaveAllFlame"
+          },
           "paths": [
             {
               "target": {
-                "kind": "Tile",
+                "kind": "Entity",
                 "match": {
-                  "value": "shipentrance"
-                }
+                  "value": "Metadata/NPC/Act1/Fairgraves"
+                },
+                "matchBy": "Path"
+              }
+            }
+          ],
+          "indicators": [
+            {
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Fairgraves"
+                },
+                "matchBy": "Path",
+                "living": true
+              }
+            }
+          ],
+          "minimapIcons": [
+            {
+              "iconKey": "Exclamation",
+              "tint": 4294953020,
+              "target": {
+                "kind": "Entity",
+                "match": {
+                  "value": "Metadata/NPC/Act1/Fairgraves"
+                },
+                "matchBy": "Path",
+                "living": true
               }
             }
           ]
+        },
+        {
+          "type": "EnterArea",
+          "areaTarget": {
+            "value": "1_1_11_1"
+          }
         }
       ],
-      "importFp": "fnv1a:ca066cec"
+      "importFp": "fnv1a:bded5ab5"
     },
     {
       "id": "imp-a1-38",
@@ -1501,8 +1537,8 @@
     {
       "id": "imp-a1-39",
       "act": 1,
-      "areaId": "1_1_11_2",
-      "areaName": "",
+      "areaId": "1_1_11_1",
+      "areaName": "The Cavern of Wrath",
       "text": "Waypoint to Lioneye's Watch",
       "optional": false,
       "completeWhen": "All",
@@ -1515,288 +1551,6 @@
         }
       ],
       "importFp": "fnv1a:ebe2fb27"
-    },
-    {
-      "id": "imp-a1-40",
-      "act": 1,
-      "areaId": "1_1_town",
-      "areaName": "Lioneye's Watch",
-      "text": "Take portal",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "TownPortal"
-        }
-      ],
-      "importFp": "fnv1a:33feff21"
-    },
-    {
-      "id": "imp-a1-41",
-      "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "Enter The Ship Graveyard Cave",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_9a"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Room",
-                "match": {
-                  "value": "Metadata/Terrain/Act1/Area9/Rooms/shipdungeon_entrance_cliff.arm"
-                }
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:48df5e61"
-    },
-    {
-      "id": "c89837b9b0c64e2d92fcd6c64e27de5c",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Kill Stranglecharm",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "Kill",
-          "entities": [
-            {
-              "match": {
-                "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave"
-              },
-              "matchBy": "Name"
-            }
-          ],
-          "paths": [
-            {
-              "target": {
-                "kind": "Tile",
-                "match": {
-                  "value": "boatallflame"
-                }
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave@12"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Monsters/WaterElemental/WaterElementaBossShipCave@12"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ]
-        },
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6HaveAllFlame"
-          }
-        }
-      ]
-    },
-    {
-      "id": "imp-a1-42",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Find Slave Girl, take Allflame",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6HaveAllFlame"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/Chests/QuestChests/Fairgraves/AllFlameSlaveGirl"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:386fc54e"
-    },
-    {
-      "id": "aa6fef57c60d4d4f91a9103dc65c407c",
-      "act": 1,
-      "areaId": "1_1_9a",
-      "areaName": "The Ship Graveyard Cave",
-      "text": "Return to the Ship Graveyard",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "EnterArea",
-          "areaTarget": {
-            "value": "1_1_9"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/MiscellaneousObjects/AreaTransition"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "imp-a1-43",
-      "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "Kill Captain Fairgraves",
-      "optional": false,
-      "completeWhen": "Any",
-      "objectives": [
-        {
-          "type": "QuestFlag",
-          "flag": {
-            "value": "A1Q6KilledFairgraves"
-          },
-          "paths": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path"
-              }
-            }
-          ],
-          "indicators": [
-            {
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ],
-          "minimapIcons": [
-            {
-              "iconKey": "Exclamation",
-              "tint": 4294953020,
-              "target": {
-                "kind": "Entity",
-                "match": {
-                  "value": "Metadata/NPC/Act1/Fairgraves"
-                },
-                "matchBy": "Path",
-                "living": true
-              }
-            }
-          ]
-        }
-      ],
-      "importFp": "fnv1a:bded5ab5"
-    },
-    {
-      "id": "imp-a1-44",
-      "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
-      "text": "log out",
-      "optional": false,
-      "completeWhen": "All",
-      "objectives": [
-        {
-          "type": "Login"
-        }
-      ],
-      "importFp": "fnv1a:13d366ab"
     },
     {
       "id": "imp-a1-45",
@@ -1925,8 +1679,8 @@
     {
       "id": "imp-a1-48",
       "act": 1,
-      "areaId": "1_1_9",
-      "areaName": "The Ship Graveyard",
+      "areaId": "1_1_11_1",
+      "areaName": "The Cavern of Wrath",
       "text": "Enter The Cavern of Anger",
       "optional": false,
       "completeWhen": "All",

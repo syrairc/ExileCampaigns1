@@ -43,8 +43,8 @@
       <HintPath>$(exapiPackage)\SharpDX.Mathematics.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="ImGui.NET">
-      <HintPath>$(exapiPackage)\ImGui.NET.dll</HintPath>
+    <Reference Include="Hexa.NET.ImGui">
+      <HintPath>$(exapiPackage)\Hexa.NET.ImGui.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

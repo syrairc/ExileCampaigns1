@@ -5,7 +5,7 @@ using ExileCampaigns.Build;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Enums;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
 using ExileCore.PoEMemory;
 using ExileCore.PoEMemory.Elements.InventoryElements;
@@ -280,7 +280,7 @@ public partial class ExileCampaigns
         var selectedId = (gear ? SelectedGearSet : SelectedSkillSet)?.Id;
 
         ImGui.BeginChild(gear ? "##ec_setlist_gear" : "##ec_setlist_skill",
-            new Vector2(220, 520), ImGuiChildFlags.Border);
+            new Vector2(220, 520), ImGuiChildFlags.Borders);
 
         if (ImGui.Button("Add set", new Vector2(-1, 0)))
         {
@@ -309,7 +309,7 @@ public partial class ExileCampaigns
         var sets = gear ? _build.GearSets : _build.SkillSets;
         var set = gear ? SelectedGearSet : SelectedSkillSet;
         ImGui.BeginChild(gear ? "##ec_setdetail_gear" : "##ec_setdetail_skill",
-            new Vector2(0, 520), ImGuiChildFlags.Border);
+            new Vector2(0, 520), ImGuiChildFlags.Borders);
 
         if (set == null)
         {
@@ -556,13 +556,12 @@ public partial class ExileCampaigns
         ImGui.InputInt("Target level", ref _dialogLevel);
         _dialogLevel = Clamp(_dialogLevel);
 
-        // a support is only ever "used" once it shares a link group with its skill, so the link is required
         if (f.IsSupport)
         {
             var skills = set.Entries.Where(e => e.Kind == BuildItemKind.Gem && !e.IsSupport).ToList();
             if (skills.Count == 0)
             {
-                ImGui.TextColored(new Vector4(0.9f, 0.5f, 0.3f, 1f), "Add a skill gem to this set first.");
+                ImGui.TextDisabled("No active skill gems in this set to link to.");
             }
             else
             {
@@ -586,22 +585,28 @@ public partial class ExileCampaigns
 
         ImGui.Separator();
 
-        bool blocked = f.IsSupport && _pendingLinkId == null;
-        ImGui.BeginDisabled(blocked);
-        if (ImGui.Button("Add", new Vector2(90, 0)))
+        ImGui.BeginDisabled(f.IsSupport && _pendingLinkId == null);
+        bool add = ImGui.Button("Add", new Vector2(90, 0));
+        ImGui.EndDisabled();
+
+        if (f.IsSupport)
+        {
+            ImGui.SameLine();
+            if (ImGui.Button("Add unlinked"))
+            {
+                _pendingLinkId = null;
+                add = true;
+            }
+        }
+
+        ImGui.SameLine();
+        bool cancel = ImGui.Button("Cancel", new Vector2(90, 0));
+        if (add)
         {
             AddPending(set, f);
             ImGui.CloseCurrentPopup();
         }
-        ImGui.EndDisabled();
-        if (blocked)
-        {
-            ImGui.SameLine();
-            ImGui.TextDisabled("pick the skill it supports");
-        }
-
-        ImGui.SameLine();
-        if (ImGui.Button("Cancel", new Vector2(90, 0)))
+        else if (cancel)
         {
             // clear pending state too, same as Add - don't rely on the next opener to reset it
             _pendingPick = null;
@@ -639,6 +644,8 @@ public partial class ExileCampaigns
         ShowToast($"Added {f.Name} @ Lvl {_dialogLevel}", ToastLevel.Success);
     }
 
+    private (BuildSet Set, BuildEntry Entry)? _draggedSkillRow;
+
     // entry table for the selected set. per-row PushID: without it every row's widgets share an id and
     // editing one row edits another.
     private void DrawEntryTable(BuildSet set, bool gear)
@@ -651,7 +658,7 @@ public partial class ExileCampaigns
             return;
         }
 
-        if (!ImGui.BeginTable(gear ? "##ec_entries_gear" : "##ec_entries_skill", 7,
+        if (!ImGui.BeginTable(gear ? "##ec_entries_gear" : "##ec_entries_skill", gear ? 7 : 8,
                 ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.ScrollY,
                 new Vector2(0, 420)))
             return;
@@ -663,12 +670,19 @@ public partial class ExileCampaigns
         ImGui.TableSetupColumn("Note", ImGuiTableColumnFlags.WidthStretch);
         ImGui.TableSetupColumn("Have", ImGuiTableColumnFlags.WidthFixed, 40);
         ImGui.TableSetupColumn("Opt", ImGuiTableColumnFlags.WidthFixed, 34);
+        if (!gear)
+            ImGui.TableSetupColumn("Move", ImGuiTableColumnFlags.WidthFixed, 44);
         ImGui.TableSetupColumn("", ImGuiTableColumnFlags.WidthFixed, 30);
         ImGui.TableHeadersRow();
 
         BuildEntry? remove = null;
-        foreach (var e in set.Entries.OrderBy(x => x.TargetLevel).ToList())
+        (int From, int To)? move = null;
+        const string skillRowPayload = "ExileCampaignsSkillRow";
+        // The overlay uses the saved skill order when drawing skills and their linked supports.
+        var entries = gear ? set.Entries.OrderBy(x => x.TargetLevel).ToList() : set.Entries;
+        for (int index = 0; index < entries.Count; index++)
         {
+            var e = entries[index];
             ImGui.PushID(e.Id);
             ImGui.TableNextRow();
 
@@ -701,6 +715,48 @@ public partial class ExileCampaigns
             bool opt = e.Optional;
             if (ImGui.Checkbox("##opt", ref opt)) { e.Optional = opt; SaveBuild(); }
 
+            if (!gear)
+            {
+                ImGui.TableNextColumn();
+                ImGui.Button("=##drag", new Vector2(-1, 0));
+                bool highlight = ImGui.IsItemHovered();
+                if (highlight)
+                {
+                    ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeNs);
+                    ImGui.SetItemTooltip("Drag onto another skill row's handle to reorder.");
+                }
+
+                if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.PayloadAutoExpire))
+                {
+                    _draggedSkillRow = (set, e);
+                    ImGui.SetDragDropPayload(skillRowPayload, IntPtr.Zero, 0);
+                    ImGui.TextUnformatted(label);
+                    ImGui.EndDragDropSource();
+                    highlight = true;
+                }
+
+                if (_draggedSkillRow is { } drag && drag.Set == set && ImGui.BeginDragDropTarget())
+                {
+                    var payload = ImGui.AcceptDragDropPayload(skillRowPayload,
+                        ImGuiDragDropFlags.AcceptBeforeDelivery | ImGuiDragDropFlags.AcceptNoDrawDefaultRect);
+                    if (!payload.IsNull)
+                    {
+                        highlight = true;
+                        if (payload.IsDelivery())
+                        {
+                            int sourceIndex = entries.IndexOf(drag.Entry);
+                            if (sourceIndex >= 0 && sourceIndex != index)
+                                move = (sourceIndex, index);
+                            _draggedSkillRow = null;
+                        }
+                    }
+                    ImGui.EndDragDropTarget();
+                }
+
+                if (highlight)
+                    ImGui.TableSetBgColor(ImGuiTableBgTarget.RowBg1, ImGui.GetColorU32(ImGuiCol.HeaderHovered, 0.5f));
+            }
+
             ImGui.TableNextColumn();
             if (ImGui.SmallButton("X")) remove = e;
 
@@ -714,6 +770,13 @@ public partial class ExileCampaigns
             // clear any support's link back to it so a deleted skill doesn't leave a dangling LinkedToId
             foreach (var e in set.Entries) if (e.LinkedToId == remove.Id) e.LinkedToId = null;
             set.Entries.Remove(remove);
+            SaveBuild();
+        }
+        else if (move is { } reorder)
+        {
+            var entry = entries[reorder.From];
+            entries.RemoveAt(reorder.From);
+            entries.Insert(reorder.To, entry);
             SaveBuild();
         }
     }
@@ -1317,7 +1380,7 @@ public partial class ExileCampaigns
             var items = panel[InventoryIndex.PlayerInventory]?.VisibleInventoryItems;
             if (items == null) return;
 
-            var dl = ImGui.GetForegroundDrawList();
+            var dl = ImGui.GetBackgroundDrawList();
             float sz = Settings.BuildIndicators.Size.Value;
             uint outline = U32(new Color(10, 10, 12, 220));   // SharpDX.Color is RGBA
 
@@ -1353,7 +1416,7 @@ public partial class ExileCampaigns
     {
         try
         {
-            var dl = ImGui.GetForegroundDrawList();
+            var dl = ImGui.GetBackgroundDrawList();
             foreach (var (element, entry) in WindowBuildHits(window))
             {
                 if (element.Address == 0 || !element.IsVisibleLocal) continue;   // item left since the last scan
@@ -1371,7 +1434,7 @@ public partial class ExileCampaigns
                     break;
                 }
                 if (covered) continue;
-                dl.AddRect(min, max, U32(IndicatorColor(entry)), 0f, ImDrawFlags.None, 3f);
+                dl.AddRect(min, max, U32(IndicatorColor(entry)), 0f, 3f);
             }
         }
         catch { /* window mid-teardown */ }
@@ -1534,6 +1597,8 @@ public partial class ExileCampaigns
         {
             string num = e.Used ? "have" : e.TargetLevel <= _playerLevel ? "now" : $"L{e.TargetLevel}";
             string name = (support ? "+ " : "") + e.Name;
+            if (e.Kind == BuildItemKind.Gem && !string.IsNullOrWhiteSpace(e.Note))
+                name += $"  [{e.Note.Trim()}]";
             if (e.Equipped) name += "  (equipped)";
             else if (e.Used) name += "  (have)";
             if (e.Optional) name += "  (optional)";
@@ -1566,9 +1631,9 @@ public partial class ExileCampaigns
                 lines.Add(Row(sup, support: true));
             shown++;
         }
-        // orphan supports + gear: standalone rows, hidden once had (no group to give a had one context).
+        // Unlinked supports and gear use standalone rows and are hidden once owned.
         foreach (var sup in supports.Where(su => _build.FindEntry(su.LinkedToId) == null && !su.Used))
-        { lines.Add(Row(sup, support: true)); shown++; }
+        { lines.Add(Row(sup, support: false)); shown++; }
         foreach (var it in items.Where(it => !it.Used))
         { lines.Add(Row(it, support: false)); shown++; }
 

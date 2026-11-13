@@ -1,6 +1,6 @@
 using System;
 using ExileCore.Shared.Nodes;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using SharpDX;
 using System.IO;
 using System.Linq;
@@ -675,8 +675,7 @@ public partial class ExileCampaigns
         bool draggable = showSample || (AltHeld && _toasts.Count > 0);
         if (_toasts.Count == 0 && !showSample) return;
 
-        var dl = ImGui.GetForegroundDrawList();
-        var font = ImGui.GetFont();
+        var dl = ImGui.GetBackgroundDrawList();
         var baseSize = ImGui.GetFontSize();
         if (baseSize <= 0) baseSize = 16f;
         float size = t.TextSize.Value;
@@ -727,11 +726,13 @@ public partial class ExileCampaigns
             if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
             dl.AddRectFilled(min, new Vector2(min.X + ToastAccentW, max.Y), U32(Fade(ToastAccent(level), alpha)));
             if (t.BorderThickness.Value > 0)
-                dl.AddRect(min, max, U32(Fade(t.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, t.BorderThickness.Value);
+                dl.AddRect(min, max, U32(Fade(t.BorderColor.Value, alpha)), 0f, t.BorderThickness.Value);
 
             uint textCol = U32(Fade(t.TextColor.Value, alpha));
             var p = new Vector2(min.X + ToastAccentW + pad, min.Y + pad);
-            foreach (var r in rows) { dl.AddText(font, size, p, textCol, r); p.Y += lineH; }
+            PushOverlayFont(size);
+            foreach (var r in rows) { dl.AddText(p, textCol, r); p.Y += lineH; }
+            ImGui.PopFont();
 
             return max.Y + gap;
         }

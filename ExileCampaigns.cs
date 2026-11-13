@@ -13,7 +13,7 @@ using ExileCore;
 using ExileCore.PoEMemory.Components;
 using ExileCore.PoEMemory.MemoryObjects;
 using ExileCore.Shared.Nodes;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace ExileCampaigns;
 
@@ -674,7 +674,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         Input.GetKeyState(System.Windows.Forms.Keys.LMenu) || Input.GetKeyState(System.Windows.Forms.Keys.RMenu);
     private bool OverlaysMovable => !Settings.LockOverlays.Value || AltHeld;
 
-    // draw a panel of lines via the ImGui foreground draw list. unlike Graphics.DrawText this honours a
+    // draw a panel of lines via the ImGui background draw list. unlike Graphics.DrawText this honours a
     // per-call font size (textSize), so each overlay gets its own scale/border/fill. unlock overlays (or hold
     // Alt) to drag the body to move or the right edge to set wrap width; writes back to posX/posY/maxWidth.
     // hides when its rect would overlap an open side panel (see OverlapsSidePanel).
@@ -683,8 +683,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     {
         if (lines.Count == 0) return;
 
-        var dl = ImGui.GetForegroundDrawList();
-        var font = ImGui.GetFont();
+        var dl = ImGui.GetBackgroundDrawList();
         var baseSize = ImGui.GetFontSize();
         if (baseSize <= 0) baseSize = 16f;
         float scale = textSize / baseSize;
@@ -693,7 +692,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         float indentW = textSize * 1.25f;   // one support-gem indent step (~20px at 16px font)
         const int sepMinDashes = 3;         // shortest dash run each side of an area-divider label
 
-        Vector2 Measure(string t) => ImGui.CalcTextSize(t) * scale;
+        var font = ImGui.GetFont();
+        Vector2 Measure(string t) => font.CalcTextSizeA(baseSize, float.MaxValue, 0f, t) * scale;
         string SepLabel(string name) => " " + name + " ";
         float dashW = Measure("-").X;
 
@@ -801,7 +801,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             bool ctrl = Input.GetKeyState(System.Windows.Forms.Keys.LControlKey)
                      || Input.GetKeyState(System.Windows.Forms.Keys.RControlKey);
             var m = ImGui.GetMousePos();
-            if (ctrl && m.X >= min.X && m.X <= max.X)
+            if (ctrl && OverlayCanReceiveMouse(id) && m.X >= min.X && m.X <= max.X)
                 for (int i = 0; i < rows.Count; i++)
                     if (rows[i].OnCtrlClick != null && m.Y >= rowTop[i] && m.Y < rowTop[i] + RowH(rows[i]))
                     { hoverRow = i; break; }
@@ -813,13 +813,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             DrawClickBlocker(id, origin, panelSize);
 
         if (background.A > 0) dl.AddRectFilled(min, max, U32(background));
-        if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, ImDrawFlags.None, borderThickness);
+        if (borderThickness > 0) dl.AddRect(min, max, U32(borderColor), 0f, borderThickness);
         // drag/resize affordance. unlocked: outline every panel (faint, bright on hover). locked but Alt held:
         // only the panel you're actually over, so Alt (common in-game) doesn't light up the whole screen.
         if (OverlaysMovable && (!Settings.LockOverlays.Value || hovered || active))
         {
             var hint = (active || hovered) ? new Color(120, 220, 255, 220) : new Color(120, 220, 255, 120);
-            dl.AddRect(min, max, U32(hint), 0f, ImDrawFlags.None, 1.5f);
+            dl.AddRect(min, max, U32(hint), 0f, 1.5f);
             if (onEdge || _resizeId == id)
                 dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
         }
@@ -834,6 +834,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         float innerL = origin.X + pad;
         float innerR = max.X - pad;
+        PushOverlayFont(textSize);
         for (int i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
@@ -843,11 +844,13 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
                 case PanelRowKind.Bar: DrawBarRow(dl, r, innerL, innerR, y, RowH(r)); break;
                 case PanelRowKind.Segmented: DrawSegmentedRow(dl, r, innerL, innerR, y, RowH(r)); break;
                 case PanelRowKind.Axis: DrawAxisRow(dl, r, innerL, innerR, y, RowH(r)); break;
-                case PanelRowKind.Pinned: DrawPinnedRow(dl, font, textSize, r, min, max, innerL, textX, y, lineH, RowH(r), PinnedTitle(r.Text)); break;
-                default: DrawTextRow(dl, font, textSize, r, Measure, SepLabel, dashW, sepMinDashes, contentW,
+                case PanelRowKind.Pinned: DrawPinnedRow(dl, r, min, max, innerL, textX, y, lineH, RowH(r), PinnedTitle(r.Text)); break;
+                default: DrawTextRow(dl, r, Measure, SepLabel, dashW, sepMinDashes, contentW,
                     innerL, y, textX, indentW); break;
             }
         }
+
+        ImGui.PopFont();
 
         // fire after drawing so the mutation lands cleanly, not mid-enumeration
         if (hoverRow >= 0 && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -855,7 +858,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     }
 
     // one plain text / header / separator row.
-    private void DrawTextRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+    private void DrawTextRow(ImDrawListPtr dl, in PanelLine r,
         Func<string, Vector2> measure, Func<string, string> sepLabel, float dashW, int sepMinDashes,
         float contentW, float innerL, float y, float textX, float indentW)
     {
@@ -867,22 +870,22 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             int n = sepMinDashes;
             if (dashW > 0) n = Math.Max(sepMinDashes, (int)((contentW - measure(label).X) / 2f / dashW));
             var run = new string('-', n);
-            dl.AddText(font, textSize, p, col, run + label + run);
+            dl.AddText(p, col, run + label + run);
             return;
         }
-        if (r.Num != null) dl.AddText(font, textSize, p, col, r.Num);
+        if (r.Num != null) dl.AddText(p, col, r.Num);
         float tx = r.IsHeader ? 0f : textX + r.Indent * indentW;
         if (!string.IsNullOrEmpty(r.Text))
-            dl.AddText(font, textSize, p + new Vector2(tx, 0), col, Ascii(r.Text));
+            dl.AddText(p + new Vector2(tx, 0), col, Ascii(r.Text));
         if (r.Right != null)
         {
             float rx = contentW - measure(Ascii(r.Right)).X;   // align to the panel's inner-right edge
-            dl.AddText(font, textSize, new Vector2(innerL + rx, y), col, Ascii(r.Right));
+            dl.AddText(new Vector2(innerL + rx, y), col, Ascii(r.Right));
         }
     }
 
     // highlighted current-objective row: bg box + 2px left accent bar + (wrapped) title + dim zone sub-line.
-    private void DrawPinnedRow(ImDrawListPtr dl, ImFontPtr font, float textSize, in PanelLine r,
+    private void DrawPinnedRow(ImDrawListPtr dl, in PanelLine r,
         Vector2 min, Vector2 max, float innerL, float textX, float y, float lineH, float rowH, List<string> titleLines)
     {
         var boxMin = new Vector2(min.X + 1, y);
@@ -891,11 +894,11 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         dl.AddRectFilled(boxMin, new Vector2(boxMin.X + 2f, boxMax.Y), U32(r.Accent));
         var col = U32(r.Color);
         var p = new Vector2(innerL, y + 3f);
-        if (r.Num != null) dl.AddText(font, textSize, p, col, r.Num);
+        if (r.Num != null) dl.AddText(p, col, r.Num);
         float ty = p.Y;
-        foreach (var tl in titleLines) { dl.AddText(font, textSize, new Vector2(innerL + textX, ty), col, tl); ty += lineH; }
+        foreach (var tl in titleLines) { dl.AddText(new Vector2(innerL + textX, ty), col, tl); ty += lineH; }
         if (r.SubText != null)
-            dl.AddText(font, textSize, new Vector2(innerL + textX, ty), U32(RowMuted), Ascii(r.SubText));
+            dl.AddText(new Vector2(innerL + textX, ty), U32(RowMuted), Ascii(r.SubText));
     }
 
     // full-width track + gradient fill (flat when fillA==fillB).
@@ -912,7 +915,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             if (r.FillA == r.FillB) dl.AddRectFilled(a, fb, U32(r.FillA));
             else dl.AddRectFilledMultiColor(a, fb, U32(r.FillA), U32(r.FillB), U32(r.FillB), U32(r.FillA));
         }
-        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, 1f);
     }
 
     // N equal cells with 2px gaps, one fill each (the 10-act campaign bar).
@@ -962,15 +965,25 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         dl.AddRectFilled(sa, sb, U32(AxisSafeBand));
         dl.AddLine(new Vector2(sa.X, a.Y), new Vector2(sa.X, b.Y), U32(AxisSafeEdge), 1f);
         dl.AddLine(new Vector2(sb.X, a.Y), new Vector2(sb.X, b.Y), U32(AxisSafeEdge), 1f);
-        dl.AddRect(a, b, U32(BarTrackBorder), 0f, ImDrawFlags.None, 1f);
+        dl.AddRect(a, b, U32(BarTrackBorder), 0f, 1f);
 
         float markerPct = Math.Clamp(0.5f + (al - cl) / half * 0.5f, 0.03f, 0.97f);
         float mx = innerL + w * markerPct;
         dl.AddLine(new Vector2(mx, a.Y - 3f), new Vector2(mx, b.Y + 3f), U32(AxisMarker), 2f);
     }
 
-    // invisible ImGui window sized to the panel. only job: be hovered so ImGui sets WantCaptureMouse
-    // (which ExileCore honours), swallowing drag clicks before the game sees them.
+    private static string ClickBlockerName(string id) => $"##ecdrag_{id}";
+
+    // Let windows above the overlay receive the mouse, including the ExileCore settings menu.
+    private static bool OverlayCanReceiveMouse(string id)
+    {
+        var hovered = ImGui.GetCurrentContext().HoveredWindow;
+        if (hovered.IsNull) return true;
+        var blocker = ImGuiP.FindWindowByName(ClickBlockerName(id));
+        return !blocker.IsNull && hovered.ID == blocker.ID;
+    }
+
+    // Capture overlay clicks before they reach the game.
     private static void DrawClickBlocker(string id, Vector2 pos, Vector2 size)
     {
         ImGui.SetNextWindowPos(pos);
@@ -978,11 +991,9 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         ImGui.SetNextWindowBgAlpha(0f);
         const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoMove
             | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing | ImGuiWindowFlags.NoNav
-            | ImGuiWindowFlags.NoScrollWithMouse;
-        if (ImGui.Begin($"##ecdrag_{id}", flags))
-            ImGui.End();
-        else
-            ImGui.End();
+            | ImGuiWindowFlags.NoScrollWithMouse | ImGuiWindowFlags.NoBringToFrontOnFocus;
+        ImGui.Begin(ClickBlockerName(id), flags);
+        ImGui.End();
     }
 
     // left-drag move (body) + right-edge resize for a panel. returns (hovered, onRightEdge).
@@ -1000,11 +1011,12 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         const float edge = 6f;
         var mouse = ImGui.GetMousePos();
-        bool hovered = mouse.X >= origin.X && mouse.X <= origin.X + size.X
+        bool hovered = OverlayCanReceiveMouse(id)
+                    && mouse.X >= origin.X && mouse.X <= origin.X + size.X
                     && mouse.Y >= origin.Y && mouse.Y <= origin.Y + size.Y;
         bool onEdge = hovered && mouse.X >= origin.X + size.X - edge;
 
-        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEW);
+        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
 
         if (_dragId == null && _resizeId == null && hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
@@ -1048,10 +1060,11 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
 
         const float edge = 6f;
         var mouse = ImGui.GetMousePos();
-        bool hovered = mouse.X >= min.X && mouse.X <= min.X + size.X
+        bool hovered = OverlayCanReceiveMouse(id)
+                    && mouse.X >= min.X && mouse.X <= min.X + size.X
                     && mouse.Y >= min.Y && mouse.Y <= min.Y + size.Y;
         bool onEdge = hovered && mouse.X >= min.X + size.X - edge;
-        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEW);
+        if (onEdge || _resizeId == id) ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeEw);
 
         if (_dragId == null && _resizeId == null && hovered && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
         {
@@ -1084,8 +1097,8 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
     private void DrawDragHint(Vector2 min, Vector2 max, bool active, bool hovered, bool onEdge, bool resizing)
     {
         var hint = (active || hovered) ? new Color(120, 220, 255, 220) : new Color(120, 220, 255, 120);
-        var dl = ImGui.GetForegroundDrawList();
-        dl.AddRect(min, max, U32(hint), 0f, ImDrawFlags.None, 1.5f);
+        var dl = ImGui.GetBackgroundDrawList();
+        dl.AddRect(min, max, U32(hint), 0f, 1.5f);
         if (onEdge || resizing)
             dl.AddLine(new Vector2(max.X, min.Y), new Vector2(max.X, max.Y), U32(new Color(120, 220, 255, 255)), 3f);
     }
@@ -1154,8 +1167,7 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
             source = sample;
         }
 
-        var dl = ImGui.GetForegroundDrawList();
-        var font = ImGui.GetFont();
+        var dl = ImGui.GetBackgroundDrawList();
         var baseSize = ImGui.GetFontSize();
         if (baseSize <= 0) baseSize = 16f;
         float size = b.TextSize.Value;
@@ -1193,18 +1205,28 @@ public partial class ExileCampaigns : BaseSettingsPlugin<ExileCampaignsSettings>
         var bg = Fade(b.BackgroundColor.Value, alpha);
         if (bg.A > 0) dl.AddRectFilled(min, max, U32(bg));
         if (b.BorderThickness.Value > 0)
-            dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, ImDrawFlags.None, b.BorderThickness.Value);
+            dl.AddRect(min, max, U32(Fade(b.BorderColor.Value, alpha)), 0f, b.BorderThickness.Value);
         if (draggable)
             DrawDragHint(min, max, active, hovered, onEdge, _resizeId == "banner");
 
         uint textCol = U32(Fade(b.TextColor.Value, alpha));
         var p = min + new Vector2(pad, pad);
+        PushOverlayFont(size);
         foreach (var r in rows)
         {
-            float w = ImGui.CalcTextSize(r).X * scale;
-            dl.AddText(font, size, new Vector2(min.X + (panelW - w) / 2f, p.Y), textCol, r);  // centre each line
+            float w = ImGui.CalcTextSize(r).X;
+            dl.AddText(new Vector2(min.X + (panelW - w) / 2f, p.Y), textCol, r);  // centre each line
             p.Y += lineH;
         }
+        ImGui.PopFont();
+    }
+
+    // PushFont accepts the unscaled size. Convert the requested screen size using the current font scale.
+    private static void PushOverlayFont(float size)
+    {
+        float currentSize = ImGui.GetFontSize();
+        float baseSize = currentSize > 0 ? size * ImGui.GetStyle().FontSizeBase / currentSize : size;
+        ImGui.PushFont(ImGui.GetFont(), baseSize);
     }
 
     private static Color Fade(Color c, float a) => new Color(c.R, c.G, c.B, (byte)Math.Clamp(c.A * a, 0, 255));

@@ -25,7 +25,7 @@ public sealed class BuildEntry
     public ItemRarity Rarity { get; set; } = ItemRarity.Normal;
     public BuildItemKind Kind { get; set; } = BuildItemKind.Equipment;
     public bool IsSupport { get; set; }
-    public string? LinkedToId { get; set; }   // -> a gem entry in the same set. required for supports.
+    public string? LinkedToId { get; set; }   // -> a gem entry in the same set, or null for an unlinked entry.
     public int TargetLevel { get; set; } = 1;
     public int RequiredLevel { get; set; }
     public string Note { get; set; } = "";

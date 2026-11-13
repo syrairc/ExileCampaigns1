@@ -127,7 +127,7 @@ public class MinimapIconSettings
 }
 
 // per-overlay placement + styling, one instance each so they move/style/toggle independently.
-// drawn via the ImGui foreground draw list for per-call font size (Graphics.DrawText can't here).
+// drawn via the ImGui background draw list for per-call font size (Graphics.DrawText can't here).
 [Submenu]
 public class OverlayStyle
 {
